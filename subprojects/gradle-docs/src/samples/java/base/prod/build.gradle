@@ -1,0 +1,17 @@
+
+configurations {
+    getByName('default').extendsFrom(compile)
+}
+
+dependencies {
+    compile group: 'commons-collections', name: 'commons-collections', version: '3.2'
+}
+
+task jar(type: Jar) {
+    from sourceSets.main.classes
+}
+
+artifacts {
+    archives jar
+}
+

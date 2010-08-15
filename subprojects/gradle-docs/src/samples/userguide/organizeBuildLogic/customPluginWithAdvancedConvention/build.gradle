@@ -1,0 +1,25 @@
+apply plugin: GreetingPlugin
+
+greet {
+    message = 'Hi from Gradle' 
+}
+
+class GreetingPlugin implements Plugin<Project> {
+    def void apply(Project project) {
+
+        project.convention.plugins.greet = new GreetingPluginConvention()
+        project.task('hello') << {
+            println project.convention.plugins.greet.message
+        }
+    }
+}
+
+class GreetingPluginConvention {
+    String message
+
+    def greet(Closure closure) {
+        closure.delegate = this
+        closure() 
+    }
+}
+

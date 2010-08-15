@@ -1,0 +1,36 @@
+// START SNIPPET use-plugin
+apply plugin: 'idea'
+// END SNIPPET use-plugin
+// START SNIPPET module-before-configured
+// START SNIPPET module-when-configured
+ideaModule {
+// END SNIPPET module-when-configured
+    beforeConfigured { module ->
+        module.dependencies.clear()
+    }
+// END SNIPPET module-before-configured
+// START SNIPPET module-when-configured
+    whenConfigured { module ->
+        module.dependencies*.exported = true
+    }
+// START SNIPPET module-before-configured
+}
+// END SNIPPET module-before-configured
+// END SNIPPET module-when-configured
+
+// START SNIPPET project-before-configured
+// START SNIPPET project-with-xml
+ideaProject {
+// END SNIPPET project-with-xml
+    beforeConfigured { project ->
+        project.modules.clear()
+    }
+// END SNIPPET project-before-configured
+// START SNIPPET project-with-xml
+    withXml { root ->
+        root.component.find { it.@name == 'VcsDirectoryMappings' }.mapping.@vcs = 'Git'
+    }
+// START SNIPPET project-before-configured
+}
+// END SNIPPET project-before-configured
+// END SNIPPET project-with-xml

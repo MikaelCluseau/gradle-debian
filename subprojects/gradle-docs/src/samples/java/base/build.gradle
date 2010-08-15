@@ -1,0 +1,23 @@
+subprojects {
+    apply plugin: 'java-base'
+
+    sourceCompatibility = 1.5
+    version = '1.0'
+
+    repositories {
+        mavenCentral()
+    }
+
+    configurations {
+        compile
+    }
+
+    sourceSets {
+        main {
+            java.srcDir "$projectDir/java"
+            resources.srcDir "$projectDir/java"
+            compileClasspath = configurations.compile
+            runtimeClasspath = compileClasspath + classes
+        }
+    }
+}

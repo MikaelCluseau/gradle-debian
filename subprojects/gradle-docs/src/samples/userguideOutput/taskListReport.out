@@ -1,0 +1,10 @@
+
+------------------------------------------------------------
+Root Project
+------------------------------------------------------------
+Default tasks: dists
+
+Build tasks
+-----------
+:clean - Deletes the build directory (build)
+:dists - Builds the distribution

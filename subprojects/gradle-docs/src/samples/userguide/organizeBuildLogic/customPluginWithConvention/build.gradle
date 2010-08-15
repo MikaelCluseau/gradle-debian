@@ -1,0 +1,16 @@
+apply plugin: GreetingPlugin
+
+greeting = 'Hi from Gradle'
+
+class GreetingPlugin implements Plugin<Project> {
+    def void apply(Project project) {
+        project.convention.plugins.greet = new GreetingPluginConvention()
+        project.task('hello') << {
+            println project.convention.plugins.greet.greeting
+        }
+    }
+}
+
+class GreetingPluginConvention {
+    def String greeting = 'Hello from GreetingPlugin'
+}
