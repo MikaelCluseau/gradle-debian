@@ -26,12 +26,15 @@ import org.gradle.gradleplugin.foundation.GradlePluginLord;
 import org.gradle.gradleplugin.foundation.request.ExecutionRequest;
 import org.gradle.gradleplugin.foundation.request.RefreshTaskListRequest;
 import org.gradle.gradleplugin.foundation.request.Request;
+import org.gradle.util.UncheckedException;
 import org.jmock.Expectations;
 import org.jmock.integration.junit4.JUnit4Mockery;
 
 import javax.swing.filechooser.FileFilter;
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -53,6 +56,8 @@ public class TestUtility {
         context.checking(new Expectations() {{
             allowing(project).getName();
             will(returnValue(name));
+            allowing(project).getDescription();
+            will(returnValue(null));
             allowing(project).getBuildFile();
             will(returnValue(new File(buildFilePath)));
             allowing(project).getDepth();
@@ -77,15 +82,10 @@ public class TestUtility {
      * empty array to set no sub projects.
     */
     public static void attachSubProjects(JUnit4Mockery context, final Project parentProject, Project... subProjectArray) {
-        final Set<Project> set = new LinkedHashSet<Project>();   //using a LinkedHashSet rather than TreeSet (which is what gradle uses) so I don't have to deal with compareTo() being called on mock objects.
-
-        if (subProjectArray != null && subProjectArray.length != 0) {
-            set.addAll(Arrays.asList(subProjectArray));
-
-            //set the parent project of the sub projects
-            for (int index = 0; index < subProjectArray.length; index++) {
-                final Project subProject = subProjectArray[index];
-
+        final Map<String, Project> childProjects = new LinkedHashMap<String, Project>();
+        if (subProjectArray != null) {
+            for (final Project subProject : subProjectArray) {
+                childProjects.put(String.valueOf(childProjects.size()), subProject);
                 context.checking(new Expectations() {{
                     allowing(subProject).getParent();
                     will(returnValue(parentProject));
@@ -95,8 +95,8 @@ public class TestUtility {
 
         //populate the subprojects (this may be an empty set)
         context.checking(new Expectations() {{
-            allowing(parentProject).getSubprojects();
-            will(returnValue(set));
+            allowing(parentProject).getChildProjects();
+            will(returnValue(childProjects));
         }});
     }
 
@@ -152,8 +152,8 @@ public class TestUtility {
 
         //populate the task container (this may be an empty set)
         context.checking(new Expectations() {{
-            allowing(taskContainer).getAll();
-            will(returnValue(set));
+            allowing(taskContainer).iterator();
+            will(returnIterator(set));
         }});
     }
 
@@ -285,7 +285,7 @@ public class TestUtility {
     }
 
     /**
-     * This is an ImportInteraction implemention meant to be used by tests. See TestExportInteraction for more
+     * This is an ImportInteraction implementation meant to be used by tests. See TestExportInteraction for more
      * information.
     */
     public static class TestImportInteraction implements DOM4JSerializer.ImportInteraction {
@@ -316,19 +316,12 @@ public class TestUtility {
      * This refreshes the projects but blocks until it is complete (its being executed in a separate process).
      *
      * @param gradlePluginLord the plugin lord (will be used to execute the command and store the results).
-     * @param maximumWaitSeconds how many seconds to wait before considering this a failure.
     */
-    public static void refreshProjectsBlocking(GradlePluginLord gradlePluginLord, int maximumWaitSeconds) {
+    public static void refreshProjectsBlocking(GradlePluginLord gradlePluginLord, int maximumWaitValue, TimeUnit maximumWaitUnits) {
         refreshProjectsBlocking(gradlePluginLord, new ExecuteGradleCommandServerProtocol.ExecutionInteraction() {
             public void reportExecutionStarted() {
             }
 
-           /**
-            Notification of the total number of tasks that will be executed. This is
-            called after reportExecutionStarted and before any tasks are executed.
-
-            @param size the total number of tasks.
-            */
            public void reportNumberOfTasksToExecute( int size ) {
            }
 
@@ -343,13 +336,13 @@ public class TestUtility {
 
             public void reportLiveOutput(String message) {
             }
-        }, maximumWaitSeconds);
+        }, maximumWaitValue, maximumWaitUnits);
     }
 
-    public static void refreshProjectsBlocking(GradlePluginLord gradlePluginLord, final ExecuteGradleCommandServerProtocol.ExecutionInteraction executionInteraction, int maximumWaitSeconds) {
+    private static void refreshProjectsBlocking(GradlePluginLord gradlePluginLord, final ExecuteGradleCommandServerProtocol.ExecutionInteraction executionInteraction, int maximumWaitValue, TimeUnit maximumWaitUnits) {
         gradlePluginLord.startExecutionQueue();   //make sure its started
 
-        final AtomicBoolean isComplete = new AtomicBoolean();
+        final CountDownLatch complete = new CountDownLatch(1);
 
         GradlePluginLord.RequestObserver observer = new GradlePluginLord.RequestObserver() {
            public void executionRequestAdded( ExecutionRequest request ) {}
@@ -360,7 +353,7 @@ public class TestUtility {
            public void aboutToExecuteRequest( Request request ) { }
 
            public void requestExecutionComplete( Request request, int result, String output ) {
-               isComplete.set(true);
+               complete.countDown();
            }
         };
 
@@ -370,25 +363,20 @@ public class TestUtility {
         //make sure we've got a request
         Assert.assertNotNull(request);
 
-        //now sleep until we're complete, but bail if we wait too long
-        int totalWaitTime = 0;
-        while (!isComplete.get() && totalWaitTime <= maximumWaitSeconds) {
-            try {
-                Thread.sleep(1000);
-            }
-            catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            totalWaitTime += 1;
+        //now wait until we're complete, but bail if we wait too long
+        boolean completed;
+        try {
+            completed = complete.await(maximumWaitValue, maximumWaitUnits);
+        } catch (InterruptedException e) {
+            throw UncheckedException.asUncheckedException(e);
         }
 
         gradlePluginLord.removeRequestObserver( observer );
 
-        if (!isComplete.get()) //its still running. Something is wrong.
+        if (!completed) //its still running. Something is wrong.
         {
             request.cancel(); //just to clean up after ourselves a little, cancel the request.
-            throw new AssertionFailedError("Failed to complete refresh in alotted time: " + maximumWaitSeconds + " seconds. Considering this failed.");
+            throw new AssertionFailedError("Failed to complete refresh in alotted time: " + maximumWaitValue + " " + maximumWaitUnits + ". Considering this failed.");
         }
     }
 

@@ -16,9 +16,7 @@
 
 package org.gradle.external.javadoc;
 
-import org.gradle.external.javadoc.optionfile.JavadocOptionFile;
-import org.gradle.external.javadoc.optionfile.JavadocOptionFileOption;
-import org.gradle.external.javadoc.optionfile.OptionLessJavadocOptionFileOption;
+import org.gradle.external.javadoc.internal.JavadocOptionFile;
 import org.gradle.process.ExecSpec;
 import org.gradle.util.GFileUtils;
 import org.gradle.util.GUtil;
@@ -30,8 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 
- *
+ * Provides the core Javadoc Options. That is, provides the options which are not doclet specific.
  *
  * @author Tom Eyckmans
  */
@@ -209,10 +206,10 @@ public abstract class CoreJavadocOptions implements MinimalJavadocOptions
     /**
      * -source release
      * Specifies the version of source code accepted. The following values for release are allowed:
-     * 1.5 	javadoc accepts code containing generics and other language features introduced in JDK 1.5.
+     * 1.5  javadoc accepts code containing generics and other language features introduced in JDK 1.5.
      * The compiler defaults to the 1.5 behavior if the -source flag is not used.
-     * 1.4 	javadoc accepts code containing assertions, which were introduced in JDK 1.4.
-     * 1.3 	javadoc does not support assertions, generics, or other language features introduced after JDK 1.3.
+     * 1.4  javadoc accepts code containing assertions, which were introduced in JDK 1.4.
+     * 1.3  javadoc does not support assertions, generics, or other language features introduced after JDK 1.3.
      *
      * Use the value of release corresponding to that used when compiling the code with javac.
      */
@@ -318,7 +315,7 @@ public abstract class CoreJavadocOptions implements MinimalJavadocOptions
     }
 
     /**
-     * Control the Javadoc output level (-verbose or -quiet
+     * Control the Javadoc output level (-verbose or -quiet).
      */
     private final JavadocOptionFileOption<JavadocOutputLevel> outputLevel;
 
@@ -523,11 +520,11 @@ public abstract class CoreJavadocOptions implements MinimalJavadocOptions
         return optionFile.addStringOption(option, value);
     }
 
-    public <T> JavadocOptionFileOption<T> addEnumOption(String option) {
+    public <T extends Enum<T>> JavadocOptionFileOption<T> addEnumOption(String option) {
         return optionFile.addEnumOption(option);
     }
 
-    public <T> JavadocOptionFileOption<T> addEnumOption(String option, T value) {
+    public <T extends Enum<T>> JavadocOptionFileOption<T> addEnumOption(String option, T value) {
         return optionFile.addEnumOption(option, value);
     }
 

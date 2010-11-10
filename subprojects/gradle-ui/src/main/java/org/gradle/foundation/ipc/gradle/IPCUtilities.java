@@ -41,7 +41,7 @@ public class IPCUtilities {
 
         ExecuteGradleCommandClientProtocol protocol = new ExecuteGradleCommandClientProtocol(gradle);
         GradleClient client = new GradleClient();
-        client.start(protocol, port.intValue());
+        client.start(protocol, port);
     }
 
     /**
@@ -61,8 +61,7 @@ public class IPCUtilities {
         }
 
         try {
-            int port = Integer.parseInt(portText);
-            return new Integer(port);
+            return Integer.parseInt(portText);
         } catch (NumberFormatException e) {
             LOGGER.error("Invalid " + ProtocolConstants.PORT_NUMBER_SYSTEM_PROPERTY + " system property", e);
             return null;
@@ -71,7 +70,7 @@ public class IPCUtilities {
 
     /**
      * This starts a gradle client that sends a task list back to the server. It expects the port number to set as a
-     * system property. You probably should be executing the "-t" command. Note: this is using gradle to find the port.
+     * system property. You probably should be executing the "tasks" command. Note: this is using gradle to find the port.
      * See getPort().
      *
      * @param gradle the gradle launcher object.
@@ -84,6 +83,6 @@ public class IPCUtilities {
 
         TaskListClientProtocol protocol = new TaskListClientProtocol(gradle);
         GradleClient client = new GradleClient();
-        client.start(protocol, port.intValue());
+        client.start(protocol, port);
     }
 }

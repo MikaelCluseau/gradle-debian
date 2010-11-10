@@ -63,7 +63,7 @@ import java.util.Set;
  * the task as parameter.  You can add action closures to a task by calling {@link #doFirst(groovy.lang.Closure)} or
  * {@link #doLast(groovy.lang.Closure)}  or using the left-shift &lt;&lt; operator.</p>
  *
- * There are 2 special exceptions which a task action can throw to abort execution and continue without failing the
+ * <p>There are 2 special exceptions which a task action can throw to abort execution and continue without failing the
  * build. A task action can abort execution of the action and continue to the next action of the task by throwing a
  * {@link org.gradle.api.tasks.StopActionException}. A task action can abort execution of the task and continue to the
  * next task by throwing a {@link org.gradle.api.tasks.StopExecutionException}. Using these exceptions allows you to
@@ -143,7 +143,7 @@ public interface Task extends Comparable<Task> {
     public static final String TASK_ACTION = "action";
 
     /**
-     * </p>Returns the name of this task. The name uniquely identifies the task within its {@link Project}.</p>
+     * <p>Returns the name of this task. The name uniquely identifies the task within its {@link Project}.</p>
      *
      * @return The name of the task. Never returns null.
      */
@@ -261,6 +261,14 @@ public interface Task extends Comparable<Task> {
      * @return The execution state of this task. Never returns null.
      */
     TaskState getState();
+
+    /**
+     * Sets whether the task actually did any work.  Most built-in tasks will set this automatically, but
+     * it may be useful to manually indicate this for custom user tasks.
+     * <p>This is useful when combined with onlyIf { dependsOnTaskDidWork() }.
+     * @param didWork indicates if the task did any work
+     */
+    void setDidWork(boolean didWork);
 
     /**
      * <p>Checks if the task actually did any work.  Even if a Task executes, it may determine that it has nothing to
@@ -400,7 +408,7 @@ public interface Task extends Comparable<Task> {
     Task captureStandardOutput(LogLevel level);
 
     /**
-     * Returns the value of the given property of this task.  This method locates a property as follows:</p>
+     * <p>Returns the value of the given property of this task.  This method locates a property as follows:</p>
      *
      * <ol>
      *
@@ -460,15 +468,15 @@ public interface Task extends Comparable<Task> {
     Convention getConvention();
 
     /**
-     * Returns the description of a task.
+     * Returns the description of this task.
      *
-     * @see #setDescription(String)
+     * @return the description. May return null.
      */
     String getDescription();
 
     /**
-     * Adds a text to describe what the task does to the user of the build. The description will be displayed when
-     * <code>gradle -t</code> is called.
+     * Sets a description for this task. This should describe what the task does to the user of the build. The
+     * description will be displayed when <code>gradle tasks</code> is called.
      *
      * @param description The description of the task. Might be null.
      */

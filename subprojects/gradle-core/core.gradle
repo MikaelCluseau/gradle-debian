@@ -18,30 +18,18 @@ import java.text.DateFormat
 import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
 
 apply plugin: 'groovy'
+apply from: "$rootDir/gradle/integTest.gradle"
 
 configurations {
     testFixtures
     testFixturesRuntime {
         extendsFrom testFixtures, testRuntime
     }
-    integTestCompile {
-        extendsFrom testCompile
-    }
-    integTestRuntime {
-        extendsFrom intTestCompile, testRuntime
-    }
     integTestFixtures {
         extendsFrom testFixtures
     }
     integTestFixturesRuntime {
         extendsFrom integTestFixtures, integTestRuntime
-    }
-}
-
-sourceSets {
-    integTest {
-        compileClasspath = sourceSets.test.classes + sourceSets.main.classes + configurations.integTestCompile
-        runtimeClasspath = classes + compileClasspath + configurations.integTestRuntime
     }
 }
 
@@ -52,8 +40,7 @@ dependencies {
 
     compile libraries.ivy, "com.jcraft:jsch:0.1.42@jar", 'com.jcraft:jzlib:1.0.7@jar'
 
-    compile libraries.jopt_simple,
-            libraries.ant,
+    compile libraries.ant,
             libraries.ant_nodeps,
             libraries.logback_classic,
             libraries.logback_core,
@@ -65,7 +52,7 @@ dependencies {
             libraries.google_collections,
             "commons-collections:commons-collections:3.2.1@jar",
             "slide:webdavlib:2.0@jar",
-            "org.apache.maven:maven-ant-tasks:2.1.0@jar",
+            "org.apache.maven:maven-ant-tasks:2.1.1@jar",
             libraries.asm_all,
             'org.fusesource.jansi:jansi:1.2.1',
             'org.jruby.ext.posix:jna-posix:1.0.3',
@@ -79,8 +66,7 @@ dependencies {
 
     testCompile libraries.xmlunit
 
-    runtime libraries.ant_launcher
-    testCompile libraries.ant_launcher
+    compile libraries.ant_launcher
 
     integTestCompile libraries.jetty_depends
 
@@ -102,25 +88,17 @@ ide.dependsOn ideVersionProperties
 
 ideaModule {
     dependsOn ideVersionProperties
-    testSourceDirs += project.sourceSets.integTest.groovy.srcDirs
     scopes.COMPILE.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(new File(ideDir, "resources/test/")))))
-    scopes.TEST.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(project.sourceSets.integTest.resources.srcDirs))))
-    scopes.TEST.plus.add(configurations.integTestCompile)
-    scopes.TEST.plus.add(configurations.integTestRuntime)
 }
 
 eclipseClasspath {
     dependsOn ideVersionProperties
     plusConfigurations.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(new File(ideDir, "resources/test/")))))
     plusConfigurations.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(project.sourceSets.integTest.resources.srcDirs))))
-    plusConfigurations.add(configurations.integTestCompile)
-    plusConfigurations.add(configurations.integTestRuntime)
 	whenConfigured { classpath ->
 		classpath.entries.removeAll { entry -> entry.kind == 'src' && entry.path.startsWith('src/integTest/resources')}
 	}
 }
-
-
 
 [compileGroovy, compileTestGroovy]*.groovyOptions*.fork(memoryInitialSize: '128M', memoryMaximumSize: '1G')
 

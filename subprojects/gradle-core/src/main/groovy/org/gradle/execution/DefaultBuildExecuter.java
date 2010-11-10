@@ -18,7 +18,6 @@ package org.gradle.execution;
 import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.Task;
 import org.gradle.api.specs.Spec;
-import org.gradle.util.GUtil;
 
 import java.util.*;
 
@@ -41,7 +40,11 @@ public class DefaultBuildExecuter extends DelegatingBuildExecuter {
     public void select(GradleInternal gradle) {
         if (!excludedTaskNames.isEmpty()) {
             final Set<Task> excludedTasks = new HashSet<Task>();
-            GUtil.flatten(TaskNameResolvingBuildExecuter.select(gradle, excludedTaskNames), excludedTasks);
+            TaskSelector selector = new TaskSelector();
+            for (String taskName : excludedTaskNames) {
+                selector.selectTasks(gradle, taskName);
+                excludedTasks.addAll(selector.getTasks());
+            }
             gradle.getTaskGraph().useFilter(new Spec<Task>() {
                 public boolean isSatisfiedBy(Task task) {
                     return !excludedTasks.contains(task);

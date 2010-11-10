@@ -28,7 +28,6 @@ import org.gradle.api.internal.SettingsInternal;
 import org.gradle.api.internal.project.DefaultProject;
 import org.gradle.configuration.BuildConfigurer;
 import org.gradle.execution.TaskGraphExecuter;
-import org.gradle.logging.LoggingConfigurer;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.util.HelperUtil;
 import org.gradle.util.TemporaryFolder;
@@ -51,7 +50,7 @@ import java.util.Map;
 
 import static org.gradle.util.WrapUtil.*;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Hans Dockter
@@ -81,8 +80,6 @@ public class DefaultGradleLauncherTest {
     private ProjectDescriptor expectedRootProjectDescriptor;
 
     private JUnit4Mockery context = new JUnit4Mockery();
-
-    private LoggingConfigurer loggingConfigurerMock = context.mock(LoggingConfigurer.class);
 
     private ExceptionAnalyser exceptionAnalyserMock = context.mock(ExceptionAnalyser.class);
 
@@ -201,7 +198,7 @@ public class DefaultGradleLauncherTest {
         expectBuildListenerCallbacks();
         context.checking(new Expectations() {{
             one(buildLoaderMock).load(expectedRootProjectDescriptor, gradleMock, testGradleProperties);
-            one(buildConfigurerMock).process(expectedRootProject);
+            one(buildConfigurerMock).configure(gradleMock);
         }});
         BuildResult buildResult = gradleLauncher.getBuildAnalysis();
         assertThat(buildResult.getFailure(), nullValue());
@@ -236,7 +233,7 @@ public class DefaultGradleLauncherTest {
         expectBuildListenerCallbacks();
         context.checking(new Expectations() {{
             one(buildLoaderMock).load(expectedRootProjectDescriptor, gradleMock, testGradleProperties);
-            one(buildConfigurerMock).process(expectedRootProject);
+            one(buildConfigurerMock).configure(gradleMock);
         }});
 
         gradleLauncher.getBuildAnalysis();
@@ -331,7 +328,7 @@ public class DefaultGradleLauncherTest {
         context.checking(new Expectations() {
             {
                 one(buildLoaderMock).load(expectedRootProjectDescriptor, gradleMock, testGradleProperties);
-                one(buildConfigurerMock).process(expectedRootProject);
+                one(buildConfigurerMock).configure(gradleMock);
                 one(taskExecuterMock).addTasks(expectedTasks.get(0));
                 one(taskExecuterMock).addTasks(expectedTasks.get(1));
             }

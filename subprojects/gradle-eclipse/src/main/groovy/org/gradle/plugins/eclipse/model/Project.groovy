@@ -15,7 +15,7 @@
  */
 package org.gradle.plugins.eclipse.model
 
-import org.gradle.listener.ListenerBroadcast
+import org.gradle.api.internal.XmlTransformer
 import org.gradle.plugins.eclipse.EclipseProject
 
 /**
@@ -58,7 +58,7 @@ class Project {
 
     private Node xml
 
-    private ListenerBroadcast withXmlActions
+    private XmlTransformer xmlTransformer
 
     def Project(EclipseProject eclipseProjectTask, Reader inputXml) {
         initFromXml(inputXml)
@@ -77,7 +77,7 @@ class Project {
         this.buildCommands.addAll(eclipseProjectTask.buildCommands)
         this.buildCommands.unique()
         this.links.addAll(eclipseProjectTask.links);
-        this.withXmlActions = eclipseProjectTask.withXmlActions
+        this.xmlTransformer = eclipseProjectTask.withXmlActions
 
         eclipseProjectTask.whenConfiguredActions.source.execute(this)
     }
@@ -125,7 +125,7 @@ class Project {
     }
 
     void toXml(File file) {
-        toXml(new FileWriter(file))
+        file.withWriter {Writer writer -> toXml(writer)}
     }
 
     def toXml(Writer writer) {
@@ -141,9 +141,7 @@ class Project {
         addNaturesToXml()
         addBuildSpecToXml()
         addLinksToXml()
-        withXmlActions.source.execute(xml)
-
-        new XmlNodePrinter(new PrintWriter(writer)).print(xml)
+        xmlTransformer.transform(xml, writer)
     }
 
     private def addReferencedProjectsToXml() {

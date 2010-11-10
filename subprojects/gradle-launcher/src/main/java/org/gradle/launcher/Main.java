@@ -15,94 +15,53 @@
  */
 package org.gradle.launcher;
 
-import org.gradle.*;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
-import org.gradle.gradleplugin.userinterface.swing.standalone.BlockingApplication;
-import org.gradle.initialization.CommandLine2StartParameterConverter;
-import org.gradle.initialization.DefaultCommandLine2StartParameterConverter;
-import org.gradle.util.Clock;
-import org.gradle.util.GradleVersion;
+import org.gradle.BuildExceptionReporter;
+import org.gradle.StartParameter;
+import org.gradle.logging.internal.StreamingStyledTextOutputFactory;
+
+import java.util.Arrays;
 
 /**
+ * The main command-line entry-point for Gradle.
+ *
  * @author Hans Dockter
  */
 public class Main {
-    private static Logger logger = Logging.getLogger(Main.class);
-
     private final String[] args;
-    private BuildCompleter buildCompleter = new ProcessExitBuildCompleter();
-    private CommandLine2StartParameterConverter parameterConverter = new DefaultCommandLine2StartParameterConverter();
 
     public Main(String[] args) {
         this.args = args;
     }
 
-    public static void main(String[] args) throws Throwable {
-        new Main(args).execute();
-    }
-
-    void setBuildCompleter(BuildCompleter buildCompleter) {
-        this.buildCompleter = buildCompleter;
-    }
-
-    public void setParameterConverter(CommandLine2StartParameterConverter parameterConverter) {
-        this.parameterConverter = parameterConverter;
-    }
-
-    public void execute() throws Exception {
-        Clock buildTimeClock = new Clock();
-
-        StartParameter startParameter = null;
-
+    public static void main(String[] args) {
         try {
-            startParameter = parameterConverter.convert(args);
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            parameterConverter.showHelp(System.err);
-            buildCompleter.exit(e);
+            new Main(args).execute();
+            System.exit(0);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            System.exit(1);
         }
+    }
 
-        if (startParameter.isShowHelp()) {
-            parameterConverter.showHelp(System.out);
-            buildCompleter.exit(null);
-        }
-
-        if (startParameter.isShowVersion()) {
-            System.out.println(new GradleVersion().prettyPrint());
-            buildCompleter.exit(null);
-        }
-
-        if (startParameter.isLaunchGUI()) {
-            try {
-                BlockingApplication.launchAndBlock();
-            } catch (Throwable e) {
-                logger.error("Failed to run the UI.", e);
-                buildCompleter.exit(e);
-            }
-
-            buildCompleter.exit(null);
-        }
-
-        BuildListener resultLogger = new BuildLogger(logger, buildTimeClock, startParameter);
+    public void execute() {
+        BuildCompleter buildCompleter = createBuildCompleter();
         try {
-            GradleLauncher gradleLauncher = GradleLauncher.newInstance(startParameter);
-
-            gradleLauncher.useLogger(resultLogger);
-
-            BuildResult buildResult = gradleLauncher.run();
-            if (buildResult.getFailure() != null) {
-                buildCompleter.exit(buildResult.getFailure());
-            }
+            CommandLineActionFactory actionFactory = createActionFactory(buildCompleter);
+            Runnable action = actionFactory.convert(Arrays.asList(args));
+            action.run();
+            buildCompleter.exit(null);
         } catch (Throwable e) {
-            resultLogger.buildFinished(new BuildResult(null, e));
+            new BuildExceptionReporter(new StreamingStyledTextOutputFactory(System.err), new StartParameter()).reportException(e);
             buildCompleter.exit(e);
         }
-        buildCompleter.exit(null);
     }
 
-    public interface BuildCompleter {
-        void exit(Throwable failure);
+    CommandLineActionFactory createActionFactory(BuildCompleter buildCompleter) {
+        return new CommandLineActionFactory(buildCompleter);
+    }
+
+    BuildCompleter createBuildCompleter() {
+        return new ProcessExitBuildCompleter();
     }
 
     private static class ProcessExitBuildCompleter implements BuildCompleter {

@@ -15,8 +15,9 @@
  */
 package org.gradle.plugins.eclipse.model
 
-import org.gradle.listener.ListenerBroadcast
-import org.gradle.plugins.eclipse.EclipseClasspath
+import org.gradle.api.internal.XmlTransformer
+
+import org.gradle.api.Action
 
 /**
  * Represents the customizable elements of an eclipse classpath file. (via XML hooks everything is customizable).
@@ -31,18 +32,18 @@ class Classpath {
 
     private Node xml
 
-    private ListenerBroadcast withXmlActions
+    private XmlTransformer xmlTransformer
 
-    Classpath(EclipseClasspath eclipseClasspath, List entries, Reader inputXml) {
+    Classpath(Action<Classpath> beforeConfiguredAction, Action<Classpath> whenConfiguredAction, XmlTransformer xmlTransformer, List entries, Reader inputXml) {
         initFromXml(inputXml)
 
-        eclipseClasspath.beforeConfiguredActions.source.execute(this)
+        beforeConfiguredAction.execute(this)
 
         this.entries.addAll(entries)
         this.entries.unique()
-        this.withXmlActions = eclipseClasspath.withXmlActions
+        this.xmlTransformer = xmlTransformer
 
-        eclipseClasspath.whenConfiguredActions.source.execute(this)
+        whenConfiguredAction.execute(this)
     }
 
     private def initFromXml(Reader inputXml) {
@@ -76,7 +77,7 @@ class Classpath {
     }
 
     void toXml(File file) {
-        toXml(new FileWriter(file))
+        file.withWriter { Writer writer -> toXml(writer) }
     }
 
     def toXml(Writer writer) {
@@ -84,9 +85,7 @@ class Classpath {
         entries.each { ClasspathEntry entry ->
             entry.appendNode(xml)
         }
-        withXmlActions.source.execute(xml)
-
-        new XmlNodePrinter(new PrintWriter(writer)).print(xml)
+        xmlTransformer.transform(xml, writer)
     }
     
     boolean equals(o) {

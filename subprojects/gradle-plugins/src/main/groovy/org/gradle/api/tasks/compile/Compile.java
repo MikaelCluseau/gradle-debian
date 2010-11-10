@@ -16,7 +16,8 @@
 
 package org.gradle.api.tasks.compile;
 
-import org.gradle.api.internal.project.AntBuilderFactory;
+import org.gradle.api.AntBuilder;
+import org.gradle.api.internal.Factory;
 import org.gradle.api.internal.tasks.compile.AntJavaCompiler;
 import org.gradle.api.internal.tasks.compile.IncrementalJavaCompiler;
 import org.gradle.api.internal.tasks.compile.JavaCompiler;
@@ -28,6 +29,8 @@ import org.gradle.api.tasks.WorkResult;
 import java.io.File;
 
 /**
+ * Compiles Java source files.
+ * 
  * @author Hans Dockter
  */
 public class Compile extends AbstractCompile {
@@ -37,8 +40,8 @@ public class Compile extends AbstractCompile {
     private File dependencyCacheDir;
 
     public Compile() {
-        AntBuilderFactory antBuilderFactory = getServices().get(AntBuilderFactory.class);
-        javaCompiler = new IncrementalJavaCompiler(new AntJavaCompiler(antBuilderFactory), antBuilderFactory, getOutputs());
+        Factory<? extends AntBuilder> antBuilderFactory = getServices().getFactory(AntBuilder.class);
+        javaCompiler = new IncrementalJavaCompiler(new AntJavaCompiler((Factory) antBuilderFactory), antBuilderFactory, getOutputs());
     }
 
     @TaskAction

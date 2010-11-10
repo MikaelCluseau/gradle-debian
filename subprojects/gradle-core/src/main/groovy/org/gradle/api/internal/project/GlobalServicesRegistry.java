@@ -16,6 +16,7 @@
 
 package org.gradle.api.internal.project;
 
+import org.gradle.StartParameter;
 import org.gradle.api.internal.ClassPathRegistry;
 import org.gradle.api.internal.DefaultClassPathProvider;
 import org.gradle.api.internal.DefaultClassPathRegistry;
@@ -24,25 +25,27 @@ import org.gradle.cache.AutoCloseCacheFactory;
 import org.gradle.cache.CacheFactory;
 import org.gradle.cache.DefaultCacheFactory;
 import org.gradle.initialization.ClassLoaderFactory;
-import org.gradle.initialization.CommandLine2StartParameterConverter;
+import org.gradle.initialization.CommandLineConverter;
 import org.gradle.initialization.DefaultClassLoaderFactory;
-import org.gradle.initialization.DefaultCommandLine2StartParameterConverter;
+import org.gradle.initialization.DefaultCommandLineConverter;
 import org.gradle.listener.DefaultListenerManager;
 import org.gradle.listener.ListenerManager;
-import org.gradle.logging.DefaultProgressLoggerFactory;
 import org.gradle.logging.LoggingServiceRegistry;
-import org.gradle.logging.ProgressLoggerFactory;
 
 /**
  * Contains the services shared by all builds in a given process.
  */
 public class GlobalServicesRegistry extends DefaultServiceRegistry {
     public GlobalServicesRegistry() {
-        super(new LoggingServiceRegistry());
+        this(new LoggingServiceRegistry());
     }
 
-    protected CommandLine2StartParameterConverter createCommandLine2StartParameterConverter() {
-        return new DefaultCommandLine2StartParameterConverter();
+    public GlobalServicesRegistry(ServiceRegistry loggingServices) {
+        super(loggingServices);
+    }
+
+    protected CommandLineConverter<StartParameter> createCommandLine2StartParameterConverter() {
+        return new DefaultCommandLineConverter();
     }
 
     protected ClassPathRegistry createClassPathRegistry() {
@@ -60,11 +63,7 @@ public class GlobalServicesRegistry extends DefaultServiceRegistry {
     protected ListenerManager createListenerManager() {
         return new DefaultListenerManager();
     }
-
-    protected ProgressLoggerFactory createProgressLoggerFactory() {
-        return new DefaultProgressLoggerFactory(get(ListenerManager.class));
-    }
-    
+   
     protected GradleDistributionLocator createGradleDistributionLocator() {
         return new DefaultClassPathProvider();
     }

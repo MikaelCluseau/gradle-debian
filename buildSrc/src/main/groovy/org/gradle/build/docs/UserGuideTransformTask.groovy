@@ -19,14 +19,10 @@ package org.gradle.build.docs
 
 import groovy.xml.MarkupBuilder
 import groovy.xml.dom.DOMCategory
-import groovy.xml.dom.DOMUtil
-import javax.xml.parsers.DocumentBuilder
-import javax.xml.parsers.DocumentBuilderFactory
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.FileCollection
 import org.w3c.dom.Document
 import org.w3c.dom.Element
-import org.w3c.dom.Node
 import org.gradle.api.tasks.*
 
 /**
@@ -56,35 +52,13 @@ public class UserGuideTransformTask extends DefaultTask {
 
     @TaskAction
     def transform() {
-        Element root
-
-        destFile.parentFile.mkdirs()
-
-        System.setProperty("org.apache.xerces.xni.parser.XMLParserConfiguration",
-                "org.apache.xerces.parsers.XIncludeParserConfiguration")
-
-        // Set the thread context classloader to pick up the correct XML parser
-        def uris = classpath.getFiles().collect {it.toURI().toURL()}
-        def classloader = new URLClassLoader(uris as URL[], getClass().classLoader)
-        def oldClassloader = Thread.currentThread().getContextClassLoader()
-        Thread.currentThread().setContextClassLoader(classloader)
-        try {
-
-            root = loadAndTransform()
-
-        } finally {
-            Thread.currentThread().setContextClassLoader(oldClassloader)
-        }
-
-        destFile.parentFile.mkdirs()
-        destFile.withOutputStream {OutputStream stream ->
-            DOMUtil.serialize(root, stream)
-        }
+        XIncludeAwareXmlProvider provider = new XIncludeAwareXmlProvider(classpath)
+        provider.parse(sourceFile)
+        transform(provider.document)
+        provider.write(destFile)
     }
 
-    private Element loadAndTransform() {
-        Document doc = parseSourceFile()
-        Element root = doc.documentElement
+    private def transform(Document doc) {
         use(DOMCategory) {
             addVersionInfo(doc)
             applyConditionalChunks(doc)
@@ -93,8 +67,6 @@ public class UserGuideTransformTask extends DefaultTask {
             transformWebsiteLinks(doc)
             fixProgramListings(doc)
         }
-
-        return root
     }
 
     def addVersionInfo(Document doc) {
@@ -122,6 +94,9 @@ public class UserGuideTransformTask extends DefaultTask {
             xml.links {
                 doc.documentElement.depthFirst().findAll { it.name() == 'apilink' }.each {Element element ->
                     String className = element.'@class'
+                    if (!className) {
+                        throw new RuntimeException('No "class" attribute specified for <apilink> element.')
+                    }
                     String methodName = element.'@method'
                     String lang = element.'@lang' ?: 'java'
 
@@ -223,7 +198,7 @@ public class UserGuideTransformTask extends DefaultTask {
                             exampleElement.appendChild(outputTitle)
 
                             Element screenElement = doc.createElement('screen')
-                            File srcFile = new File(sourceFile.parentFile, "../../../src/samples/userguideOutput/${outputFile}")
+                            File srcFile = new File(sourceFile.parentFile, "../../../src/samples/userguideOutput/${outputFile}").canonicalFile
                             screenElement.appendChild(doc.createTextNode("> gradle $args\n" + normalise(srcFile.text)))
                             exampleElement.appendChild(screenElement)
                         } else if (child.name() == 'test') {
@@ -279,12 +254,5 @@ public class UserGuideTransformTask extends DefaultTask {
                 element.parentNode.removeChild(element)
             }
         }
-    }
-
-    private Document parseSourceFile() {
-        DocumentBuilderFactory factory = Class.forName('com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl', true, Thread.currentThread().contextClassLoader).newInstance()
-        factory.setNamespaceAware(true)
-        DocumentBuilder builder = factory.newDocumentBuilder()
-        return builder.parse(sourceFile)
     }
 }
