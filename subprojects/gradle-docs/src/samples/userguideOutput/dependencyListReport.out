@@ -2,16 +2,21 @@
 ------------------------------------------------------------
 Root Project
 ------------------------------------------------------------
+
 No configurations
 
 ------------------------------------------------------------
-Project :api
+Project :api - The shared API for the application
 ------------------------------------------------------------
+
 compile
-|-----junit:junit:4.7:default
+\--- org.codehaus.groovy:groovy-all:1.7.5 [default]
 
 ------------------------------------------------------------
-Project :webapp
+Project :webapp - The Web application implementation
 ------------------------------------------------------------
+
 compile
-|-----commons-io:commons-io:1.2:default
++--- projectReports:api:1.0-SNAPSHOT [compile]
+|    \--- org.codehaus.groovy:groovy-all:1.7.5 [default]
+\--- commons-io:commons-io:1.2 [default]

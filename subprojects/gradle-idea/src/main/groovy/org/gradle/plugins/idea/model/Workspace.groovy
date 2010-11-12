@@ -15,8 +15,7 @@
  */
 package org.gradle.plugins.idea.model
 
-import org.gradle.api.Action
-import org.gradle.listener.ListenerBroadcast
+import org.gradle.api.internal.XmlTransformer
 
 /**
  * Represents the customizable elements of an ipr (via XML hooks everything of the ipr is customizable).
@@ -27,9 +26,9 @@ import org.gradle.listener.ListenerBroadcast
 class Workspace {
     private Node xml
 
-    private ListenerBroadcast<Action> withXmlActions
+    private XmlTransformer withXmlActions
 
-    def Workspace(Reader inputXml, ListenerBroadcast<Action> withXmlActions) {
+    def Workspace(Reader inputXml, XmlTransformer withXmlActions) {
         initFromXml(inputXml)
 
         this.withXmlActions = withXmlActions
@@ -41,8 +40,6 @@ class Workspace {
     }
 
     def toXml(Writer writer) {
-        withXmlActions.source.execute(xml)
-
-        new XmlNodePrinter(new PrintWriter(writer)).print(xml)
+        withXmlActions.transform(xml, writer)
     }
 }

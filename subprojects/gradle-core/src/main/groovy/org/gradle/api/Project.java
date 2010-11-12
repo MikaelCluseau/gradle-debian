@@ -170,7 +170,7 @@ public interface Project extends Comparable<Project> {
     public static final String DEFAULT_BUILD_FILE = "build.gradle";
 
     /**
-     * The hierarchy separator for project and task path names
+     * The hierarchy separator for project and task path names.
      */
     public static final String PATH_SEPARATOR = ":";
 
@@ -218,8 +218,7 @@ public interface Project extends Comparable<Project> {
     /**
      * <p>Sets the build directory of this project. The build directory is the directory which all artifacts are
      * generated into. The path parameter is evaluated as described for {@link #file(Object)}. This mean you can use,
-     * amongst other things, a relative or absolute path or File object to specify the build directory.
-     * </p>
+     * amongst other things, a relative or absolute path or File object to specify the build directory. </p>
      *
      * @param path The build directory. This is evaluated as for {@link #file(Object)}
      */
@@ -269,6 +268,20 @@ public interface Project extends Comparable<Project> {
      * @return The name of this project. Never return null.
      */
     String getName();
+
+    /**
+     * Returns the description of this project.
+     *
+     * @return the description. May return null.
+     */
+    String getDescription();
+
+    /**
+     * Sets a description for this project.
+     *
+     * @param description The description of the project. Might be null.
+     */
+    void setDescription(String description);
 
     /**
      * <p>Returns the group of this project. Gradle always uses the toString() value of a group. The group defaults to
@@ -330,10 +343,9 @@ public interface Project extends Comparable<Project> {
 
     /**
      * <p>Returns this project. This method is useful in build files to explicitly access project properties and
-     * methods. For example, using <code>project.name</code> can express your intent better than using <code>name</code>.
-     * This method also allows you to access project properties from a scope where the property may be hidden,
-     * such as, for example, from a method or closure.
-     * </p>
+     * methods. For example, using <code>project.name</code> can express your intent better than using
+     * <code>name</code>. This method also allows you to access project properties from a scope where the property may
+     * be hidden, such as, for example, from a method or closure. </p>
      *
      * <p>You can access this property in your build file using <code>project</code></p>
      *
@@ -670,7 +682,7 @@ public interface Project extends Comparable<Project> {
     Map<Project, Set<Task>> getAllTasks(boolean recursive);
 
     /**
-     * Returns the set of tasks with the given name contained in this project, and optionally its subprojects.</p>
+     * <p>Returns the set of tasks with the given name contained in this project, and optionally its subprojects.</p>
      *
      * @param name The name of the task to locate.
      * @param recursive If true, returns the tasks of this project and its subprojects. If false, returns the tasks of
@@ -901,7 +913,6 @@ public interface Project extends Comparable<Project> {
      * Executes a Java main class. The closure configures a {@link org.gradle.process.JavaExecSpec}.
      *
      * @param closure The closure for configuring the execution.
-     *
      * @return the result of the execution
      */
     ExecResult javaexec(Closure closure);
@@ -910,7 +921,6 @@ public interface Project extends Comparable<Project> {
      * Executes an external command. The closure configures a {@link org.gradle.process.ExecSpec}.
      *
      * @param closure The closure for configuring the execution.
-     *
      * @return the result of the execution
      */
     ExecResult exec(Closure closure);
@@ -920,8 +930,26 @@ public interface Project extends Comparable<Project> {
      *
      * @param path The path to convert.
      * @return The absolute path.
+     * @deprecated Use {@link #absoluteProjectPath(String)} instead.
      */
+    @Deprecated
     String absolutePath(String path);
+
+    /**
+     * <p>Converts a name to an absolute project path, resolving names relative to this project.</p>
+     *
+     * @param path The path to convert.
+     * @return The absolute path.
+     */
+    String absoluteProjectPath(String path);
+
+    /**
+     * <p>Converts a name to a project path relative to this project.</p>
+     *
+     * @param path The path to convert.
+     * @return The relative path.
+     */
+    String relativeProjectPath(String path);
 
     /**
      * <p>Returns the <code>AntBuilder</code> for this project. You can use this in your build file to execute ant
@@ -1096,13 +1124,25 @@ public interface Project extends Comparable<Project> {
     Map<String, ?> getProperties();
 
     /**
-     * Returns the value of the given property.  This method locates a property as follows:</p> <p/> <ol> <p/> <li>If
-     * this project object has a property with the given name, return the value of the property.</li> <p/> <li>If this
-     * project's convention object has a property with the given name, return the value of the property.</li> <p/>
-     * <li>If this project has an additional property with the given name, return the value of the property.</li> <p/>
-     * <li>If this project has a task with the given name, return the task.</li> <p/> <li>Search up through this
-     * project's ancestor projects for a convention property or additional property with the given name.</li> <p/>
-     * <li>If not found, throw {@link MissingPropertyException}</li> <p/> </ol>
+     * <p>Returns the value of the given property.  This method locates a property as follows:</p>
+     *
+     * <ol>
+     *
+     * <li>If this project object has a property with the given name, return the value of the property.</li>
+     *
+     * <li>If this project's convention object has a property with the given name, return the value of the
+     * property.</li>
+     *
+     * <li>If this project has an additional property with the given name, return the value of the property.</li>
+     *
+     * <li>If this project has a task with the given name, return the task.</li>
+     *
+     * <li>Search up through this project's ancestor projects for a convention property or additional property with the
+     * given name.</li>
+     *
+     * <li>If not found, throw {@link MissingPropertyException}</li>
+     *
+     * </ol>
      *
      * @param propertyName The name of the property.
      * @return The value of the property, possibly null.
@@ -1128,8 +1168,8 @@ public interface Project extends Comparable<Project> {
 
     /**
      * Returns the {@link org.gradle.api.logging.LoggingManager} which can be used to control the logging level and
-     * standard output/error capture for this project's build script. By default, System.out is redirected to the
-     * Gradle logging system at the QUIET log level, and System.err is redirected at the ERROR log level.
+     * standard output/error capture for this project's build script. By default, System.out is redirected to the Gradle
+     * logging system at the QUIET log level, and System.err is redirected at the ERROR log level.
      *
      * @return the LoggingManager. Never returns null.
      */
@@ -1147,7 +1187,7 @@ public interface Project extends Comparable<Project> {
      * <p>Starts redirection of standard output during to the logging system during project evaluation. By default
      * redirection is enabled and the output is redirected to the QUIET level. System.err is always redirected to the
      * ERROR level. Redirection of output at execution time can be configured via the tasks.</p>
-     * 
+     *
      * <p>In a multi-project this is a per-project setting.</p>
      *
      * @param level The level standard out should be logged to.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 the original author or authors.
+ * Copyright 2010 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,8 @@
  */
 package org.gradle.foundation;
 
-import org.gradle.initialization.DefaultCommandLine2StartParameterConverter;
+import org.gradle.initialization.DefaultCommandLineConverter;
+import org.gradle.logging.internal.LoggingCommandLineConverter;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -27,14 +28,19 @@ import java.util.Iterator;
  * @author mhunsicker
  */
 public class CommandLineAssistant {
-    private DefaultCommandLine2StartParameterConverter commandLine2StartParameterConverter;
+    private final DefaultCommandLineConverter commandLineConverter;
+    private final LoggingCommandLineConverter loggingCommandLineConverter = new LoggingCommandLineConverter();
 
     public CommandLineAssistant() {
-        commandLine2StartParameterConverter = new DefaultCommandLine2StartParameterConverter();
+        commandLineConverter = new DefaultCommandLineConverter();
     }
 
-    public DefaultCommandLine2StartParameterConverter getCommandLine2StartParameterConverter() {
-        return commandLine2StartParameterConverter;
+    public DefaultCommandLineConverter getCommandLineConverter() {
+        return commandLineConverter;
+    }
+
+    public LoggingCommandLineConverter getLoggingCommandLineConverter() {
+        return loggingCommandLineConverter;
     }
 
     /**
@@ -47,29 +53,31 @@ public class CommandLineAssistant {
     public static String[] breakUpCommandLine(String fullCommandLine) {
         List<String> commandLineArguments = new ArrayList<String>();
 
-        boolean isInsideQuotes = false;
-        StringBuffer currentOption = new StringBuffer();
+        Character currentQuote = null;
+        StringBuilder currentOption = new StringBuilder();
+        boolean hasOption = false;
 
         for (int index = 0; index < fullCommandLine.length(); index++) {
             char c = fullCommandLine.charAt(index);
-            if (Character.isSpaceChar(c) && !isInsideQuotes) {
-                currentOption.trimToSize();
-                if (currentOption.length() > 0) {
+            if (currentQuote == null && Character.isWhitespace(c)) {
+                if (hasOption) {
                     commandLineArguments.add(currentOption.toString());
+                    hasOption = false;
+                    currentOption.setLength(0);
                 }
-
-                currentOption = new StringBuffer();
-            } else {
-                if (c == '"') {
-                    isInsideQuotes = !isInsideQuotes;
-                }
-
+            } else if (currentQuote == null && (c == '"' || c == '\'')) {
+                currentQuote = c;
+                hasOption = true;
+            } else if (currentQuote != null && c == currentQuote) {
+                currentQuote = null;
+            }
+            else {
                 currentOption.append(c);
+                hasOption = true;
             }
         }
 
-        currentOption.trimToSize();
-        if (currentOption.length() > 0) {
+        if (hasOption) {
             commandLineArguments.add(currentOption.toString());
         }
 
@@ -80,7 +88,7 @@ public class CommandLineAssistant {
         return hasCommandLineOptionsDefined(commandLineArguments, new CommandLineSearch() {
             public boolean contains(String commandLine) {
 
-                return commandLine2StartParameterConverter.getLogLevel(commandLine) != null;
+                return loggingCommandLineConverter.getLogLevel(commandLine) != null;
             }
         });
     }
@@ -88,7 +96,7 @@ public class CommandLineAssistant {
     public boolean hasShowStacktraceDefined(String[] commandLineArguments) {
         return hasCommandLineOptionsDefined(commandLineArguments, new CommandLineSearch() {
             public boolean contains(String commandLine) {
-                return commandLine2StartParameterConverter.getShowStacktrace(commandLine) != null;
+                return commandLineConverter.getShowStacktrace(commandLine) != null;
             }
         });
     }

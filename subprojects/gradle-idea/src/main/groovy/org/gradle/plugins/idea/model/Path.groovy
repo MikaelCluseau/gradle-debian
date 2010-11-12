@@ -24,23 +24,35 @@ class Path {
     /**
      * The url of the path. Must not be null
      */
-    String url
+    final String url
 
-    def Path(rootDir, rootDirString, file) {
-        String path = getRelativePath(rootDir, rootDirString, file)
-        url = relativePathToURI(path)
+    /**
+     * The relative path of the path. Must not be null
+     */
+    final String relPath
+
+    def Path(File rootDir, String rootDirString, File file) {
+        relPath = getRelativePath(rootDir, rootDirString, file)
+        url = relativePathToURI(relPath)
     }
 
-    def Path(url) {
+    def Path(File file) {
+        // IDEA doesn't like the result of file.toURI() so use the absolute path instead
+        relPath = file.absolutePath.replace(File.separator, '/')
+        url = relativePathToURI(relPath)
+    }
+
+    def Path(String url) {
+        this.relPath = null
         this.url = url
     }
 
     public static String getRelativePath(File rootDir, String rootDirString, File file) {
         String relpath = getRelativePath(rootDir, file)
-        return rootDirString + '/' + relpath
+        return relpath != null ? rootDirString + '/' + relpath : file.absolutePath.replace(File.separator, '/')
     }
 
-    public static String relativePathToURI(String relpath) {
+    private String relativePathToURI(String relpath) {
         if (relpath.endsWith('.jar')) {
             return 'jar://' + relpath + '!/';
         } else {
@@ -49,7 +61,7 @@ class Path {
     }
 
     // This gets a relative path even if neither path is an ancestor of the other.
-    // implemenation taken from http://www.devx.com/tips/Tip/13737 and slighly modified
+    // implementation taken from http://www.devx.com/tips/Tip/13737 and slighly modified
     //@param relativeTo  the destinationFile
     //@param fromFile    where the relative path starts
 
@@ -59,10 +71,11 @@ class Path {
 
     private static List getPathList(File f) {
         List list = []
-        File r = f.getCanonicalFile()
+        File r = f.canonicalFile
         while (r != null) {
-            list.add(r.getName())
-            r = r.getParentFile()
+            File parent = r.parentFile
+            list.add(parent ? r.name : r.absolutePath)
+            r = parent
         }
 
         return list
@@ -74,6 +87,12 @@ class Path {
         // eliminate the common root
         int i = r.size() - 1
         int j = f.size() - 1
+
+        if (r[i] != f[j]) {
+            // no common root
+            return null
+        }
+
         while ((i >= 0) && (j >= 0) && (r[i] == f[j])) {
             i--
             j--
@@ -81,22 +100,25 @@ class Path {
 
         // for each remaining level in the relativeTo path, add a ..
         for (; i >= 0; i--) {
-            s.append('..').append('/')
+            s.append('../')
         }
 
         // for each level in the file path, add the path
         for (; j >= 1; j--) {
             s.append(f[j]).append('/')
         }
+        // add the file name
+        if (j == 0) {
+            s.append(f[j])
+        }
 
-        // add the file name and return the result
-        return s.append(f[j]).toString()
+        return s.toString()
     }
 
     boolean equals(o) {
         if (this.is(o)) { return true }
 
-        if (getClass() != o.class) { return false }
+        if (o == null || getClass() != o.class) { return false }
 
         Path path = (Path) o;
 

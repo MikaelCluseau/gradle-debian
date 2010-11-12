@@ -16,14 +16,37 @@
 
 package org.gradle.logging
 
+import org.gradle.logging.internal.DefaultLoggingManagerFactory
+import org.gradle.logging.internal.DefaultProgressLoggerFactory
+import org.gradle.logging.internal.DefaultStyledTextOutputFactory
 import spock.lang.Specification
+import org.gradle.initialization.CommandLineConverter
+import org.gradle.logging.internal.LoggingCommandLineConverter
 
 class LoggingServiceRegistryTest extends Specification {
     private final LoggingServiceRegistry registry = new LoggingServiceRegistry()
     
     def providesALoggingManagerFactory() {
         expect:
-        def factory = registry.get(LoggingManagerFactory.class)
+        def factory = registry.getFactory(LoggingManagerInternal.class)
         factory instanceof DefaultLoggingManagerFactory
+    }
+
+    def providesAStyledTextOutputFactory() {
+        expect:
+        def factory = registry.get(StyledTextOutputFactory.class)
+        factory instanceof DefaultStyledTextOutputFactory
+    }
+    
+    def providesAProgressLoggerFactory() {
+        expect:
+        def factory = registry.get(ProgressLoggerFactory.class)
+        factory instanceof DefaultProgressLoggerFactory
+    }
+
+    def providesACommandLineConverter() {
+        expect:
+        def converter = registry.get(CommandLineConverter.class)
+        converter instanceof LoggingCommandLineConverter
     }
 }

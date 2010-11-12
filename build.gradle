@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import java.text.SimpleDateFormat
 import java.util.jar.Attributes
 import org.gradle.api.artifacts.repositories.WebdavResolver
-import org.apache.ivy.plugins.resolver.FileSystemResolver
+import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
 
 import org.gradle.build.samples.WrapperProjectCreator
+import org.gradle.build.Version
+import org.gradle.build.Install
+import org.gradle.build.Git
 
 /**
  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
@@ -33,7 +35,7 @@ import org.gradle.build.samples.WrapperProjectCreator
 
 version = new Version(project)
 
-defaultTasks "clean", "assemble"
+defaultTasks 'assemble'
 
 apply plugin: 'java-base'
 
@@ -42,37 +44,35 @@ startScriptsDir = new File("$buildDir/startScripts")
 archivesBaseName = 'gradle'
 
 libraries = [
-        ant: 'org.apache.ant:ant:1.8.0@jar',
-        ant_junit: 'org.apache.ant:ant-junit:1.8.0@jar',
-        ant_launcher: 'org.apache.ant:ant-launcher:1.8.0@jar',
-        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.0@jar',
-        ant_trax: 'org.apache.ant:ant-trax:1.8.0@jar',
-        ant_antlr: 'org.apache.ant:ant-antlr:1.8.0@jar',
+        ant: 'org.apache.ant:ant:1.8.1@jar',
+        ant_junit: 'org.apache.ant:ant-junit:1.8.1@jar',
+        ant_launcher: 'org.apache.ant:ant-launcher:1.8.1@jar',
+        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.1@jar',
+        ant_antlr: 'org.apache.ant:ant-antlr:1.8.1@jar',
         antlr: 'antlr:antlr:2.7.7@jar',
-        asm_all: 'asm:asm3-all:3.2@jar',
+        asm_all: 'asm:asm-all:3.2@jar',
         commons_cli: 'commons-cli:commons-cli:1.2@jar',
         commons_io: 'commons-io:commons-io:1.4@jar',
-        commons_lang: 'commons-lang:commons-lang:2.4@jar',
+        commons_lang: 'commons-lang:commons-lang:2.5@jar',
         dom4j: 'dom4j:dom4j:1.6.1@jar',
         google_collections: 'com.google.collections:google-collections:1.0@jar',
-        groovy: 'org.codehaus.groovy:groovy-all:1.7.4@jar',
-        ivy: 'org.apache.ivy:ivy:2.1.0@jar',
-        jaxen: 'jaxen:jaxen:1.1.2@jar',
-        jopt_simple: 'net.sf.jopt-simple:joptsimple:3.1@jar',
-        slf4j_api: 'org.slf4j:slf4j-api:1.5.11@jar',
-        jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.5.11@jar',
-        jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.5.11@jar',
-        log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.5.11@jar',
-        logback_classic: 'ch.qos.logback:logback-classic:0.9.18@jar',
-        logback_core: 'ch.qos.logback:logback-core:0.9.18@jar',
-        junit: 'junit:junit4:4.8.2',
+        groovy: 'org.codehaus.groovy:groovy-all:1.7.5@jar',
+        ivy: 'org.apache.ivy:ivy:2.2.0@jar',
+        jaxen: 'jaxen:jaxen:1.1@jar',
+        slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
+        jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
+        jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
+        log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
+        logback_classic: 'ch.qos.logback:logback-classic:0.9.24@jar',
+        logback_core: 'ch.qos.logback:logback-core:0.9.24@jar',
+        junit: 'junit:junit:4.8.1',
         xmlunit: 'xmlunit:xmlunit:1.3',
 ]
 
 libraries.spock = ['org.spockframework:spock-core:0.4-groovy-1.7@jar', libraries.groovy, 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2']
 libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
-libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.24@jar", "org.mortbay.jetty:jetty-util:6.1.24@jar",
-        "javax.servlet:servlet-api:2.5@jar"]
+libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.25@jar", "org.mortbay.jetty:jetty-util:6.1.25@jar",
+        "org.mortbay.jetty:servlet-api:2.5-20081211@jar"]
 
 allprojects {
     group = 'org.gradle'
@@ -83,11 +83,7 @@ allprojects {
     }
 
     repositories {
-        add(new FileSystemResolver()) {
-            name = 'repo'
-            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-            addArtifactPattern "/usr/share/java/[module].[ext]"
-        }
+        mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
     }
 
     version = this.version
@@ -97,7 +93,6 @@ def FIRST_LEVEL_JMOCK = ['org.hamcrest:hamcrest-core:1.1@jar', 'org.hamcrest:ham
 
 configure(groovyProjects()) {
     apply plugin: 'groovy'
-    apply plugin: 'code-quality'
     apply plugin: 'eclipse'
 
     archivesBaseName = "gradle-${name.replaceAll("\\p{Upper}") { "-${it.toLowerCase()}" } }"
@@ -111,20 +106,6 @@ configure(groovyProjects()) {
         testCompile 'org.jmock:jmock-legacy:2.5.1@jar', 'org.objenesis:objenesis:1.0', 'cglib:cglib-nodep:2.1_3'
     }
 
-    checkstyleConfigDir = "$rootDir/config/checkstyle"
-    checkstyleConfigFileName = new File(checkstyleConfigDir, "checkstyle.xml")
-    codeNarcConfigFileName = "$rootDir/config/codenarc.xml"
-    checkstyleProperties.checkstyleConfigDir = checkstyleConfigDir
-
-    sourceSets.allObjects { sourceSet ->
-        task "${sourceSet.getTaskName('checkstyle', 'groovy')}"(type: Checkstyle) {
-            configFile = new File(checkstyleConfigDir, "checkstyle-groovy.xml")
-            source sourceSet.allGroovy
-            classpath = sourceSet.compileClasspath
-            resultFile = new File(checkstyleResultsDir, "${sourceSet.name}.xml")
-        }
-    }
-
     test {
         maxParallelForks = guessMaxForks()
     }
@@ -134,6 +115,25 @@ configure(groovyProjects()) {
                 (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
                 (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
         ])
+    }
+}
+
+allprojects {
+    apply plugin: 'code-quality'
+
+    checkstyleConfigDir = "$rootDir/config/checkstyle"
+    checkstyleConfigFileName = new File(checkstyleConfigDir, "checkstyle.xml")
+    codeNarcConfigFileName = "$rootDir/config/codenarc.xml"
+    checkstyleProperties.checkstyleConfigDir = checkstyleConfigDir
+}
+configure(groovyProjects()) {
+    sourceSets.allObjects { sourceSet ->
+        task "${sourceSet.getTaskName('checkstyle', 'groovy')}"(type: Checkstyle) {
+            configFile = new File(checkstyleConfigDir, "checkstyle-groovy.xml")
+            source sourceSet.allGroovy
+            classpath = sourceSet.compileClasspath
+            resultFile = new File(checkstyleResultsDir, "${sourceSet.name}-groovy.xml")
+        }
     }
 }
 
@@ -154,17 +154,57 @@ allprojects {
         outputDir = "$rootProject.projectDir/intellij/out" as File
         testOutputDir = "$rootProject.projectDir/intellij/testOut" as File
     }
+    eclipseClasspath {
+        variables = [:]
+    }
 }
 
 ideaModule {
     excludeDirs += file('intTestHomeDir')
     excludeDirs += file('buildSrc/build')
     excludeDirs += file('buildSrc/.gradle')
+    excludeDirs += file('performanceTest/.gradle')
+    excludeDirs += file('performanceTest/build')
+    excludeDirs += file('website/.gradle')
+    excludeDirs += file('website/build')
 }
 
 ideaProject {
     wildcards += ['?*.gradle']
     javaVersion = '1.6'
+    withXml { node ->
+        // Use git
+        def vcsConfig = node.component.find { it.'@name' == 'VcsDirectoryMappings' }
+        vcsConfig.mapping[0].'@vcs' = 'Git'
+
+        // Set gradle home
+        def gradleSettings = node.appendNode('component', [name: 'GradleSettings'])
+        gradleSettings.appendNode('option', [name: 'SDK_HOME', value: gradle.gradleHomeDir.absolutePath])
+    }
+
+    whenConfigured { project ->
+        project.jdk.languageLevel = 'JDK_1_5'
+    }
+}
+
+// Exclude resource directories from compilation and add them back in as classpath resources
+
+ideaProject {
+    withXml { node ->
+        def compilerConfig = node.component.find { it.'@name' == 'CompilerConfiguration' }
+        def exclude = compilerConfig.appendNode('excludeFromCompile')
+        Collection resourceDirs = groovyProjects().collect { project -> project.sourceSets*.resources*.srcDirs }.flatten()
+        resourceDirs.each {
+            exclude.appendNode('directory', [url: "file://\$PROJECT_DIR\$/${rootProject.relativePath(it)}", includeSubdirectories: true])
+        }
+    }
+}
+
+configure(groovyProjects()) {
+    ideaModule {
+        scopes.RUNTIME.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets.main.resources.srcDirs })))
+        scopes.TEST.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets*.resources*.srcDirs })))
+    }
 }
 
 configurations {
@@ -192,13 +232,14 @@ evaluationDependsOn(':core')
 clean.dependsOn subprojects.collect { "$it.path:clean" }
 
 task check(overwrite: true, dependsOn: groovyProjects()*.check)
+check.dependsOn ':docs:checkstyleApi'
 task test(overwrite: true, dependsOn: groovyProjects()*.test)
 
 zipRootFolder = "$archivesBaseName-${-> version}"
 
 binDistImage = copySpec {
     from 'src/toplevel'
-    //from project(':docs').distDocs.destFile
+    from project(':docs').distDocs.destFile
     into('bin') {
         from startScriptsDir
         fileMode = 0755
@@ -224,16 +265,14 @@ allDistImage = copySpec {
     }
 }
 
-//task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
-task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
+task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
     classifier = 'all'
     into(zipRootFolder) {
         with allDistImage
     }
 }
 
-//task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
-task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
+task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
     classifier = 'bin'
     into(zipRootFolder) {
         with binDistImage
@@ -253,6 +292,7 @@ task srcZip(type: Zip) {
                 spec.include "$it/src/"
             }
             include 'config/'
+            include 'gradle/'
             include 'src/'
             include '*.gradle'
             include 'gradle.properties'
@@ -279,10 +319,8 @@ task intTestImage(type: Sync) {
     }
 }
 
-//task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip, ':docs:userguideDocbook']) {
-task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip]) {
+task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip, ':docs:userguideDocbook']) {
     integTestUserDir = file('intTestHomeDir')
-    systemProperties['integTest.srcDir'] = file('src').absolutePath
     systemProperties['integTest.userGuideInfoDir'] = project(':docs').docbookSrc
     systemProperties['integTest.userGuideOutputDir'] = new File(project(':docs').samplesSrcDir, "userguideOutput").absolutePath
     systemProperties['integTest.gradleUserHomeDir'] = integTestUserDir.absolutePath
@@ -302,7 +340,7 @@ task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip]) {
         systemProperties['integTest.gradleHomeDir'] = intTestImage.integTestGradleHome.absolutePath
         def forkArgs
         if (noForkIntegTests()) {
-            systemProperties['org.gradle.integtest.nofork'] = "true"
+            systemProperties['org.gradle.integtest.fork'] = "false"
             jvmArgs '-Xmx512m', '-XX:MaxPermSize=256m', '-XX:+HeapDumpOnOutOfMemoryError'
         } else {
             jvmArgs '-Xmx512m', '-XX:+HeapDumpOnOutOfMemoryError'
@@ -326,18 +364,21 @@ def guessMaxForks() {
     return Math.max(2, (int) (processors / 2))
 }
 
-task testedDists(dependsOn: [assemble, check, integTest])
+task testedDists(dependsOn: [assemble, check, integTest, 'openApi:integTest', ':ui:integTest'])
 
-//task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
-task nightlyBuild(dependsOn: [clean, testedDists])
+task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
 
-task install(type: Install, description: 'Installs the minimal distribution into directory $gradle_installPath') {
+task install(type: Install) {
+    description = 'Installs the minimal distribution into directory $gradle_installPath'
+    group = 'build'
     dependsOn binZip.taskDependencies
     with binDistImage
     installDirProperyName = 'gradle_installPath'
 }
 
-task installAll(type: Install, description: 'Installs the full distribution into directory $gradle_installPath') {
+task installAll(type: Install) {
+    description = 'Installs the full distribution into directory $gradle_installPath'
+    group = 'build'
     dependsOn allZip.taskDependencies
     with allDistImage
     installDirProperyName = 'gradle_installPath'
@@ -364,21 +405,44 @@ gradle.taskGraph.whenReady {graph ->
     }
 }
 
-task developerBuild(dependsOn: [clean, testedDists])
-task ciBuild(dependsOn: [clean, testedDists])
+task developerBuild {
+    description = 'Builds distributions and runs pre-checkin checks'
+    group = 'build'
+    dependsOn clean, testedDists
+}
 
-//task release(dependsOn: [uploadDists, ':docs:uploadDocs']) << {
-task release(dependsOn: [uploadDists]) << {
-    // Update the version properties in gradle.properties
-//    Properties props = new Properties()
-//    File propsFile = file('gradle.properties')
-//    propsFile.withReader { props.load(it) }
-//    props.previousVersion = props.nextVersion
-//    def nextVersion = props.nextVersion.split('\\.')
-//    nextVersion[1] = (nextVersion[1] as Integer) +1
-//    props.nextVersion = nextVersion.join('.')
-//    propsFile.withWriter { props.store(it, 'properties') }
-// todo rewrite release functionality for Git. Until then we have to do tagging and branching manually.
+task ciBuild {
+    description = 'Build performed by the CI server'
+    dependsOn clean, testedDists
+}
+gradle.taskGraph.whenReady {graph ->
+    if (graph.hasTask(ciBuild)) {
+        subprojects { reportsDirName = "$rootProject.reportsDir/${path.replaceFirst(':', '').replaceAll(':', '.')}" }
+    }
+}
+
+// A marker task which causes the release version to be used when it is present in the task graph
+task releaseVersion
+
+task tag {
+    doLast {
+        def git = new Git(project)
+        git.checkNoModifications()
+        git.tag("REL_$version", "Release $version")
+        git.branch("RB_$version")
+    }
+}
+
+task releaseArtifacts {
+    description = 'Builds the release artifacts'
+    group = 'release'
+    dependsOn releaseVersion, tag, assemble, ':docs:websiteDocs'
+}
+
+task release {
+    description = 'Builds, tests and uploads the release artifacts'
+    group = 'release'
+    dependsOn releaseVersion, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
 }
 
 task wrapper(type: Wrapper, dependsOn: binZip)
@@ -388,8 +452,6 @@ wrapper.doFirst {task ->
         jarPath = 'wrapper'
     }
 }
-
-task rebuildWrapper(dependsOn: [clean, wrapper])
 
 def groovyProjects() {
     subprojects.findAll { project -> project.name != 'docs' }
@@ -402,100 +464,5 @@ def runtimeProjects() {
 def pluginProjects() {
     ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'eclipse', 'idea', 'announce', 'scala'].collect {
         project(it)
-    }
-}
-
-class Version {
-    String versionNumber
-    Date buildTime
-    Boolean release = null
-
-    def Version(project) {
-        this.versionNumber = project.nextVersion
-        File timestampFile = new File(project.buildDir, 'timestamp.txt')
-        if (!timestampFile.isFile()) {
-            timestampFile.parentFile.mkdirs()
-            timestampFile.createNewFile()
-        } else {
-            boolean uptodate = true
-            def modified = timestampFile.lastModified()
-            project.project(':core').fileTree('src/main').visit {fte ->
-                if (fte.file.isFile() && fte.lastModified > modified) {
-                    uptodate = false
-                    fte.stopVisiting()
-                }
-            }
-            if (!uptodate) {
-                timestampFile.setLastModified(new Date().time)
-            }
-        }
-        buildTime = new Date(timestampFile.lastModified())
-
-        project.gradle.taskGraph.whenReady {graph ->
-            if (!graph.hasTask(':release')) {
-                //this.versionNumber += "-" + getTimestamp()
-                release = false
-            } else {
-                release = true
-            }
-        }
-    }
-
-    String toString() {
-        versionNumber
-    }
-
-    String getTimestamp() {
-        new SimpleDateFormat('yyyyMMddHHmmssZ').format(buildTime)
-    }
-
-    boolean isRelease() {
-        if (release == null) {
-            throw new GradleException("Can't determine whether this is a release build before the task graph is populated")
-        }
-        return release
-    }
-
-    String getDistributionUrl() {
-        if (release) {
-            'https://dav.codehaus.org/dist/gradle'
-        } else {
-            'https://dav.codehaus.org/snapshots.dist/gradle'
-        }
-    }
-}
-
-class Install extends Sync {
-
-    String installDirProperyName
-    File installDir
-
-    def Install() {
-        addPropertyCheck()
-        doLast {
-            ant.chmod(file: "$installDir/bin/gradle", perm: 'ugo+x')
-        }
-    }
-
-    private void addPropertyCheck() {
-        project.gradle.taskGraph.whenReady {graph ->
-            if (graph.hasTask(path)) {
-                // Do this early to ensure that the properties we need have been set, and fail early
-                if (!project.hasProperty(installDirProperyName)) {
-                    throw new RuntimeException("You can't install without setting the $installDirProperyName property.")
-                }
-                installDir = project.file(this.project."$installDirProperyName")
-                if (installDir.file) {
-                    throw new RuntimeException("Install directory $installDir does not look like a Gradle installation. Cannot delete it to install.")
-                }
-                if (installDir.directory) {
-                    File libDir = new File(installDir, "lib")
-                    if (!libDir.directory || !libDir.list().findAll { it.matches('gradle.*\\.jar')}) {
-                        throw new RuntimeException("Install directory $installDir does not look like a Gradle installation. Cannot delete it to install.")
-                    }
-                }
-                into installDir
-            }
-        }
     }
 }

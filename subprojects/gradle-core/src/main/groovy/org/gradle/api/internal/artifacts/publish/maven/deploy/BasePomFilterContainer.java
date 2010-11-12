@@ -15,11 +15,14 @@
  */
 package org.gradle.api.internal.artifacts.publish.maven.deploy;
 
+import groovy.lang.Closure;
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.artifacts.maven.MavenPom;
 import org.gradle.api.artifacts.maven.PomFilterContainer;
 import org.gradle.api.artifacts.maven.PublishFilter;
-import org.gradle.api.internal.artifacts.publish.maven.MavenPomFactory;
+import org.gradle.api.internal.Factory;
+import org.gradle.util.ConfigureUtil;
 import org.gradle.util.WrapUtil;
 
 import java.util.HashMap;
@@ -33,9 +36,9 @@ public class BasePomFilterContainer implements PomFilterContainer {
 
     private PomFilter defaultPomFilter;
 
-    private MavenPomFactory mavenPomFactory;
+    private Factory<? extends MavenPom> mavenPomFactory;
 
-    public BasePomFilterContainer(MavenPomFactory mavenPomFactory) {
+    public BasePomFilterContainer(Factory<? extends MavenPom> mavenPomFactory) {
         this.mavenPomFactory = mavenPomFactory;
     }
 
@@ -55,11 +58,31 @@ public class BasePomFilterContainer implements PomFilterContainer {
         getDefaultPomFilter().setPomTemplate(defaultPom);
     }
 
+    public void filter(Closure filter) {
+        setFilter(toFilter(filter));
+    }
+
+    public MavenPom addFilter(String name, Closure filter) {
+        return addFilter(name, toFilter(filter));
+    }
+
+    private PublishFilter toFilter(final Closure filter) {
+        return (PublishFilter) DefaultGroovyMethods.asType(filter, PublishFilter.class);
+    }
+
+    public MavenPom pom(Closure configureClosure) {
+        return ConfigureUtil.configure(configureClosure, getPom());
+    }
+
+    public MavenPom pom(String name, Closure configureClosure) {
+        return ConfigureUtil.configure(configureClosure, pom(name));
+    }
+
     public MavenPom addFilter(String name, PublishFilter publishFilter) {
         if (name == null || publishFilter == null) {
             throw new InvalidUserDataException("Name and Filter must not be null.");
         }
-        MavenPom pom = mavenPomFactory.createMavenPom();
+        MavenPom pom = mavenPomFactory.create();
         pomFilters.put(name, new DefaultPomFilter(name, pom, publishFilter));
         return pom;
     }
@@ -88,13 +111,13 @@ public class BasePomFilterContainer implements PomFilterContainer {
         return activeArtifactPoms;
     }
 
-    public MavenPomFactory getMavenPomFactory() {
+    public Factory<? extends MavenPom> getMavenPomFactory() {
         return mavenPomFactory;
     }
 
     public PomFilter getDefaultPomFilter() {
         if (defaultPomFilter == null) {
-            defaultPomFilter = new DefaultPomFilter(PomFilterContainer.DEFAULT_ARTIFACT_POM_NAME, mavenPomFactory.createMavenPom(),
+            defaultPomFilter = new DefaultPomFilter(PomFilterContainer.DEFAULT_ARTIFACT_POM_NAME, mavenPomFactory.create(),
                 PublishFilter.ALWAYS_ACCEPT);
         }
         return defaultPomFilter;

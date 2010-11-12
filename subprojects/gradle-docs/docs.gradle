@@ -17,6 +17,8 @@
 import org.gradle.build.docs.UserGuideTransformTask
 import org.gradle.build.docs.ExtractSnippetsTask
 import org.gradle.build.docs.AssembleSamplesDocTask
+import org.gradle.build.docs.dsl.AssembleDslDocTask
+import org.gradle.build.docs.dsl.ExtractDslMetaDataTask
 
 apply plugin: 'base'
 
@@ -26,7 +28,6 @@ configurations {
     userGuideTask
 }
 
-/*
 dependencies {
     ftpAntTask module("org.apache.ant:ant-commons-net:1.7.0") {
         module("commons-net:commons-net:1.4.1") {
@@ -42,7 +43,6 @@ dependencies {
 
     userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
 }
-*/
 
 RemoteLocations remoteLocations = new RemoteLocations(version: version)
 
@@ -56,6 +56,7 @@ distDocsDir = new File(buildDir, 'distDocs')
 samplesDir = file("$buildDir/samples")
 docbookSrc = new File(project.buildDir, 'src/docbook')
 samplesSrcDir = file('src/samples')
+websiteDocs = new File(buildDir, 'websiteDocs')
 
 tasks.withType(Docbook2Xhtml).allObjects { task->
     task.dependsOn userguideStyleSheets
@@ -66,6 +67,10 @@ tasks.withType(UserGuideTransformTask).allObjects { task->
     task.classpath = configurations.userGuideTask
     task.dependsOn samples
     task.snippetsDir = samples.snippetsDir
+}
+tasks.withType(AssembleDslDocTask).allObjects { task ->
+    task.classpath = configurations.userGuideTask
+    task.classDocbookDir = new File(userguideSrcDir, 'dsl')
 }
 
 task samples(type: ExtractSnippetsTask) {
@@ -93,11 +98,10 @@ task userguideStyleSheets(type: Copy) {
     from(cssSrcDir) {
         include '*.css'
     }
-    //
-    //from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
-    //    // Remove the prefix
-    //    eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
-    //}
+    from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
+        // Remove the prefix
+        eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
+    }
 }
 
 task samplesDocbook(type: AssembleSamplesDocTask) {
@@ -112,8 +116,46 @@ task samplesDocs(type: Docbook2Xhtml, dependsOn: samplesDocbook) {
     stylesheetName = 'standaloneHtml.xsl'
 }
 
-task userguideDocbook(type: UserGuideTransformTask, dependsOn: [samples, samplesDocbook]) {
+task dslMetaData(type: ExtractDslMetaDataTask) {
+    source { groovydoc.source }
+    destFile = new File(docbookSrc, 'dsl-meta-data.bin')
+}
+
+task dslDocbook(type: AssembleDslDocTask, dependsOn: [dslMetaData]) {
+    inputs.files fileTree(dir: userguideSrcDir, includes: ['dsl/*.xml'])
+    sourceFile = new File(userguideSrcDir, 'dsl/dsl.xml')
+    classMetaDataFile = dslMetaData.destFile
+    pluginsMetaDataFile = new File(userguideSrcDir, 'dsl/plugins.xml')
+    destFile = new File(docbookSrc, 'dsl.xml')
+}
+
+task dslStandaloneDocbook(type: UserGuideTransformTask, dependsOn: [dslDocbook]) {
     inputs.files fileTree(dir: userguideSrcDir, includes: ['*.xml'])
+    inputs.files fileTree(dir: docbookSrc, includes: ['*.xml'])
+    sourceFile = dslDocbook.destFile
+    destFile = new File(docbookSrc, 'dsl-standalone.xml')
+    javadocUrl = '../javadoc'
+    groovydocUrl = '../groovydoc'
+    websiteUrl = 'http://www.gradle.org'
+}
+
+task dslHtml(type: Docbook2Xhtml, dependsOn: dslStandaloneDocbook) {
+    source dslStandaloneDocbook.destFile
+    destDir = new File(docsDir, 'dsl')
+    stylesheetName = 'userGuideHtml.xsl'
+    resources = fileTree {
+        from userguideSrcDir
+        include 'img/*.png'
+    }
+    resources += fileTree {
+        from cssSrcDir
+        include '*.css'
+    }
+}
+
+task userguideDocbook(type: UserGuideTransformTask, dependsOn: [samples, samplesDocbook, dslDocbook]) {
+    inputs.files fileTree(dir: userguideSrcDir, includes: ['*.xml'])
+    inputs.files fileTree(dir: docbookSrc, includes: ['*.xml'])
     sourceFile = new File(userguideSrcDir, 'userguide.xml')
     destFile = new File(docbookSrc, 'userguide.xml')
     javadocUrl = '../javadoc'
@@ -122,6 +164,8 @@ task userguideDocbook(type: UserGuideTransformTask, dependsOn: [samples, samples
 }
 
 task remoteUserguideDocbook(type: UserGuideTransformTask, dependsOn: samples) {
+    inputs.files fileTree(dir: userguideSrcDir, includes: ['*.xml'])
+    inputs.files fileTree(dir: docbookSrc, includes: ['*.xml'])
     sourceFile = new File(userguideSrcDir, 'userguide.xml')
     destFile = new File(docbookSrc, 'remoteUserguide.xml')
     doFirst {
@@ -174,12 +218,14 @@ task userguideXhtml(type: Docbook2Xhtml, dependsOn: remoteUserguideDocbook) {
 }
 
 task userguidePdf(type: Xhtml2Pdf, dependsOn: userguideXhtml) {
+    inputs.dir cssSrcDir
     sourceFile = userguideXhtml.destFile
     destFile = new File(userguideDir, 'userguide.pdf')
     classpath = configurations.userGuideTask
 }
 
 task javadoc(type: Javadoc) {
+    group = 'documentation'
     source groovyProjects().collect {project -> project.sourceSets.main.allJava }
     destinationDir = new File(docsDir, 'javadoc')
     classpath = files(groovyProjects().collect {project -> [project.sourceSets.main.compileClasspath, project.sourceSets.main.classes] })
@@ -197,7 +243,15 @@ task javadoc(type: Javadoc) {
     }
 }
 
+task checkstyleApi(type: Checkstyle) {
+    source javadoc.source
+    configFile = file("$checkstyleConfigDir/checkstyle-api.xml")
+    classpath = files()
+    resultFile = file("$checkstyleResultsDir/checkstyle-api.xml")
+}
+
 task groovydoc(type: Groovydoc) {
+    group = 'documentation'
     source groovyProjects().collect {project -> project.sourceSets.main.groovy }
     destinationDir = new File(docsDir, 'groovydoc')
     includes = javadoc.includes
@@ -225,8 +279,9 @@ task distDocs(type: Docbook2Xhtml, dependsOn: userguideFragmentSrc) {
     stylesheetName = 'standaloneHtml.xsl'
 }
 
-task websiteDocsSrc(type: UserGuideTransformTask, dependsOn: [userguideStyleSheets, samples, samplesDocbook]) {
+task websiteUserguideSrc(type: UserGuideTransformTask, dependsOn: [userguideStyleSheets, samples, samplesDocbook, dslDocbook]) {
     inputs.files fileTree(dir: userguideSrcDir, includes: ['*.xml'])
+    inputs.files fileTree(dir: docbookSrc, includes: ['*.xml'])
     sourceFile = new File(userguideSrcDir, 'userguide.xml')
     destFile = new File(docbookSrc, 'website.xml')
     tags << 'website'
@@ -237,9 +292,8 @@ task websiteDocsSrc(type: UserGuideTransformTask, dependsOn: [userguideStyleShee
     }
 }
 
-task websiteDocs(type: Docbook2Xhtml, dependsOn: websiteDocsSrc) {
-    File websiteDocs = new File(buildDir, 'websiteDocs')
-    source websiteDocsSrc.destFile
+task websiteUserguide(type: Docbook2Xhtml, dependsOn: websiteUserguideSrc) {
+    source websiteUserguideSrc.destFile
     destFile = new File(websiteDocs, 'website.html')
     stylesheetName = 'websiteHtml.xsl'
     resources = fileTree {
@@ -252,10 +306,33 @@ task websiteDocs(type: Docbook2Xhtml, dependsOn: websiteDocsSrc) {
     }
 }
 
-task userguide(dependsOn: [userguideHtml, userguideSingleHtml, userguidePdf], description: 'Generates the userguide')
+task websiteProperties {
+    def propertiesFile = new File(websiteDocs, 'version.properties')
+    inputs.property 'version', { version.toString() }
+    outputs.files propertiesFile
+    doLast {
+        def properties = new Properties()
+        properties.version = version.toString()
+        propertiesFile.parentFile.mkdirs()
+        propertiesFile.withWriter { writer -> properties.store(writer, 'documentation version properties') }
+    }
+}
 
-//task docs(dependsOn: [javadoc, groovydoc, userguide, distDocs, samplesDocs])
-task docs(dependsOn: [javadoc, groovydoc])
+task websiteDocs {
+    dependsOn websiteUserguide, websiteProperties
+}
+
+task userguide {
+    dependsOn userguideHtml, userguideSingleHtml, userguidePdf
+    description = 'Generates the userguide'
+    group = 'documentation'
+}
+
+task docs {
+    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs
+    description = 'Generates all documentation'
+    group = 'documentation'
+}
 
 task uploadDocs(dependsOn: docs) << {
     ftp(action: 'mkdir', remotedir: remoteLocations.docsRemoteDir)
@@ -384,7 +461,7 @@ class Xhtml2Pdf extends DefaultTask {
     FileCollection classpath
 
     def Xhtml2Pdf() {
-        onlyIf { !System.getProperty("os.name").toLowerCase().contains('windows') }
+        onlyIf { !OperatingSystem.current().isWindows() }
     }
 
     @TaskAction

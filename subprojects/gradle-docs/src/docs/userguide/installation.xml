@@ -20,9 +20,8 @@
 <section>
     <title>Prerequisites</title>
 
-    <para>Gradle requires a Java JDK to be installed. Gradle ships with its own Groovy library, therefore no Groovy
-        needs to be installed. Any existing Groovy installation is ignored by Gradle. The standard Gradle distribution
-        requires a JDK 1.5 or higher. We also provide a distinct JDK 1.4 compatible distribution.
+    <para>Gradle requires a Java JDK to be installed. Gradle requires a JDK 1.5 or higher. Gradle ships with its own
+        Groovy library, therefore no Groovy needs to be installed. Any existing Groovy installation is ignored by Gradle.
     </para>
 
     <para>Gradle uses whichever JDK it finds in your path (to check, use <userinput>java -version</userinput>).
@@ -51,8 +50,8 @@
         </para>
     </listitem>
     <listitem>
-        <para>The binary sources (If you want to build Gradle you need to download the source distribution or checkout
-            the sources from the source repository).
+        <para>The binary sources. This is for reference only. If you want to build Gradle you need to download the source distribution
+            or checkout the sources from the source repository. See the <ulink url="website:build.html">Gradle web site</ulink> for details).
         </para>
     </listitem>
 </itemizedlist>
@@ -84,17 +83,15 @@ some zip front ends for Mac OS X don't restore the file permissions properly.
 
 <screen>
 ------------------------------------------------------------
-Gradle 0.9-rc-1
+Gradle 0.9-rc-2
 ------------------------------------------------------------
 
-Gradle buildtime: Tuesday, 3 August 2010 6:59:23 PM EST
-Groovy: 1.7.3
+Gradle build time: Wednesday, 27 October 2010 5:05:52 PM EST
+Groovy: 1.7.5
 Ant: Apache Ant version 1.8.1 compiled on April 30 2010
-Ivy: 2.2.0-rc1
-Java: 1.6.0_20
-JVM: 16.3-b01
-JVM Vendor: Sun Microsystems Inc.
-OS Name: Linux
+Ivy: 2.2.0
+JVM: 1.6.0_20 (Sun Microsystems Inc. 16.3-b01)
+OS: Linux 2.6.35-22-generic amd64
 </screen>
 
 </section>
@@ -116,7 +113,7 @@ of the <command>gradle</command> or <command>gradlew</command> script.
 
 <para>You might check the user guide at <filename><replaceable>GRADLE_HOME</replaceable>/docs/userguide/userguide.html</filename>.
 It is also available on the <ulink url="website:userguide.html">Gradle web site</ulink>.
-Typing <command>gradle -h</command> prints the command line help. Typing <command>gradle -t</command> shows all the
+Typing <command>gradle help</command> prints the command line help. Typing <command>gradle tasks</command> shows all the
 tasks of a Gradle build.
 </para>
 

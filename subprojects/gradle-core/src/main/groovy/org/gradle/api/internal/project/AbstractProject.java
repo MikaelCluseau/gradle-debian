@@ -25,7 +25,6 @@ import org.gradle.api.artifacts.Module;
 import org.gradle.api.artifacts.dsl.ArtifactHandler;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
-import org.gradle.api.artifacts.dsl.RepositoryHandlerFactory;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.ConfigurableFileTree;
 import org.gradle.api.file.CopySpec;
@@ -38,7 +37,10 @@ import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.initialization.ScriptClassLoaderProvider;
 import org.gradle.api.internal.plugins.DefaultObjectConfigurationAction;
 import org.gradle.api.internal.tasks.TaskContainerInternal;
-import org.gradle.api.logging.*;
+import org.gradle.api.logging.LogLevel;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
+import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.PluginContainer;
 import org.gradle.api.tasks.Directory;
@@ -54,7 +56,7 @@ import org.gradle.process.ExecResult;
 import org.gradle.util.Configurable;
 import org.gradle.util.ConfigureUtil;
 import org.gradle.util.DeprecationLogger;
-import org.gradle.util.PathHelper;
+import org.gradle.util.Path;
 
 import java.io.File;
 import java.net.URI;
@@ -70,7 +72,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     private static Logger buildLogger = Logging.getLogger(Project.class);
     private ServiceRegistryFactory services;
 
-    private final Project rootProject;
+    private final ProjectInternal rootProject;
 
     private final GradleInternal gradle;
 
@@ -101,7 +103,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     private FileResolver fileResolver;
     private FileOperations fileOperations;
 
-    private AntBuilderFactory antBuilderFactory;
+    private Factory<? extends AntBuilder> antBuilderFactory;
 
     private AntBuilder ant;
 
@@ -109,11 +111,11 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     private PluginContainer pluginContainer;
 
-    private final String path;
-
     private final int depth;
 
     private TaskContainerInternal taskContainer;
+
+    private TaskContainerInternal implicitTasksContainer;
 
     private IProjectRegistry<ProjectInternal> projectRegistry;
 
@@ -123,7 +125,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     private ArtifactHandler artifactHandler;
 
-    private RepositoryHandlerFactory repositoryHandlerFactory;
+    private Factory<? extends RepositoryHandler> repositoryHandlerFactory;
 
     private RepositoryHandler repositoryHandler;
 
@@ -136,6 +138,10 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     private LoggingManagerInternal loggingManager;
 
     private DynamicObjectHelper dynamicObjectHelper;
+
+    private String description;
+
+    private final Path path;
 
     public AbstractProject(String name,
                            ProjectInternal parent,
@@ -153,21 +159,23 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         this.gradle = gradle;
 
         if (parent == null) {
-            path = Project.PATH_SEPARATOR;
+            path = Path.ROOT;
             depth = 0;
         } else {
-            path = parent.absolutePath(name);
+            String path = parent.absoluteProjectPath(name);
             depth = parent.getDepth() + 1;
+            this.path = Path.path(path);
         }
 
         services = serviceRegistryFactory.createFor(this);
         fileResolver = services.get(FileResolver.class);
+        antBuilderFactory = services.getFactory(AntBuilder.class);
+        taskContainer = services.newInstance(TaskContainerInternal.class);
+        implicitTasksContainer = services.newInstance(TaskContainerInternal.class);
         fileOperations = services.get(FileOperations.class);
-        antBuilderFactory = services.get(AntBuilderFactory.class);
-        taskContainer = services.get(TaskContainerInternal.class);
-        repositoryHandlerFactory = services.get(RepositoryHandlerFactory.class);
+        repositoryHandlerFactory = services.getFactory(RepositoryHandler.class);
         projectEvaluator = services.get(ProjectEvaluator.class);
-        repositoryHandler = services.get(RepositoryHandler.class);
+        repositoryHandler = repositoryHandlerFactory.create();
         configurationContainer = services.get(ConfigurationContainer.class);
         pluginContainer = services.get(PluginContainer.class);
         artifactHandler = services.get(ArtifactHandler.class);
@@ -188,12 +196,10 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public RepositoryHandler createRepositoryHandler() {
-        RepositoryHandler handler = repositoryHandlerFactory.createRepositoryHandler(getConvention());
-        ((IConventionAware) handler).setConventionMapping(((IConventionAware) repositoryHandler).getConventionMapping());
-        return handler;
+        return repositoryHandlerFactory.create();
     }
 
-    public Project getRootProject() {
+    public ProjectInternal getRootProject() {
         return rootProject;
     }
 
@@ -267,6 +273,14 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     public String getName() {
         return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Object getGroup() {
@@ -346,7 +360,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return repositoryHandler;
     }
 
-    public RepositoryHandlerFactory getRepositoryHandlerFactory() {
+    public Factory<? extends RepositoryHandler> getRepositoryHandlerFactory() {
         return repositoryHandlerFactory;
     }
 
@@ -376,7 +390,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public String getPath() {
-        return path;
+        return path.toString();
     }
 
     public int getDepth() {
@@ -413,22 +427,23 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     public int compareTo(Project otherProject) {
         int depthCompare = depthCompare(otherProject);
         if (depthCompare == 0) {
-            return path.compareTo(otherProject.getPath());
+            return getPath().compareTo(otherProject.getPath());
         } else {
             return depthCompare;
         }
     }
 
     public String absolutePath(String path) {
-        if (!isAbsolutePath(path)) {
-            String prefix = this == rootProject ? "" : Project.PATH_SEPARATOR;
-            return this.path + prefix + path;
-        }
-        return path;
+        DeprecationLogger.nagUser("Project.absolutePath()", "Project.absoluteProjectPath()");
+        return absoluteProjectPath(path);
     }
 
-    public static boolean isAbsolutePath(String path) {
-        return PathHelper.isAbsolutePath(path);
+    public String absoluteProjectPath(String path) {
+        return this.path.absolutePath(path);
+    }
+
+    public String relativeProjectPath(String path) {
+        return this.path.relativePath(path);
     }
 
     public Project project(String path) {
@@ -443,15 +458,15 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         if (!isTrue(path)) {
             throw new InvalidUserDataException("A path must be specified!");
         }
-        return projectRegistry.getProject(isAbsolutePath(path) ? path : absolutePath(path));
+        return projectRegistry.getProject(absoluteProjectPath(path));
     }
 
     public Set<Project> getAllprojects() {
-        return new TreeSet<Project>(projectRegistry.getAllProjects(this.path));
+        return new TreeSet<Project>(projectRegistry.getAllProjects(getPath()));
     }
 
     public Set<Project> getSubprojects() {
-        return new TreeSet<Project>(projectRegistry.getSubProjects(this.path));
+        return new TreeSet<Project>(projectRegistry.getSubProjects(getPath()));
     }
 
     public void subprojects(Action<? super Project> action) {
@@ -477,7 +492,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public AntBuilder createAntBuilder() {
-        return antBuilderFactory.createAntBuilder();
+        return antBuilderFactory.create();
     }
 
     /**
@@ -507,6 +522,10 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     public TaskContainerInternal getTasks() {
         return taskContainer;
+    }
+
+    public TaskContainerInternal getImplicitTasks() {
+        return implicitTasksContainer;
     }
 
     public void defaultTasks(String... defaultTasks) {
@@ -608,7 +627,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     public Project childrenDependOnMe() {
         for (Project project : childProjects.values()) {
-            project.dependsOn(this.path, false);
+            project.dependsOn(getPath(), false);
         }
         return this;
     }
@@ -742,11 +761,11 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         this.taskContainer = taskContainer;
     }
 
-    public AntBuilderFactory getAntBuilderFactory() {
+    public Factory<? extends AntBuilder> getAntBuilderFactory() {
         return antBuilderFactory;
     }
 
-    public void setAntBuilderFactory(AntBuilderFactory antBuilderFactory) {
+    public void setAntBuilderFactory(Factory<? extends AntBuilder> antBuilderFactory) {
         this.antBuilderFactory = antBuilderFactory;
     }
 
@@ -786,7 +805,6 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return loggingManager;
     }
 
-    @Override
     public LoggingManager getLogging() {
         return loggingManager;
     }
@@ -833,12 +851,12 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return fileOperations.exec(closure);
     }
 
-    public ServiceRegistryFactory getServiceRegistryFactory() {
+    public ServiceRegistryFactory getServices() {
         return services;
     }
 
     public Module getModule() {
-        return getServiceRegistryFactory().get(DependencyMetaDataProvider.class).getModule();
+        return getServices().get(DependencyMetaDataProvider.class).getModule();
     }
 
     public void apply(Closure closure) {

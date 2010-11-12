@@ -18,7 +18,7 @@ package org.gradle;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.gradle.api.artifacts.ProjectDependenciesBuildInstruction;
+import org.gradle.api.internal.artifacts.ProjectDependenciesBuildInstruction;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.execution.*;
 import org.gradle.groovy.scripts.UriScriptSource;
@@ -44,6 +44,15 @@ import java.util.*;
  * @see GradleLauncher
  */
 public class StartParameter {
+    public static final String GRADLE_USER_HOME_PROPERTY_KEY = "gradle.user.home";
+    /**
+     * The default user home directory.
+     */
+    public static final File DEFAULT_GRADLE_USER_HOME = new File(System.getProperty("user.home") + "/.gradle");
+
+    /**
+     * Specifies the detail to include in stacktraces.
+     */
     public enum ShowStacktrace {
         INTERNAL_EXCEPTIONS, ALWAYS, ALWAYS_FULL
     }
@@ -56,11 +65,6 @@ public class StartParameter {
     private boolean searchUpwards = true;
     private Map<String, String> projectProperties = new HashMap<String, String>();
     private Map<String, String> systemPropertiesArgs = new HashMap<String, String>();
-    public static final String GRADLE_USER_HOME_PROPERTY_KEY = "gradle.user.home";
-    /**
-     * The default user home directory.
-     */
-    public static final File DEFAULT_GRADLE_USER_HOME = new File(System.getProperty("user.home") + "/.gradle");
     private File gradleUserHomeDir = new File(GUtil.elvis(System.getProperty(GRADLE_USER_HOME_PROPERTY_KEY), DEFAULT_GRADLE_USER_HOME.getAbsolutePath()));
     private CacheUsage cacheUsage = CacheUsage.ON;
     private ScriptSource buildScriptSource;
@@ -71,11 +75,10 @@ public class StartParameter {
     private ShowStacktrace showStacktrace = ShowStacktrace.INTERNAL_EXCEPTIONS;
     private File buildFile;
     private List<File> initScripts = new ArrayList<File>();
-    private boolean showHelp;
-    private boolean showVersion;
-    private boolean launchGUI;
     private boolean dryRun;
     private boolean noOpt;
+    private boolean colorOutput = true;
+    private boolean profile;
 
     /**
      * Creates a {@code StartParameter} with default values. This is roughly equivalent to running Gradle on the
@@ -107,11 +110,11 @@ public class StartParameter {
         startParameter.buildExecuter = buildExecuter;
         startParameter.defaultProjectSelector = defaultProjectSelector;
         startParameter.logLevel = logLevel;
+        startParameter.colorOutput = colorOutput;
         startParameter.showStacktrace = showStacktrace;
-        startParameter.showHelp = showHelp;
-        startParameter.showVersion = showVersion;
         startParameter.dryRun = dryRun;
         startParameter.noOpt = noOpt;
+        startParameter.profile = profile;
         return startParameter;
     }
 
@@ -127,6 +130,8 @@ public class StartParameter {
         startParameter.gradleUserHomeDir = gradleUserHomeDir;
         startParameter.cacheUsage = cacheUsage;
         startParameter.logLevel = logLevel;
+        startParameter.colorOutput = colorOutput;
+        startParameter.profile = profile;
         return startParameter;
     }
 
@@ -371,22 +376,6 @@ public class StartParameter {
         this.cacheUsage = cacheUsage;
     }
 
-    public boolean isShowHelp() {
-        return showHelp;
-    }
-
-    public void setShowHelp(boolean showHelp) {
-        this.showHelp = showHelp;
-    }
-
-    public boolean isShowVersion() {
-        return showVersion;
-    }
-
-    public void setShowVersion(boolean showVersion) {
-        this.showVersion = showVersion;
-    }
-
     public boolean isDryRun() {
         return dryRun;
     }
@@ -494,14 +483,38 @@ public class StartParameter {
     }
 
     /**
-       Determines whether or not the GUI was requested to be launched.
-    */
-    public boolean isLaunchGUI() {
-        return launchGUI;
+     * Returns true if logging output should be displayed in color when Gradle is running in a terminal which supports
+     * color output. The default value is true.
+     *
+     * @return true if logging output should be displayed in color.
+     */
+    public boolean isColorOutput() {
+        return colorOutput;
     }
 
-    public void setLaunchGUI(boolean launchGUI) {
-        this.launchGUI = launchGUI;
+    /**
+     * Specifies whether logging output should be displayed in color.
+     *
+     * @param colorOutput true if logging output should be displayed in color.
+     */
+    public void setColorOutput(boolean colorOutput) {
+        this.colorOutput = colorOutput;
+    }
+
+    /**
+     * Specifies if a profile report should be generated.
+     * @param profile true if a profile report should be generated
+     */
+    public void setProfile(boolean profile) {
+        this.profile = profile;
+    }
+
+    /**
+     * Returns true if a profile report will be generated.
+     * @return
+     */
+    public boolean isProfile() {
+        return profile;
     }
 
     @Override
@@ -523,11 +536,9 @@ public class StartParameter {
                 ", showStacktrace=" + showStacktrace +
                 ", buildFile=" + buildFile +
                 ", initScripts=" + initScripts +
-                ", showHelp=" + showHelp +
-                ", showVersion=" + showVersion +
-                ", launchGUI=" + launchGUI +
                 ", dryRun=" + dryRun +
                 ", noOpt=" + noOpt +
+                ", profile=" + profile +
                 '}';
     }
 }
