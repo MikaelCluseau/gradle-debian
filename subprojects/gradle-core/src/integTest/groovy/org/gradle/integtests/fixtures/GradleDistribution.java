@@ -16,10 +16,7 @@
 
 package org.gradle.integtests.fixtures;
 
-import org.gradle.util.GradleVersion;
-import org.gradle.util.TemporaryFolder;
-import org.gradle.util.TestFile;
-import org.gradle.util.TestFileContext;
+import org.gradle.util.*;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
@@ -52,6 +49,10 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
 
     public GradleDistribution() {
         this.userHome = USER_HOME_DIR;
+    }
+
+    public boolean worksWith(Jvm jvm) {
+        return jvm.isJava5Compatible();
     }
 
     public void requireOwnUserHomeDir() {
@@ -88,6 +89,10 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
 
     public String getVersion() {
         return new GradleVersion().getVersion();
+    }
+
+    public TestFile getBinDistribution() {
+        return getDistributionsDir().file(String.format("gradle-%s-bin.zip", getVersion()));
     }
 
     /**
@@ -134,13 +139,17 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
     }
 
     /**
-     * Returns an executer which can execute a previous version of Gradle.
+     * Returns a previous version of Gradle.
      *
      * @param version The Gradle version
      * @return An executer
      */
-    public PreviousGradleVersionExecuter previousVersion(String version) {
+    public BasicGradleDistribution previousVersion(String version) {
         return new PreviousGradleVersionExecuter(this, version);
+    }
+
+    public GradleExecuter executer() {
+        return new GradleDistributionExecuter(this);
     }
 
     /**

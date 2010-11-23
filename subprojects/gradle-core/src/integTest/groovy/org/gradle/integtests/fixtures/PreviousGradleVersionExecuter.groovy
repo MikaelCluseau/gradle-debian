@@ -15,6 +15,7 @@
  */
 package org.gradle.integtests.fixtures
 
+import org.gradle.util.Jvm
 import org.gradle.util.TestFile
 
 public class PreviousGradleVersionExecuter extends AbstractGradleExecuter implements BasicGradleDistribution {
@@ -30,10 +31,35 @@ public class PreviousGradleVersionExecuter extends AbstractGradleExecuter implem
         "Gradle $version"
     }
 
+    @Override
+    boolean worksWith(Jvm jvm) {
+        return version == '0.9-rc-1' ? jvm.isJava6Compatible() : jvm.isJava5Compatible()
+    }
+
     protected ExecutionResult doRun() {
         ForkingGradleExecuter executer = new ForkingGradleExecuter(gradleHomeDir)
+        executer.inDirectory(dist.testDir)
         copyTo(executer)
         return executer.run()
+    }
+
+    GradleExecuter executer() {
+        this
+    }
+
+    TestFile getBinDistribution() {
+        def zipFile = dist.userHomeDir.parentFile.file("gradle-$version-bin.zip")
+        if (!zipFile.isFile()) {
+            try {
+                URL url = new URL("http://dist.codehaus.org/gradle/${zipFile.name}")
+                System.out.println("downloading $url");
+                zipFile.copyFrom(url)
+            } catch (Throwable t) {
+                zipFile.delete()
+                throw t
+            }
+        }
+        return zipFile
     }
 
     def TestFile getGradleHomeDir() {
@@ -46,17 +72,7 @@ public class PreviousGradleVersionExecuter extends AbstractGradleExecuter implem
         TestFile gradleHome = versionsDir.file("gradle-$version")
         TestFile markerFile = gradleHome.file('ok.txt')
         if (!markerFile.isFile()) {
-            TestFile zipFile = dist.userHomeDir.parentFile.file("gradle-$version-bin.zip")
-            if (!zipFile.isFile()) {
-                try {
-                    URL url = new URL("http://dist.codehaus.org/gradle/${zipFile.name}")
-                    System.out.println("downloading $url");
-                    zipFile.copyFrom(url)
-                } catch (Throwable t) {
-                    zipFile.delete()
-                    throw t
-                }
-            }
+            TestFile zipFile = binDistribution
             zipFile.usingNativeTools().unzipTo(versionsDir)
             markerFile.touch()
         }

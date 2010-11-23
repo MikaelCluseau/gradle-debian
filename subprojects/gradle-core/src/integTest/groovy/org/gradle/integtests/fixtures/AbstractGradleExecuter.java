@@ -15,6 +15,8 @@
  */
 package org.gradle.integtests.fixtures;
 
+import org.gradle.util.Jvm;
+
 import java.io.File;
 import java.util.*;
 
@@ -40,6 +42,10 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         userHomeDir = null;
         environmentVars.clear();
         return this;
+    }
+
+    public boolean worksWith(Jvm jvm) {
+        return jvm.isJava5Compatible();
     }
 
     public GradleExecuter inDirectory(File directory) {
@@ -78,6 +84,10 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
 
     public GradleExecuter usingInitScript(File initScript) {
         throw new UnsupportedOperationException();
+    }
+
+    public File getUserHomeDir() {
+        return userHomeDir;
     }
 
     public GradleExecuter withUserHomeDir(File userHomeDir) {
