@@ -15,7 +15,7 @@
  */
 package org.gradle.plugins.idea.model
 
-import org.gradle.api.Action
+import org.gradle.api.internal.tasks.generator.XmlPersistableConfigurationObject
 import org.gradle.api.internal.XmlTransformer
 
 /**
@@ -23,7 +23,7 @@ import org.gradle.api.internal.XmlTransformer
  *
  * @author Hans Dockter
  */
-class Project {
+class Project extends XmlPersistableConfigurationObject {
     /**
      * A set of {@link Path} instances pointing to the modules contained in the ipr.
      */
@@ -39,29 +39,25 @@ class Project {
      */
     Jdk jdk
 
-    private Node xml
-    
-    private XmlTransformer withXmlActions
+    private final PathFactory pathFactory
 
-    def Project(Set modulePaths, String javaVersion, Set wildcards, Reader inputXml, Action<Project> beforeConfiguredAction,
-                Action<Project> whenConfiguredAction, XmlTransformer withXmlActions) {
-        initFromXml(inputXml, javaVersion)
+    def Project(XmlTransformer xmlTransformer, PathFactory pathFactory) {
+        super(xmlTransformer)
+        this.pathFactory = pathFactory
+    }
 
-        beforeConfiguredAction.execute(this)
+    def configure(Set modulePaths, String javaVersion, Set wildcards) {
+        if (javaVersion) {
+            jdk = new Jdk(javaVersion)
+        }
 
         this.modulePaths.addAll(modulePaths)
         this.wildcards.addAll(wildcards)
-        this.withXmlActions = withXmlActions
-
-        whenConfiguredAction.execute(this)
     }
 
-    private def initFromXml(Reader inputXml, String javaVersion) {
-        Reader reader = inputXml ?: new InputStreamReader(getClass().getResourceAsStream('defaultProject.xml'))
-        xml = new XmlParser().parse(reader)
-
+    @Override protected void load(Node xml) {
         findModules().module.each { module ->
-            this.modulePaths.add(new ModulePath(module.@fileurl, module.@filepath))
+            this.modulePaths.add(new ModulePath(pathFactory.path(module.@fileurl), module.@filepath))
         }
 
         findWildcardResourcePatterns().entry.each { entry ->
@@ -69,19 +65,19 @@ class Project {
         }
         def jdkValues = findProjectRootManager().attributes()
 
-        if (javaVersion) {
-            jdk = new Jdk(javaVersion)
-        } else {
-            jdk = new Jdk(Boolean.parseBoolean(jdkValues.'assert-keyword'), Boolean.parseBoolean(jdkValues.'jdk-15'),
-                          jdkValues.languageLevel, jdkValues.'project-jdk-name')
-        }
+        jdk = new Jdk(Boolean.parseBoolean(jdkValues.'assert-keyword'), Boolean.parseBoolean(jdkValues.'jdk-15'),
+                jdkValues.languageLevel, jdkValues.'project-jdk-name')
     }
 
-    def toXml(Writer writer) {
+    @Override protected String getDefaultResourceName() {
+        return "defaultProject.xml"
+    }
+
+    @Override protected void store(Node xml) {
         findModules().replaceNode {
             modules {
                 modulePaths.each { ModulePath modulePath ->
-                    module(fileurl: modulePath.url, filepath: modulePath.path)
+                    module(fileurl: modulePath.path.url, filepath: modulePath.filePath)
                 }
             }
         }
@@ -96,8 +92,6 @@ class Project {
         findProjectRootManager().@'assert-jdk-15' = jdk.jdk15
         findProjectRootManager().@languageLevel = jdk.languageLevel
         findProjectRootManager().@'project-jdk-name' = jdk.projectJdkName
-
-        withXmlActions.transform(xml, writer)
     }
 
     private def findProjectRootManager() {
@@ -115,7 +109,6 @@ class Project {
         }
         moduleManager.modules
     }
-
 
     boolean equals(o) {
         if (this.is(o)) { return true }

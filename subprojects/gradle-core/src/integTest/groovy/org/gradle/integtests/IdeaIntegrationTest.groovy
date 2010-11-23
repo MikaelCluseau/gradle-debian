@@ -17,16 +17,17 @@
 
 package org.gradle.integtests
 
-import org.gradle.integtests.fixtures.GradleDistribution
-import org.gradle.integtests.fixtures.GradleDistributionExecuter
-import org.gradle.integtests.fixtures.TestResources
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.gradle.util.TestFile
 import org.custommonkey.xmlunit.Diff
 import org.custommonkey.xmlunit.ElementNameAndAttributeQualifier
 import org.custommonkey.xmlunit.XMLAssert
+import org.gradle.integtests.fixtures.GradleDistribution
+import org.gradle.integtests.fixtures.GradleDistributionExecuter
+import org.gradle.integtests.fixtures.TestResources
+import org.gradle.util.TestFile
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import junit.framework.AssertionFailedError
 
 @RunWith(DistributionIntegrationTestRunner)
 class IdeaIntegrationTest {
@@ -72,7 +73,13 @@ class IdeaIntegrationTest {
         assertHasExpectedContents('root/root.ipr')
         assertHasExpectedContents('root/root.iml')
         assertHasExpectedContents('top-level.iml')
-//        assertHasExpectedContents('a child project/a child.iml')
+    }
+
+    @Test
+    public void mergesModuleDependenciesIntoExistingDependencies() {
+        executer.withTasks('idea').run()
+
+        assertHasExpectedContents('root.iml')
     }
 
     def assertHasExpectedContents(String path) {
@@ -85,6 +92,10 @@ class IdeaIntegrationTest {
 
         Diff diff = new Diff(expectedXml, file.text)
         diff.overrideElementQualifier(new ElementNameAndAttributeQualifier())
-        XMLAssert.assertXMLEqual(diff, true);
+        try {
+            XMLAssert.assertXMLEqual(diff, true)
+        } catch (AssertionFailedError e) {
+            throw new AssertionFailedError("generated file '$path' does not contain the expected contents: ${e.message}.\nExpected:\n${expectedXml}\nActual:\n${file.text}").initCause(e)
+        }
     }
 }

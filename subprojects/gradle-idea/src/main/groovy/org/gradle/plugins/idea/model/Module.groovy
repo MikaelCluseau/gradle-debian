@@ -15,15 +15,15 @@
  */
 package org.gradle.plugins.idea.model
 
-import org.gradle.api.Action
 import org.gradle.api.internal.XmlTransformer
+import org.gradle.api.internal.tasks.generator.XmlPersistableConfigurationObject
 
 /**
  * Represents the customizable elements of an iml (via XML hooks everything of the iml is customizable).
  *
  * @author Hans Dockter
  */
-class Module {
+class Module extends XmlPersistableConfigurationObject {
     static final String INHERITED = "inherited"
 
     /**
@@ -64,44 +64,22 @@ class Module {
 
     String javaVersion
 
-    private Node xml
+    private final PathFactory pathFactory
 
-    private XmlTransformer withXmlActions
-
-    def Module(Path contentPath, Set sourceFolders, Set testSourceFolders, Set excludeFolders, Path outputDir, Path testOutputDir, Set dependencies,
-               VariableReplacement dependencyVariableReplacement, String javaVersion, Reader inputXml,
-               Action<Module> beforeConfiguredAction, Action<Module> whenConfiguredAction,
-               XmlTransformer withXmlActions) {
-        initFromXml(inputXml, dependencyVariableReplacement)
-
-        beforeConfiguredAction.execute(this)
-
-        this.contentPath = contentPath
-        this.sourceFolders.addAll(sourceFolders);
-        this.testSourceFolders.addAll(testSourceFolders);
-        this.excludeFolders.addAll(excludeFolders);
-        if (outputDir) {
-            this.outputDir = outputDir
-        }
-        if (testOutputDir) {
-            this.testOutputDir = testOutputDir;
-        }
-        this.dependencies.addAll(dependencies);
-        if (javaVersion) {
-            this.javaVersion = javaVersion
-        }
-        this.withXmlActions = withXmlActions;
-
-        whenConfiguredAction.execute(this)
+    def Module(XmlTransformer withXmlActions, PathFactory pathFactory) {
+        super(withXmlActions)
+        this.pathFactory = pathFactory
     }
 
-    private def initFromXml(Reader inputXml, VariableReplacement dependencyVariableReplacement) {
-        Reader reader = inputXml ?: new InputStreamReader(getClass().getResourceAsStream('defaultModule.xml'))
-        xml = new XmlParser().parse(reader)
+    @Override protected String getDefaultResourceName() {
+        return 'defaultModule.xml'
+    }
+
+    @Override protected void load(Node xml) {
         readJdkFromXml()
         readSourceAndExcludeFolderFromXml()
         readOutputDirsFromXml()
-        readDependenciesFromXml(dependencyVariableReplacement)
+        readDependenciesFromXml()
     }
 
     private def readJdkFromXml() {
@@ -116,24 +94,24 @@ class Module {
     private def readOutputDirsFromXml() {
         def outputDirUrl = findOutputDir()?.@url
         def testOutputDirUrl = findTestOutputDir()?.@url
-        this.outputDir = outputDirUrl ? new Path(outputDirUrl) : null
-        this.testOutputDir = testOutputDirUrl ? new Path(testOutputDirUrl) : null
+        this.outputDir = outputDirUrl ? pathFactory.path(outputDirUrl) : null
+        this.testOutputDir = testOutputDirUrl ? pathFactory.path(testOutputDirUrl) : null
     }
 
-    private def readDependenciesFromXml(VariableReplacement dependencyVariableReplacement) {
+    private def readDependenciesFromXml() {
         return findOrderEntries().each { orderEntry ->
             switch (orderEntry.@type) {
                 case "module-library":
                     Set classes = orderEntry.library.CLASSES.root.collect {
-                        new Path(dependencyVariableReplacement.replace(it.@url))
+                        pathFactory.path(it.@url)
                     }
                     Set javadoc = orderEntry.library.JAVADOC.root.collect {
-                        new Path(dependencyVariableReplacement.replace(it.@url))
+                        pathFactory.path(it.@url)
                     }
                     Set sources = orderEntry.library.SOURCES.root.collect {
-                        new Path(dependencyVariableReplacement.replace(it.@url))
+                        pathFactory.path(it.@url)
                     }
-                    Set jarDirectories = orderEntry.library.jarDirectory.collect { new JarDirectory(new Path(it.@url), Boolean.parseBoolean(it.@recursive)) }
+                    Set jarDirectories = orderEntry.library.jarDirectory.collect { new JarDirectory(pathFactory.path(it.@url), Boolean.parseBoolean(it.@recursive)) }
                     def moduleLibrary = new ModuleLibrary(classes, javadoc, sources, jarDirectories, orderEntry.@scope)
                     dependencies.add(moduleLibrary)
                     break
@@ -146,22 +124,35 @@ class Module {
     private def readSourceAndExcludeFolderFromXml() {
         findSourceFolder().each { sourceFolder ->
             if (sourceFolder.@isTestSource == 'false') {
-                this.sourceFolders.add(new Path(sourceFolder.@url))
+                this.sourceFolders.add(pathFactory.path(sourceFolder.@url))
             } else {
-                this.testSourceFolders.add(new Path(sourceFolder.@url))
+                this.testSourceFolders.add(pathFactory.path(sourceFolder.@url))
             }
         }
         findExcludeFolder().each { excludeFolder ->
-            this.excludeFolders.add(new Path(excludeFolder.@url))
+            this.excludeFolders.add(pathFactory.path(excludeFolder.@url))
         }
     }
 
-    /**
-     * Generates the XML for the iml.
-     *
-     * @param writer The writer where the iml xml is generated into.
-     */
-    def toXml(Writer writer) {
+    def configure(Path contentPath, Set sourceFolders, Set testSourceFolders, Set excludeFolders, Path outputDir, Path testOutputDir, Set dependencies,
+                  String javaVersion) {
+        this.contentPath = contentPath
+        this.sourceFolders.addAll(sourceFolders);
+        this.testSourceFolders.addAll(testSourceFolders);
+        this.excludeFolders.addAll(excludeFolders);
+        if (outputDir) {
+            this.outputDir = outputDir
+        }
+        if (testOutputDir) {
+            this.testOutputDir = testOutputDir;
+        }
+        this.dependencies.addAll(dependencies);
+        if (javaVersion) {
+            this.javaVersion = javaVersion
+        }
+    }
+
+    @Override protected void store(Node xml) {
         addJdkToXml()
         setContentURL()
         removeSourceAndExcludeFolderFromXml()
@@ -170,8 +161,6 @@ class Module {
 
         removeDependenciesFromXml()
         addDependenciesToXml()
-
-        withXmlActions.transform(xml, writer)
     }
 
     private def addJdkToXml() {
@@ -324,20 +313,5 @@ class Module {
                 ", outputDir=" + outputDir +
                 ", testOutputDir=" + testOutputDir +
                 '}';
-    }
-}
-
-// todo make this an inner class once codenarc understands groovy inner classes
-public class VariableReplacement {
-    public static final VariableReplacement NO_REPLACEMENT = new VariableReplacement()
-
-    String replacable
-    String replacer
-
-    String replace(String source) {
-        if (replacable && replacer != null) {
-            return source.replace(replacable, replacer)
-        }
-        return source
     }
 }
