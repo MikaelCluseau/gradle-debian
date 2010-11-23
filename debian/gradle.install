@@ -1,0 +1,5 @@
+build/distributions/bin/gradle-*/bin/gradle                 usr/share/gradle/bin
+
+build/distributions/bin/gradle-*/lib/gradle-launcher-*.jar  usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-open-api-*.jar  usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-ui-*.jar        usr/share/gradle/lib

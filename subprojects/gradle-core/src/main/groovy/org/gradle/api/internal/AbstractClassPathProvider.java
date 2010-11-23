@@ -60,7 +60,7 @@ public abstract class AbstractClassPathProvider implements ClassPathProvider, Gr
     protected static List<Pattern> toPatterns(String... patternStrings) {
         List<Pattern> patterns = new ArrayList<Pattern>();
         for (String patternString : patternStrings) {
-            patterns.add(Pattern.compile(patternString + "-.+"));
+            patterns.add(Pattern.compile(patternString + "-?.*"));
         }
         return patterns;
     }

@@ -1,0 +1,25 @@
+The sources where downloaded from
+http://dist.codehaus.org/gradle/gradle-0.9-rc-1-src.zip.
+
+Files: *
+Copyright: © 2007-2010, The original author or authors.
+Authors: Hans Dockter (Founder and Project Lead),
+ Steve Appling,
+ Steven Devijver,
+ Tom Eyckmans,
+ Adam Murdoch,
+ Russel Winder
+Contributors: Franke Henze,
+ Stefan Groschupf,
+ Dierk König,
+ Ken Krugler,
+ Guillaume Laforge
+License: Apache-2.0
+ The full text of the Apache 2.0 license is distributed in
+ /usr/share/common-licenses/Apache-2.0 on Debian systems.
+
+Files: debian/*
+Copyright: © 2010 Miguel Landaeta <miguel@miguel.cc>
+License: Apache-2.0
+ The full text of the Apache 2.0 license is distributed in
+ /usr/share/common-licenses/Apache-2.0 on Debian systems.

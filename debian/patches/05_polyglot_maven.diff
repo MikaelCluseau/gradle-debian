@@ -1,0 +1,106 @@
+Description: Disable Polyglot Maven features
+ Polyglot Maven is not packaged in Debian yet.
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: not-needed
+Last-Update: 2010-08-27
+
+Index: b/subprojects/gradle-core/core.gradle
+===================================================================
+--- a/subprojects/gradle-core/core.gradle	2010-08-23 16:18:30.000000000 -0430
++++ b/subprojects/gradle-core/core.gradle	2010-08-23 16:18:31.000000000 -0430
+@@ -69,8 +69,6 @@
+             libraries.asm_all,
+             'org.fusesource.jansi:jansi:1.4',
+             'org.jruby.ext.posix:jna-posix:1.0.1',
+-            'org.sonatype.pmaven:pmaven-common:0.8-20100325@jar',
+-            'org.sonatype.pmaven:pmaven-groovy:0.8-20100325@jar',
+             'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
+             'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
+             'org.apache.maven:maven-model:2.2.1',
+Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
+===================================================================
+--- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java	2010-08-23 16:17:00.000000000 -0430
++++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java	2010-08-23 16:18:31.000000000 -0430
+@@ -19,9 +19,11 @@
+ import org.apache.maven.model.Model;
+ import org.codehaus.plexus.personality.plexus.lifecycle.phase.InitializationException;
+ import org.slf4j.LoggerFactory;
++/*
+ import org.sonatype.maven.polyglot.execute.ExecuteManager;
+ import org.sonatype.maven.polyglot.execute.ExecuteManagerImpl;
+ import org.sonatype.maven.polyglot.groovy.builder.ModelBuilder;
++*/
+ 
+ import java.lang.reflect.Field;
+ import java.util.Map;
+@@ -29,10 +31,12 @@
+ /**
+  * This is a slightly modified version as shipped with polyglot Maven.
+  */
+-public class CustomModelBuilder extends ModelBuilder {
++//public class CustomModelBuilder extends ModelBuilder {
++public class CustomModelBuilder {
+     private Model model;
+ 
+     public CustomModelBuilder(Model model) {
++        /*
+         this.model = model;
+         ExecuteManager executeManager = new ExecuteManagerImpl();
+         setProp(executeManager.getClass(), executeManager, "log",
+@@ -49,6 +53,8 @@
+         factories.remove("project");
+         ModelFactory modelFactory = new ModelFactory(model);
+         registerFactory(modelFactory.getName(), null, modelFactory);
++        */
++        throw new UnsupportedOperationException("CustomModelBuilder");
+     }
+ 
+     public static void setProp(Class c, Object obj, String fieldName, Object value) {
+@@ -80,4 +86,4 @@
+             throw new RuntimeException(e);
+         }
+     }
+-}
+\ No newline at end of file
++}
+Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
+===================================================================
+--- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java	2010-08-23 16:17:00.000000000 -0430
++++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java	2010-08-23 16:18:31.000000000 -0430
+@@ -17,27 +17,31 @@
+ 
+ import groovy.util.FactoryBuilderSupport;
+ import org.apache.maven.model.Model;
+-import org.sonatype.maven.polyglot.groovy.builder.factory.NamedFactory;
++//import org.sonatype.maven.polyglot.groovy.builder.factory.NamedFactory;
+ 
+ import java.util.Map;
+ 
+ /**
+  * This is a slightly modified version as shipped with polyglot Maven.
+  */
+-public class ModelFactory extends NamedFactory {
++//public class ModelFactory extends NamedFactory {
++public class ModelFactory {
+     private Model model;
+ 
+     public ModelFactory(Model model) {
++        /*
+         super("project");
+         this.model = model;
++        */
++        throw new UnsupportedOperationException("ModelFactory");
+     }
+ 
+     public Object newInstance(FactoryBuilderSupport builder, Object name, Object value, Map attrs) throws InstantiationException, IllegalAccessException {
+         return model;
+     }
+ 
+-    @Override
++    //@Override
+     public void onNodeCompleted(FactoryBuilderSupport builder, Object parent, Object node) {
+         Model model = (Model)node;
+     }
+-}
+\ No newline at end of file
++}

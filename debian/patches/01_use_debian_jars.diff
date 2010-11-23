@@ -1,0 +1,263 @@
+Description: Build Gradle using libraries available in Debian
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: not-needed
+Last-Update: 2010-08-23
+
+Index: b/build.gradle
+===================================================================
+--- a/build.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/build.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -17,6 +17,7 @@
+ import java.text.SimpleDateFormat
+ import java.util.jar.Attributes
+ import org.gradle.api.artifacts.repositories.WebdavResolver
++import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ import org.gradle.build.samples.WrapperProjectCreator
+ 
+@@ -41,35 +42,36 @@
+ archivesBaseName = 'gradle'
+ 
+ libraries = [
+-        ant: 'org.apache.ant:ant:1.8.1@jar',
+-        ant_junit: 'org.apache.ant:ant-junit:1.8.1@jar',
+-        ant_launcher: 'org.apache.ant:ant-launcher:1.8.1@jar',
+-        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.1@jar',
+-        ant_antlr: 'org.apache.ant:ant-antlr:1.8.1@jar',
++        ant: 'org.apache.ant:ant:1.8.0@jar',
++        ant_junit: 'org.apache.ant:ant-junit:1.8.0@jar',
++        ant_launcher: 'org.apache.ant:ant-launcher:1.8.0@jar',
++        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.0@jar',
++        ant_trax: 'org.apache.ant:ant-trax:1.8.0@jar',
++        ant_antlr: 'org.apache.ant:ant-antlr:1.8.0@jar',
+         antlr: 'antlr:antlr:2.7.7@jar',
+-        asm_all: 'asm:asm-all:3.2@jar',
++        asm_all: 'asm:asm3-all:3.2@jar',
+         commons_cli: 'commons-cli:commons-cli:1.2@jar',
+         commons_io: 'commons-io:commons-io:1.4@jar',
+-        commons_lang: 'commons-lang:commons-lang:2.5@jar',
++        commons_lang: 'commons-lang:commons-lang:2.4@jar',
+         dom4j: 'dom4j:dom4j:1.6.1@jar',
+         google_collections: 'com.google.collections:google-collections:1.0@jar',
+-        groovy: 'org.codehaus.groovy:groovy-all:1.7.3@jar',
+-        ivy: 'org.apache.ivy:ivy:2.2.0-rc1@jar',
+-        jaxen: 'jaxen:jaxen:1.1@jar',
+-        jopt_simple: 'net.sf.jopt-simple:jopt-simple:3.2@jar',
+-        slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
+-        jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
+-        jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
+-        log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
+-        logback_classic: 'ch.qos.logback:logback-classic:0.9.24@jar',
+-        logback_core: 'ch.qos.logback:logback-core:0.9.24@jar',
+-        junit: 'junit:junit:4.8.1',
++        groovy: 'org.codehaus.groovy:groovy-all:1.7.4@jar',
++        ivy: 'org.apache.ivy:ivy:2.1.0@jar',
++        jaxen: 'jaxen:jaxen:1.1.2@jar',
++        jopt_simple: 'net.sf.jopt-simple:joptsimple:3.1@jar',
++        slf4j_api: 'org.slf4j:slf4j-api:1.5.11@jar',
++        jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.5.11@jar',
++        jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.5.11@jar',
++        log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.5.11@jar',
++        logback_classic: 'ch.qos.logback:logback-classic:0.9.18@jar',
++        logback_core: 'ch.qos.logback:logback-core:0.9.18@jar',
++        junit: 'junit:junit4:4.8.2',
+         xmlunit: 'xmlunit:xmlunit:1.3',
+ ]
+ 
+ libraries.spock = ['org.spockframework:spock-core:0.4-groovy-1.7@jar', libraries.groovy, 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2']
+ libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
+-libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.22@jar", "org.mortbay.jetty:jetty-util:6.1.22@jar",
++libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.24@jar", "org.mortbay.jetty:jetty-util:6.1.24@jar",
+         "javax.servlet:servlet-api:2.5@jar"]
+ 
+ allprojects {
+@@ -81,7 +83,11 @@
+     }
+ 
+     repositories {
+-        mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
++        add(new FileSystemResolver()) {
++            name = 'repo'
++            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
++            addArtifactPattern "/usr/share/java/[module].[ext]"
++        }
+     }
+ 
+     version = this.version
+Index: b/subprojects/gradle-osgi/osgi.gradle
+===================================================================
+--- a/subprojects/gradle-osgi/osgi.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-osgi/osgi.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -13,10 +13,6 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
+-repositories {
+-    mavenRepo urls: 'http://www.aQute.biz/repo'
+-}
+-
+ dependencies {
+     groovy libraries.groovy_depends
+ 
+@@ -24,7 +20,7 @@
+     compile project(':plugins')
+     compile libraries.slf4j_api
+ 
+-    compile 'biz.aQute:bndlib:0.0.384@jar'
++    compile 'biz.aQute:bnd:0.0.384@jar'
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
+Index: b/subprojects/gradle-wrapper/wrapper.gradle
+===================================================================
+--- a/subprojects/gradle-wrapper/wrapper.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-wrapper/wrapper.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -19,7 +19,7 @@
+     groovy libraries.groovy_depends
+     compile project(':core')
+ 
+-    compile libraries.commons_io, libraries.ant, libraries.ant_nodeps
++    compile libraries.commons_io, libraries.ant, libraries.ant_nodeps, libraries.ant_trax
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
+Index: b/subprojects/gradle-jetty/jetty.gradle
+===================================================================
+--- a/subprojects/gradle-jetty/jetty.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-jetty/jetty.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -21,13 +21,11 @@
+ 
+     compile libraries.slf4j_api,
+             libraries.jetty_depends,
+-            "org.mortbay.jetty:jetty-plus:6.1.22@jar"
++            "org.mortbay.jetty:jetty-plus:6.1.24@jar"
+ 
+-    runtime "org.mortbay.jetty:jsp-api-2.1:6.1.14@jar",
+-            "org.mortbay.jetty:jsp-2.1:6.1.14@jar",
+-            "org.eclipse.jdt:core:3.1.1@jar",
+-            "org.mortbay.jetty:jetty-naming:6.1.22@jar",
+-            "org.mortbay.jetty:jetty-annotations:6.1.22@jar"
++    runtime "org.mortbay.jetty:jsp-api:2.1@jar",
++            "org.mortbay.jetty:jetty-naming:6.1.24@jar",
++            "org.mortbay.jetty:jetty-annotations:6.1.24@jar"
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
+Index: b/subprojects/gradle-code-quality/code-quality.gradle
+===================================================================
+--- a/subprojects/gradle-code-quality/code-quality.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-code-quality/code-quality.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -23,10 +23,10 @@
+     compile libraries.slf4j_api
+  
+     runtime libraries.log4j_to_slf4j,
+-            "org.gmetrics:GMetrics:0.2@jar"
++            "org.gmetrics:GMetrics:0.3@jar"
+ 
+-    def BEAN_UTILS = ["commons-beanutils:commons-beanutils-core:1.7.0@jar", "commons-collections:commons-collections:2.0@jar", libraries.jcl_to_slf4j]
+-    runtime "checkstyle:checkstyle:5.1@jar",
++    def BEAN_UTILS = ["commons-beanutils:commons-beanutils:1.8.3@jar", "commons-collections:commons-collections:2.1.1@jar", libraries.jcl_to_slf4j]
++    runtime "checkstyle:checkstyle:4.4@jar",
+             libraries.antlr,
+             libraries.jcl_to_slf4j,
+             libraries.google_collections,
+Index: b/subprojects/gradle-core/core.gradle
+===================================================================
+--- a/subprojects/gradle-core/core.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-core/core.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -48,32 +48,41 @@
+ dependencies {
+     groovy libraries.groovy_depends
+ 
+-    compile "commons-httpclient:commons-httpclient:3.0@jar", "commons-codec:commons-codec:1.2@jar", libraries.jcl_to_slf4j
++    compile "commons-httpclient:commons-httpclient:3.1@jar", "commons-codec:commons-codec:1.4@jar", libraries.jcl_to_slf4j
+ 
+     compile libraries.ivy, "com.jcraft:jsch:0.1.42@jar", 'com.jcraft:jzlib:1.0.7@jar'
+ 
+     compile libraries.jopt_simple,
+             libraries.ant,
+             libraries.ant_nodeps,
++            libraries.ant_trax,
+             libraries.logback_classic,
+             libraries.logback_core,
+             libraries.slf4j_api,
+             libraries.jul_to_slf4j,
+             libraries.commons_io,
+             libraries.commons_lang,
+-            "commons-codec:commons-codec:1.2@jar",
++            "commons-codec:commons-codec:1.4@jar",
+             libraries.google_collections,
+-            "commons-collections:commons-collections:3.2.1@jar",
++            "commons-collections:commons-collections3:3.2.1@jar",
+             "slide:webdavlib:2.0@jar",
+-            "org.apache.maven:maven-ant-tasks:2.1.0@jar",
++            "org.apache.maven:maven-ant-tasks:2.0.10@jar",
+             libraries.asm_all,
+-            'org.fusesource.jansi:jansi:1.2.1',
+-            'org.jruby.ext.posix:jna-posix:1.0.3',
++            'org.fusesource.jansi:jansi:1.4',
++            'org.jruby.ext.posix:jna-posix:1.0.1',
+             'org.sonatype.pmaven:pmaven-common:0.8-20100325@jar',
+             'org.sonatype.pmaven:pmaven-groovy:0.8-20100325@jar',
+-            'org.codehaus.plexus:plexus-component-annotations:1.5.2'
++            'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
++            'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
++            'org.apache.maven:maven-model:2.2.1',
++            'org.apache.maven:maven-settings:2.2.1',
++            'org.apache.maven:maven-project:2.2.1',
++            'org.apache.maven:maven-artifact:2.2.1',
++            'org.apache.maven:maven-artifact-manager:2.2.1',
++            'org.apache.maven:maven-settings:2.2.1',
++            'org.apache.maven.wagon:wagon-provider-api:1.0-beta-6'
+ 
+-    runtime 'net.java.dev.jna:jna:3.2.2'
++    runtime 'net.java.dev.jna:jna:3.2.4'
+ 
+     runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
+ 
+Index: b/buildSrc/build.gradle
+===================================================================
+--- a/buildSrc/build.gradle	2010-08-22 16:17:01.000000000 -0430
++++ b/buildSrc/build.gradle	2010-08-23 19:18:29.000000000 -0430
+@@ -13,20 +13,25 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
++import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ apply plugin: 'groovy'
+ apply plugin: 'code-quality'
+ 
+ repositories {
+-    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
++    add(new FileSystemResolver()) {
++        name = 'repo'
++        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
++        addArtifactPattern "/usr/share/java/[module].[ext]"
++    }
+ }
+ 
+ dependencies {
+-    compile 'com.svnkit:svnkit:1.1.6', 'com.svnkit:svnkit-javahl:1.1.6'
++    compile 'com.svnkit:svnkit:1.3.3', 'com.svnkit:svnkit-javahl:1.3.3'
+     compile gradleApi()
+     // todo Actually it should be only groovy, but without junit we get a strange error. We need to understand this.
+     groovy localGroovy()
+-    testCompile "junit:junit:4.7"
++    testCompile "junit:junit4:4.8.2"
+ }
+ 
+ checkstyleConfigDir = "$rootDir/../config/checkstyle"
+Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
+===================================================================
+--- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java	2010-08-23 19:18:29.000000000 -0430
+@@ -60,7 +60,7 @@
+     protected static List<Pattern> toPatterns(String... patternStrings) {
+         List<Pattern> patterns = new ArrayList<Pattern>();
+         for (String patternString : patternStrings) {
+-            patterns.add(Pattern.compile(patternString + "-.+"));
++            patterns.add(Pattern.compile(patternString + "-?.*"));
+         }
+         return patterns;
+     }

@@ -1,0 +1,18 @@
+Description: Remove build timestamp from the version string
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: not-needed
+Last-Update: 2010-08-23
+
+Index: b/build.gradle
+===================================================================
+--- a/build.gradle	2010-08-22 16:18:29.000000000 -0430
++++ b/build.gradle	2010-08-23 19:18:31.000000000 -0430
+@@ -428,7 +428,7 @@
+ 
+         project.gradle.taskGraph.whenReady {graph ->
+             if (!graph.hasTask(':release')) {
+-                this.versionNumber += "-" + getTimestamp()
++                //this.versionNumber += "-" + getTimestamp()
+                 release = false
+             } else {
+                 release = true

@@ -1,0 +1,18 @@
+Description: Plexus compatibility
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: no
+Last-Update: 2010-08-23
+
+Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/PlexusLoggerAdapter.java
+===================================================================
+--- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/PlexusLoggerAdapter.java	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/PlexusLoggerAdapter.java	2010-08-23 19:18:30.000000000 -0430
+@@ -98,4 +98,8 @@
+     public String getName() {
+         return logger.getName();
+     }
++
++    public void setThreshold(int level) {
++        throw new UnsupportedOperationException("setThreshold");
++    }
+ }

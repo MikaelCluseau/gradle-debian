@@ -13,20 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.apache.ivy.plugins.resolver.FileSystemResolver
 
 apply plugin: 'groovy'
 apply plugin: 'code-quality'
 
 repositories {
-    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
+    add(new FileSystemResolver()) {
+        name = 'repo'
+        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
+        addArtifactPattern "/usr/share/java/[module].[ext]"
+    }
 }
 
 dependencies {
-    compile 'com.svnkit:svnkit:1.1.6', 'com.svnkit:svnkit-javahl:1.1.6'
+    compile 'com.svnkit:svnkit:1.3.3', 'com.svnkit:svnkit-javahl:1.3.3'
     compile gradleApi()
     // todo Actually it should be only groovy, but without junit we get a strange error. We need to understand this.
     groovy localGroovy()
-    testCompile "junit:junit:4.7"
+    testCompile "junit:junit4:4.8.2"
 }
 
 checkstyleConfigDir = "$rootDir/../config/checkstyle"

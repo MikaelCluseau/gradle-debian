@@ -1,0 +1,137 @@
+=head1 NAME
+
+gradle - Groovy based build system
+
+=head1 SYNOPSIS
+
+gradle <target> [options]
+
+=head1 OVERVIEW
+
+Gradle is a build system written in Groovy. It uses Groovy
+also as the language for its build scripts. It has a powerful
+multi-project build support. It has a layer on top of Ivy
+that provides a build-by-convention integration for Ivy. It
+gives you always the choice between the flexibility of Ant
+and the convenience of a build-by-convention behavior.
+
+For additional information, see http://gradle.org/documentation.html.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-?>, B<-h>, B<--help>
+
+Shows the help message.
+
+=item B<-A> I<task>[,...], B<--dep-tasks> I<task>[,...]
+
+Specify additional tasks for building project dependencies.
+
+=item B<-C> I<value>, B<--cache> I<value>
+
+Specifies how compiled build scripts should be cached. Possible values
+are: 'rebuild' and 'on'. Default value is 'on'.
+
+=item B<-D>I<propertie=value>, B<--system-prop> I<propertie=value>
+
+Set system property of the JVM (e.g. -Dmyprop=myvalue).
+
+=item B<-I> I<script>, B<--init-script> I<script>
+
+Specifies an initialization script.
+
+=item B<-P>I<propertie=value>, B<--project-prop> I<propertie=value>
+
+Set project property for the build script (e.g. -Pmyprop=myvalue).
+
+=item B<-S>, B<--full-stacktrace>
+
+Print out the full (very verbose) stacktrace for any exceptions.
+
+=item B<-a>, B<--no-rebuild>
+
+Do not rebuild project dependencies.
+
+=item B<--all>
+
+Show additional details in the task listing.
+
+=item B<-b> I<file>, B<--build-file> I<file>
+
+Specifies the build file.
+
+=item B<-c> I<file>, B<--settings-file> I<file>
+
+Specifies the settings file.
+
+=item B<-d>, B<--debug>
+
+Log in debug mode (includes normal stacktrace).                         
+
+=item B<-e> I<file>, B<--embedded> I<file>
+
+Specify an embedded build script.
+
+=item B<-g> I<directory>, B<--gradle-user-home> I<directory>
+
+Specifies the gradle user home directory.
+
+=item B<--gui>
+
+Launches a GUI application
+
+=item B<-i> I<value>, B<--info> I<value>
+
+Set log level to info.
+
+=item B<-m>, B<--dry-run>
+
+Runs the builds with all task actions disabled.
+
+=item B<-n>, B<--dependencies>
+
+Show list of all project dependencies.
+
+=item B<--no-opt>
+
+Ignore any task optimization.
+
+=item B<-p> I<directory>, B<--project-dir> I<directory>
+
+Specifies the start directory for Gradle. Defaults to current directory.
+
+=item B<-q>, B<--quiet>
+
+Log errors only.
+
+=item B<-r>, B<--properties>
+
+Show list of all available project properties.
+
+=item B<-s>, B<--stacktrace>
+
+Print out the stacktrace also for user exceptions (e.g. compile error).
+
+=item B<-t>, B<--tasks>
+
+Show list of all available tasks.
+
+=item B<-u>, B<--no-search-upward>
+
+Don't search in parent folders for a settings.gradle file.
+
+=item B<-v>, B<--version>
+
+Print version info.
+
+=item B<-x> I<task>, B<--exclude-task> I<task>
+
+Specify a task to be excluded from execution.
+
+=back
+
+=head1 SEE ALSO
+
+http://gradle.org/userguide.html

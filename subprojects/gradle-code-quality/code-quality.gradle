@@ -23,10 +23,10 @@ dependencies {
     compile libraries.slf4j_api
  
     runtime libraries.log4j_to_slf4j,
-            "org.gmetrics:GMetrics:0.2@jar"
+            "org.gmetrics:GMetrics:0.3@jar"
 
-    def BEAN_UTILS = ["commons-beanutils:commons-beanutils-core:1.7.0@jar", "commons-collections:commons-collections:2.0@jar", libraries.jcl_to_slf4j]
-    runtime "checkstyle:checkstyle:5.1@jar",
+    def BEAN_UTILS = ["commons-beanutils:commons-beanutils:1.8.3@jar", "commons-collections:commons-collections:2.1.1@jar", libraries.jcl_to_slf4j]
+    runtime "checkstyle:checkstyle:4.4@jar",
             libraries.antlr,
             libraries.jcl_to_slf4j,
             libraries.google_collections,

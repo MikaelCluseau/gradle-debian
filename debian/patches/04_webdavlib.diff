@@ -1,0 +1,45 @@
+Description: Disable Jakarta Slide WebDAV library
+ Jakarta Slide WebDAV library is not available in Debian,
+ and this project was retired by its upstream developers.
+ Please see http://jakarta.apache.org/slide/.
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: not-needed
+Last-Update: 2010-08-23
+
+Index: b/subprojects/gradle-core/core.gradle
+===================================================================
+--- a/subprojects/gradle-core/core.gradle	2010-08-22 16:18:29.000000000 -0430
++++ b/subprojects/gradle-core/core.gradle	2010-08-23 19:18:30.000000000 -0430
+@@ -65,7 +65,6 @@
+             "commons-codec:commons-codec:1.4@jar",
+             libraries.google_collections,
+             "commons-collections:commons-collections3:3.2.1@jar",
+-            "slide:webdavlib:2.0@jar",
+             "org.apache.maven:maven-ant-tasks:2.0.10@jar",
+             libraries.asm_all,
+             'org.fusesource.jansi:jansi:1.4',
+Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java
+===================================================================
+--- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java	2010-08-22 16:17:01.000000000 -0430
++++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java	2010-08-26 19:18:30.000000000 -0430
+@@ -17,7 +17,6 @@
+ 
+ import org.apache.commons.httpclient.HttpsURL;
+ import org.apache.ivy.plugins.repository.url.URLRepository;
+-import org.apache.webdav.lib.WebdavResource;
+ 
+ import java.io.File;
+ import java.io.IOException;
+@@ -52,9 +51,12 @@
+         String destinationFileName =  destination.substring(fileNameStart + 1);
+         HttpsURL hrl = new HttpsURL(baseUrl);
+         hrl.setUserinfo(user, userPassword);
++        /*
+         WebdavResource wdr = new WebdavResource(hrl);
+         wdr.putMethod(wdr.getPath() + '/' + destinationFileName, source);
+         wdr.close();
++        */
++        throw new UnsupportedOperationException("put");
+     }
+ 
+     //    Alternative implementation with httpclient only. Unfortunately this is slower.

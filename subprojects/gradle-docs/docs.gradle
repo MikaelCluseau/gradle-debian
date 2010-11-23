@@ -26,6 +26,7 @@ configurations {
     userGuideTask
 }
 
+/*
 dependencies {
     ftpAntTask module("org.apache.ant:ant-commons-net:1.7.0") {
         module("commons-net:commons-net:1.4.1") {
@@ -41,6 +42,7 @@ dependencies {
 
     userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
 }
+*/
 
 RemoteLocations remoteLocations = new RemoteLocations(version: version)
 
@@ -91,10 +93,11 @@ task userguideStyleSheets(type: Copy) {
     from(cssSrcDir) {
         include '*.css'
     }
-    from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
-        // Remove the prefix
-        eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
-    }
+    //
+    //from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
+    //    // Remove the prefix
+    //    eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
+    //}
 }
 
 task samplesDocbook(type: AssembleSamplesDocTask) {
@@ -251,7 +254,8 @@ task websiteDocs(type: Docbook2Xhtml, dependsOn: websiteDocsSrc) {
 
 task userguide(dependsOn: [userguideHtml, userguideSingleHtml, userguidePdf], description: 'Generates the userguide')
 
-task docs(dependsOn: [javadoc, groovydoc, userguide, distDocs, samplesDocs])
+//task docs(dependsOn: [javadoc, groovydoc, userguide, distDocs, samplesDocs])
+task docs(dependsOn: [javadoc, groovydoc])
 
 task uploadDocs(dependsOn: docs) << {
     ftp(action: 'mkdir', remotedir: remoteLocations.docsRemoteDir)

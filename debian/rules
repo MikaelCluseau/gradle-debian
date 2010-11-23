@@ -1,0 +1,57 @@
+#!/usr/bin/make -f
+
+VERSION := $(shell dpkg-parsechangelog | grep ^Version: | sed 's/^Version: \(.\+\)-.\+$$/\1/')
+UPSTREAM_VERSION := $(shell echo $(VERSION) | sed 's/~rc/-rc-/')
+JARS := announce antlr code-quality eclipse idea jetty maven osgi plugins scala wrapper
+export JAVA_HOME=/usr/lib/jvm/default-java
+
+%:
+	dh --with javahelper $@
+
+override_dh_auto_build:
+	gradle assemble -g $(CURDIR)/.gradlehome
+	unzip build/distributions/gradle-*-bin.zip -d build/distributions/bin
+	unzip build/distributions/gradle-*-all.zip -d build/distributions/all
+	pod2man -c '' -r '' debian/gradle.pod > build/gradle.1
+	./debian/gradle.sed -i build/distributions/bin/gradle-*/bin/gradle
+
+override_dh_auto_clean:
+	dh_auto_clean
+	-gradle clean -g $(CURDIR)/.gradlehome
+	-rm -rf .gradle buildSrc/.gradle buildSrc/build .gradlehome
+
+override_dh_link:
+	dh_link
+	# plugins symlinks
+	cd debian/gradle/usr/share/gradle/lib/plugins && \
+	for j in $(JARS); do \
+		ln -s ../../../java/gradle-$$j.jar gradle-$$j-$(UPSTREAM_VERSION).jar; \
+	done ;
+	# core jar symlink
+	cd debian/gradle/usr/share/gradle/lib && \
+	ln -s ../../java/gradle-core.jar gradle-core-$(UPSTREAM_VERSION).jar
+
+override_jh_depends:
+	# jh_depends crashes when checking jar symlinks, should I file a bug?
+
+override_jh_installlibs:
+	jh_installlibs --upstream-version=$(UPSTREAM_VERSION)
+
+override_jh_installjavadoc:
+	jh_installjavadoc -pgradle-doc build/distributions/all/gradle-$(UPSTREAM_VERSION)/docs/javadoc
+
+get-orig-source:
+	cd $(dir $(firstword $(MAKEFILE_LIST)))../ && \
+	uscan \
+		--verbose \
+		--no-symlink \
+		--destdir $(CURDIR)      \
+		--watchfile debian/watch \
+		--force-download
+
+# since gradle build-depends on itself, a way to generate a deb from upstream
+# binary distribution is provided with this target. With the resulting .deb,
+# gradle can be rebuilt from source.
+bootstrap:
+	cd $(dir $(firstword $(MAKEFILE_LIST)))../ && \
+	./debian/bootstrap.sh

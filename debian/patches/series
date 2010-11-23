@@ -1,0 +1,7 @@
+01_use_debian_jars.diff
+02_logback.diff
+03_plexus.diff
+04_webdavlib.diff
+05_polyglot_maven.diff
+10_fix_version.diff
+21_docs.diff
