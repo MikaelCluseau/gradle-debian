@@ -31,7 +31,7 @@ class Version {
 
         project.gradle.taskGraph.whenReady {graph ->
             if (!graph.hasTask(':releaseVersion')) {
-                this.versionNumber += "-" + getTimestamp()
+                //this.versionNumber += "-" + getTimestamp()
                 release = false
             } else {
                 release = true

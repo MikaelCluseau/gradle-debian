@@ -2,13 +2,11 @@ Description: Disable Polyglot Maven features
  Polyglot Maven is not packaged in Debian yet.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: not-needed
-Last-Update: 2010-08-27
+Last-Update: 2010-11-23
 
-Index: b/subprojects/gradle-core/core.gradle
-===================================================================
---- a/subprojects/gradle-core/core.gradle	2010-08-23 16:18:30.000000000 -0430
-+++ b/subprojects/gradle-core/core.gradle	2010-08-23 16:18:31.000000000 -0430
-@@ -69,8 +69,6 @@
+--- gradle-0.9~rc3.orig/subprojects/gradle-core/core.gradle
++++ gradle-0.9~rc3/subprojects/gradle-core/core.gradle
+@@ -56,8 +56,6 @@ dependencies {
              libraries.asm_all,
              'org.fusesource.jansi:jansi:1.4',
              'org.jruby.ext.posix:jna-posix:1.0.1',
@@ -17,11 +15,9 @@ Index: b/subprojects/gradle-core/core.gradle
              'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
              'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
              'org.apache.maven:maven-model:2.2.1',
-Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
-===================================================================
---- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java	2010-08-23 16:17:00.000000000 -0430
-+++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java	2010-08-23 16:18:31.000000000 -0430
-@@ -19,9 +19,11 @@
+--- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
++++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
+@@ -19,9 +19,11 @@ import groovy.util.FactoryBuilderSupport
  import org.apache.maven.model.Model;
  import org.codehaus.plexus.personality.plexus.lifecycle.phase.InitializationException;
  import org.slf4j.LoggerFactory;
@@ -33,21 +29,20 @@ Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifac
  
  import java.lang.reflect.Field;
  import java.util.Map;
-@@ -29,10 +31,12 @@
+@@ -29,9 +31,11 @@ import java.util.Map;
  /**
   * This is a slightly modified version as shipped with polyglot Maven.
   */
 -public class CustomModelBuilder extends ModelBuilder {
 +//public class CustomModelBuilder extends ModelBuilder {
 +public class CustomModelBuilder {
-     private Model model;
  
      public CustomModelBuilder(Model model) {
 +        /*
-         this.model = model;
          ExecuteManager executeManager = new ExecuteManagerImpl();
          setProp(executeManager.getClass(), executeManager, "log",
-@@ -49,6 +53,8 @@
+                 new PlexusLoggerAdapter(LoggerFactory.getLogger(ExecuteManagerImpl.class)));
+@@ -47,6 +51,8 @@ public class CustomModelBuilder extends
          factories.remove("project");
          ModelFactory modelFactory = new ModelFactory(model);
          registerFactory(modelFactory.getName(), null, modelFactory);
@@ -56,18 +51,16 @@ Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifac
      }
  
      public static void setProp(Class c, Object obj, String fieldName, Object value) {
-@@ -80,4 +86,4 @@
+@@ -78,4 +84,4 @@ public class CustomModelBuilder extends
              throw new RuntimeException(e);
          }
      }
 -}
 \ No newline at end of file
 +}
-Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
-===================================================================
---- a/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java	2010-08-23 16:17:00.000000000 -0430
-+++ b/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java	2010-08-23 16:18:31.000000000 -0430
-@@ -17,27 +17,31 @@
+--- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
++++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
+@@ -17,27 +17,31 @@ package org.gradle.api.internal.artifact
  
  import groovy.util.FactoryBuilderSupport;
  import org.apache.maven.model.Model;

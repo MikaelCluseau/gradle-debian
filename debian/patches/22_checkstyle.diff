@@ -1,0 +1,32 @@
+Description: Disable checkstyle features
+ There is a conflict due to classpath issues with Checkstyle and ANTLR.
+ While I debug this problem, checkstyle checks over Gradle source code are not
+ performed.
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: no
+Last-Update: 2010-11-23
+
+--- gradle-0.9~rc3.orig/buildSrc/build.gradle
++++ gradle-0.9~rc3/buildSrc/build.gradle
+@@ -16,7 +16,7 @@
+ import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ apply plugin: 'groovy'
+-apply plugin: 'code-quality'
++//apply plugin: 'code-quality'
+ 
+ repositories {
+     add(new FileSystemResolver()) {
+@@ -32,10 +32,12 @@ dependencies {
+     groovy localGroovy()
+ }
+ 
++/*
+ checkstyleConfigDir = "$rootDir/../config/checkstyle"
+ checkstyleConfigFileName = new File(checkstyleConfigDir, 'checkstyle.xml')
+ codeNarcConfigFileName = "$rootDir/../config/codenarc.xml"
+ checkstyleProperties.checkstyleConfigDir = checkstyleConfigDir
++*/
+ 
+ task ide(type: Sync) {
+     into file('lib')

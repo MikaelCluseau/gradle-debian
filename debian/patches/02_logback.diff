@@ -1,13 +1,11 @@
 Description: Logback compatibility
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2010-08-23
+Last-Update: 2010-11-23
 
-Index: b/subprojects/gradle-core/src/main/groovy/org/gradle/logging/Slf4jLoggingConfigurer.java
-===================================================================
---- a/subprojects/gradle-core/src/main/groovy/org/gradle/logging/Slf4jLoggingConfigurer.java	2010-08-22 16:17:01.000000000 -0430
-+++ b/subprojects/gradle-core/src/main/groovy/org/gradle/logging/Slf4jLoggingConfigurer.java	2010-08-23 19:18:30.000000000 -0430
-@@ -156,7 +156,7 @@
+--- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
++++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
+@@ -135,7 +135,7 @@ public class Slf4jLoggingConfigurer impl
          levelFilter.setContext(lc);
          levelFilter.setOnMatch(onMatch);
          levelFilter.setOnMismatch(onMismatch);

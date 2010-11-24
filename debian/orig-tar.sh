@@ -10,9 +10,9 @@ tarball=$3
 TAR=${package}_${version}.orig.tar.gz
 DIR=${package}-${version}.orig
 
-unzip $tarball -d $DIR
+unzip $tarball
 
 GZIP=--best tar --numeric --group 0 --owner 0 -c -v -z -f $TAR \
-    --anchored -X debian/orig-tar.excludes $DIR
+    --anchored -X debian/orig-tar.excludes ${package}-*
 
-rm -rf $tarball $DIR
+rm -rf $tarball $DIR ${package}-*

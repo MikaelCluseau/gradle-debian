@@ -7,14 +7,15 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle, quilt,
  libgradle-code-quality-java, libgradle-eclipse-java, libgradle-idea-java,
  libgradle-wrapper-java, libgradle-scala-java, unzip, ant, ant-optional,
  libantlr-java, libasm3-java, libcommons-cli-java, libcommons-io-java,
- libdom4j-java, libgoogle-collections-java (>= 1.0), groovy, ivy, libjaxen-java,
- libjoptsimple-java, libslf4j-java, liblogback-java, junit4, libxmlunit-java,
- libcommons-httpclient-java, libcommons-codec-java, libjsch-java, libjzlib-java,
- testng, libcommons-collections3-java, libmaven-ant-tasks-java, libjansi-java,
- libjna-posix-java, libplexus-containers-java, libmaven2-core-java,
- libplexus-component-api-java, libwagon-java, libcodenarc-groovy-java,
- checkstyle, libcommons-beanutils-java, libsvnkit-java, bnd,
- libservlet2.5-java, libjetty-java, libjetty-extra-java
+ libdom4j-java, libgoogle-collections-java (>= 1.0), groovy (>= 1.7.4), ivy,
+ libjaxen-java, libjoptsimple-java, libslf4j-java, liblogback-java, junit4,
+ libxmlunit-java, libcommons-httpclient-java, libcommons-codec-java,
+ libjsch-java, libjzlib-java, testng, libcommons-collections3-java,
+ libmaven-ant-tasks-java, libjansi-java, libjna-posix-java,
+ libplexus-containers-java, libmaven2-core-java, libplexus-component-api-java,
+ libwagon-java, libcodenarc-groovy-java, checkstyle, libcommons-beanutils-java,
+ libsvnkit-java, bnd, libservlet2.5-java, libjetty-java, libjetty-extra-java,
+ libxalan2-java
 Standards-Version: 3.9.1
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
@@ -22,9 +23,8 @@ Vcs-Browser: http://git.debian.org/?p=pkg-java/gradle.git
 
 Package: gradle
 Architecture: all
-Depends: default-jre-headless, groovy, ant, ant-optional,
- libgradle-core-java (= ${binary:Version}),
- libgradle-plugins-java (= ${binary:Version}), libantlr-java, libasm3-java,
+Depends: default-jre-headless, groovy (>= 1.7.4), ant, ant-optional,
+ libgradle-core-java, libgradle-plugins-java, libantlr-java, libasm3-java,
  libcommons-cli-java, libcommons-io-java, libdom4j-java,
  libgoogle-collections-java (>= 1.0), ivy, libjaxen-java, libjoptsimple-java,
  libslf4j-java, liblogback-java, junit4, libxmlunit-java,

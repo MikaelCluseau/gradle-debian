@@ -3,11 +3,11 @@ Description: Generate javadocs and groovydocs only
  using DocBook and other libraries available in Debian.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: not-needed
-Last-Update: 2010-08-27
+Last-Update: 2010-11-23
 
---- gradle-0.9~rc1.orig/build.gradle
-+++ gradle-0.9~rc1/build.gradle
-@@ -198,7 +198,7 @@ zipRootFolder = "$archivesBaseName-${->
+--- gradle-0.9~rc3.orig/build.gradle
++++ gradle-0.9~rc3/build.gradle
+@@ -247,7 +247,7 @@ zipRootFolder = "$archivesBaseName-${->
  
  binDistImage = copySpec {
      from 'src/toplevel'
@@ -16,7 +16,7 @@ Last-Update: 2010-08-27
      into('bin') {
          from startScriptsDir
          fileMode = 0755
-@@ -224,14 +224,16 @@ allDistImage = copySpec {
+@@ -273,14 +273,16 @@ allDistImage = copySpec {
      }
  }
  
@@ -35,39 +35,29 @@ Last-Update: 2010-08-27
      classifier = 'bin'
      into(zipRootFolder) {
          with binDistImage
-@@ -277,7 +279,8 @@ task intTestImage(type: Sync) {
-     }
- }
+@@ -390,7 +392,8 @@ def guessMaxForks() {
  
--task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip, ':docs:userguideDocbook']) {
-+//task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip, ':docs:userguideDocbook']) {
-+task integTest(type: Test, dependsOn: [intTestImage, binZip, allZip, srcZip]) {
-     integTestUserDir = file('intTestHomeDir')
-     systemProperties['integTest.srcDir'] = file('src').absolutePath
-     systemProperties['integTest.userGuideInfoDir'] = project(':docs').docbookSrc
-@@ -325,7 +328,8 @@ def guessMaxForks() {
- 
- task testedDists(dependsOn: [assemble, check, integTest])
+ task testedDists(dependsOn: [assemble, check, integTest, embeddedIntegTest, 'openApi:integTest', ':ui:integTest'])
  
 -task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
 +//task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
 +task nightlyBuild(dependsOn: [clean, testedDists])
  
- task install(type: Install, description: 'Installs the minimal distribution into directory $gradle_installPath') {
-     dependsOn binZip.taskDependencies
-@@ -363,7 +367,8 @@ gradle.taskGraph.whenReady {graph ->
- task developerBuild(dependsOn: [clean, testedDists])
- task ciBuild(dependsOn: [clean, testedDists])
+ task install(type: Install) {
+     description = 'Installs the minimal distribution into directory $gradle_installPath'
+@@ -466,7 +469,8 @@ task releaseArtifacts {
+ task release {
+     description = 'Builds, tests and uploads the release artifacts'
+     group = 'release'
+-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
++    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
++    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists
+ }
  
--task release(dependsOn: [uploadDists, ':docs:uploadDocs']) << {
-+//task release(dependsOn: [uploadDists, ':docs:uploadDocs']) << {
-+task release(dependsOn: [uploadDists]) << {
-     // Update the version properties in gradle.properties
- //    Properties props = new Properties()
- //    File propsFile = file('gradle.properties')
---- gradle-0.9~rc1.orig/subprojects/gradle-docs/docs.gradle
-+++ gradle-0.9~rc1/subprojects/gradle-docs/docs.gradle
-@@ -26,6 +26,7 @@ configurations {
+ task wrapper(type: Wrapper, dependsOn: binZip)
+--- gradle-0.9~rc3.orig/subprojects/gradle-docs/docs.gradle
++++ gradle-0.9~rc3/subprojects/gradle-docs/docs.gradle
+@@ -28,6 +28,7 @@ configurations {
      userGuideTask
  }
  
@@ -75,7 +65,7 @@ Last-Update: 2010-08-27
  dependencies {
      ftpAntTask module("org.apache.ant:ant-commons-net:1.7.0") {
          module("commons-net:commons-net:1.4.1") {
-@@ -41,6 +42,7 @@ dependencies {
+@@ -43,6 +44,7 @@ dependencies {
  
      userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
  }
@@ -83,7 +73,7 @@ Last-Update: 2010-08-27
  
  RemoteLocations remoteLocations = new RemoteLocations(version: version)
  
-@@ -91,10 +93,11 @@ task userguideStyleSheets(type: Copy) {
+@@ -98,10 +100,10 @@ task userguideStyleSheets(type: Copy) {
      from(cssSrcDir) {
          include '*.css'
      }
@@ -91,7 +81,6 @@ Last-Update: 2010-08-27
 -        // Remove the prefix
 -        eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
 -    }
-+    //
 +    //from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
 +    //    // Remove the prefix
 +    //    eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
@@ -99,13 +88,13 @@ Last-Update: 2010-08-27
  }
  
  task samplesDocbook(type: AssembleSamplesDocTask) {
-@@ -251,7 +254,8 @@ task websiteDocs(type: Docbook2Xhtml, de
+@@ -325,7 +327,8 @@ task userguide {
+ }
  
- task userguide(dependsOn: [userguideHtml, userguideSingleHtml, userguidePdf], description: 'Generates the userguide')
- 
--task docs(dependsOn: [javadoc, groovydoc, userguide, distDocs, samplesDocs])
-+//task docs(dependsOn: [javadoc, groovydoc, userguide, distDocs, samplesDocs])
-+task docs(dependsOn: [javadoc, groovydoc])
- 
- task uploadDocs(dependsOn: docs) << {
-     ftp(action: 'mkdir', remotedir: remoteLocations.docsRemoteDir)
+ task docs {
+-    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
++//    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
++    dependsOn javadoc, groovydoc
+     description = 'Generates all documentation'
+     group = 'documentation'
+ }

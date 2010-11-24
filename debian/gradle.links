@@ -58,3 +58,4 @@ usr/share/java/jsp-api-2.1.jar                   usr/share/gradle/lib/plugins/js
 usr/share/java/junit4.jar                        usr/share/gradle/lib/plugins/junit4.jar
 usr/share/java/servlet-api-2.5.jar               usr/share/gradle/lib/plugins/servlet-api-2.5.jar
 usr/share/java/testng.jar                        usr/share/gradle/lib/plugins/testng.jar
+usr/share/java/xalan2.jar                        usr/share/gradle/lib/plugins/xalan2.jar
