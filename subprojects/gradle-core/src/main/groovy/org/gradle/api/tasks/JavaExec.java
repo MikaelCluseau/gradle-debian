@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Executes a Java application.
+ * Executes a Java application in a child process.
  *
  * @author Hans Dockter
  */
@@ -372,9 +372,23 @@ public class JavaExec extends ConventionTask implements JavaExecSpec {
     /**
      * {@inheritDoc}
      */
+    public OutputStream getStandardOutput() {
+        return javaExecHandleBuilder.getStandardOutput();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public JavaExec setErrorOutput(OutputStream outputStream) {
         javaExecHandleBuilder.setErrorOutput(outputStream);
         return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public OutputStream getErrorOutput() {
+        return javaExecHandleBuilder.getErrorOutput();
     }
 
     /**

@@ -13,33 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.ivy.plugins.resolver.FileSystemResolver
 
 apply plugin: 'groovy'
-//apply plugin: 'code-quality'
+apply plugin: 'code-quality'
+apply plugin: 'idea'
 
 repositories {
-    add(new FileSystemResolver()) {
-        name = 'repo'
-        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-        addArtifactPattern "/usr/share/java/[module].[ext]"
-    }
+    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
 }
 
 dependencies {
     compile gradleApi()
-    // todo Actually it should be only groovy, but without junit we get a strange error. We need to understand this.
+    compile 'com.google.collections:google-collections:1.0@jar'
     groovy localGroovy()
+    testCompile 'junit:junit:4.8.1@jar'
+    testCompile 'org.spockframework:spock-core:0.4-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
 }
 
-/*
-checkstyleConfigDir = "$rootDir/../config/checkstyle"
-checkstyleConfigFileName = new File(checkstyleConfigDir, 'checkstyle.xml')
-codeNarcConfigFileName = "$rootDir/../config/codenarc.xml"
-checkstyleProperties.checkstyleConfigDir = checkstyleConfigDir
-*/
-
-task ide(type: Sync) {
-    into file('lib')
-    from { configurations.testRuntime.files(DependencySpecs.type(Type.EXTERNAL)) }
-}
+apply from: '../gradle/codeQuality.gradle'

@@ -28,7 +28,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 
 /**
- * Stops the embedded Jetty web container.
+ * Stops the embedded Jetty web container, if it is running.
  */
 public class JettyStop extends ConventionTask {
     private static Logger logger = LoggerFactory.getLogger(JettyStop.class);
@@ -62,21 +62,21 @@ public class JettyStop extends ConventionTask {
     }
 
     /**
-     * Returns port to listen to stop jetty on sending stop command.
+     * Returns the TCP port to use to send stop command.
      */
     public Integer getStopPort() {
         return stopPort;
     }
 
     /**
-     * Sets port to listen to stop jetty on sending stop command.
+     * Sets the TCP port to use to send stop command.
      */
     public void setStopPort(Integer stopPort) {
         this.stopPort = stopPort;
     }
 
     /**
-     * Returns stop key.
+     * Returns the stop key.
      *
      * @see #setStopKey(String)
      */

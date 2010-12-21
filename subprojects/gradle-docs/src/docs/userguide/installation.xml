@@ -43,6 +43,7 @@
 <itemizedlist>
     <listitem><para>The Gradle binaries.</para></listitem>
     <listitem><para>The user guide (HTML and PDF).</para></listitem>
+    <listitem><para>The DSL reference guide.</para></listitem>
     <listitem><para>The API documentation (Javadoc and Groovydoc).</para></listitem>
     <listitem>
         <para>Extensive samples, including the examples referenced in the user guide, along with some complete and more
@@ -83,15 +84,15 @@ some zip front ends for Mac OS X don't restore the file permissions properly.
 
 <screen>
 ------------------------------------------------------------
-Gradle 0.9-rc-3
+Gradle 0.9
 ------------------------------------------------------------
 
-Gradle build time: Monday, November 15, 2010 10:51:22 AM EST
-Groovy: 1.7.5
+Gradle build time: Sunday, 19 December 2010 12:50:06 PM EST
+Groovy: 1.7.6
 Ant: Apache Ant version 1.8.1 compiled on April 30 2010
 Ivy: 2.2.0
-JVM: 1.6.0_20 (Apple Inc. 16.3-b01-279)
-OS: Mac OS X 10.6.4 x86_64
+JVM: 1.6.0_22 (Sun Microsystems Inc. 17.1-b03)
+OS: Linux 2.6.35-23-generic amd64
 </screen>
 
 </section>
@@ -112,7 +113,7 @@ of the <command>gradle</command> or <command>gradlew</command> script.
 <title>Getting help</title>
 
 <para>You might check the user guide at <filename><replaceable>GRADLE_HOME</replaceable>/docs/userguide/userguide.html</filename>.
-It is also available on the <ulink url="website:userguide.html">Gradle web site</ulink>.
+It is also available on the <ulink url="website:documentation.html">Gradle web site</ulink>.
 Typing <command>gradle help</command> prints the command line help. Typing <command>gradle tasks</command> shows all the
 tasks of a Gradle build.
 </para>
