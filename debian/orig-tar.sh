@@ -8,11 +8,11 @@ package=`dpkg-parsechangelog | sed -n 's/^Source: //p'`
 version=$2
 tarball=$3
 TAR=${package}_${version}.orig.tar.gz
-DIR=${package}-${version}.orig
+DIR=${package}-${version}
 
 unzip $tarball
 
 GZIP=--best tar --numeric --group 0 --owner 0 -c -v -z -f $TAR \
-    --anchored -X debian/orig-tar.excludes ${package}-*
+    --anchored -X debian/orig-tar.excludes $DIR
 
-rm -rf $tarball $DIR ${package}-*
+rm -rf $tarball $DIR

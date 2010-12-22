@@ -1,5 +1,4 @@
 version=3
-opts=uversionmangle=s/-rc-([0-9])+/~rc$1/ \
 http://gradle.org/downloads.html \
-http://dist.codehaus.org/gradle/gradle-([\w\.-]+)-src\.zip \
+http://gradle.artifactoryonline.com/gradle/distributions/gradle-([\w\.-]+)-src.zip \
 debian debian/orig-tar.sh

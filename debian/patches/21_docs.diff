@@ -2,12 +2,12 @@ Description: Generate javadocs and groovydocs only
  I still have to figure out how to build the rest of the documentation
  using DocBook and other libraries available in Debian.
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: not-needed
-Last-Update: 2010-11-23
+Forwarded: no
+Last-Update: 2010-12-20
 
---- gradle-0.9~rc3.orig/build.gradle
-+++ gradle-0.9~rc3/build.gradle
-@@ -247,7 +247,7 @@ zipRootFolder = "$archivesBaseName-${->
+--- gradle-0.9.orig/build.gradle
++++ gradle-0.9/build.gradle
+@@ -232,7 +232,7 @@ zipRootFolder = "$archivesBaseName-${->
  
  binDistImage = copySpec {
      from 'src/toplevel'
@@ -16,7 +16,7 @@ Last-Update: 2010-11-23
      into('bin') {
          from startScriptsDir
          fileMode = 0755
-@@ -273,14 +273,16 @@ allDistImage = copySpec {
+@@ -258,14 +258,16 @@ allDistImage = copySpec {
      }
  }
  
@@ -35,7 +35,7 @@ Last-Update: 2010-11-23
      classifier = 'bin'
      into(zipRootFolder) {
          with binDistImage
-@@ -390,7 +392,8 @@ def guessMaxForks() {
+@@ -375,7 +377,8 @@ def guessMaxForks() {
  
  task testedDists(dependsOn: [assemble, check, integTest, embeddedIntegTest, 'openApi:integTest', ':ui:integTest'])
  
@@ -45,18 +45,18 @@ Last-Update: 2010-11-23
  
  task install(type: Install) {
      description = 'Installs the minimal distribution into directory $gradle_installPath'
-@@ -466,7 +469,8 @@ task releaseArtifacts {
+@@ -451,7 +454,8 @@ task releaseArtifacts {
  task release {
      description = 'Builds, tests and uploads the release artifacts'
      group = 'release'
--    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
-+    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
-+    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists
+-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, ':docs:uploadDocs'
++    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, ':docs:uploadDocs'
++    dependsOn releaseVersion, tag, releaseArtifacts, testedDists
  }
  
  task wrapper(type: Wrapper, dependsOn: binZip)
---- gradle-0.9~rc3.orig/subprojects/gradle-docs/docs.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-docs/docs.gradle
+--- gradle-0.9.orig/subprojects/gradle-docs/docs.gradle
++++ gradle-0.9/subprojects/gradle-docs/docs.gradle
 @@ -28,6 +28,7 @@ configurations {
      userGuideTask
  }
@@ -73,7 +73,7 @@ Last-Update: 2010-11-23
  
  RemoteLocations remoteLocations = new RemoteLocations(version: version)
  
-@@ -98,10 +100,10 @@ task userguideStyleSheets(type: Copy) {
+@@ -100,10 +102,10 @@ task userguideStyleSheets(type: Copy) {
      from(cssSrcDir) {
          include '*.css'
      }
@@ -88,7 +88,7 @@ Last-Update: 2010-11-23
  }
  
  task samplesDocbook(type: AssembleSamplesDocTask) {
-@@ -325,7 +327,8 @@ task userguide {
+@@ -336,7 +338,8 @@ task userguide {
  }
  
  task docs {

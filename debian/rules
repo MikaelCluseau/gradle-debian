@@ -1,7 +1,6 @@
 #!/usr/bin/make -f
 
 VERSION := $(shell dpkg-parsechangelog | grep ^Version: | sed 's/^Version: \(.\+\)-.\+$$/\1/')
-UPSTREAM_VERSION := $(shell echo $(VERSION) | sed 's/~rc/-rc-/')
 JARS := announce antlr code-quality eclipse idea jetty maven osgi plugins scala wrapper
 export JAVA_HOME=/usr/lib/jvm/default-java
 
@@ -25,20 +24,20 @@ override_dh_link:
 	# plugins symlinks
 	cd debian/gradle/usr/share/gradle/lib/plugins && \
 	for j in $(JARS); do \
-		ln -s ../../../java/gradle-$$j.jar gradle-$$j-$(UPSTREAM_VERSION).jar; \
+		ln -s ../../../java/gradle-$$j.jar gradle-$$j-$(VERSION).jar; \
 	done ;
 	# core jar symlink
 	cd debian/gradle/usr/share/gradle/lib && \
-	ln -s ../../java/gradle-core.jar gradle-core-$(UPSTREAM_VERSION).jar
+	ln -s ../../java/gradle-core.jar gradle-core-$(VERSION).jar
 
 override_jh_depends:
 	# jh_depends crashes when checking jar symlinks, should I file a bug?
 
 override_jh_installlibs:
-	jh_installlibs --upstream-version=$(UPSTREAM_VERSION)
+	jh_installlibs --upstream-version=$(VERSION)
 
 override_jh_installjavadoc:
-	jh_installjavadoc -pgradle-doc build/distributions/all/gradle-$(UPSTREAM_VERSION)/docs/javadoc
+	jh_installjavadoc -pgradle-doc build/distributions/all/gradle-$(VERSION)/docs/javadoc
 
 get-orig-source:
 	cd $(dir $(firstword $(MAKEFILE_LIST)))../ && \

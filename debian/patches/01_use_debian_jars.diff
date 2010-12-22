@@ -1,10 +1,10 @@
 Description: Build Gradle using libraries available in Debian
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: not-needed
-Last-Update: 2010-11-23
+Forwarded: no
+Last-Update: 2010-12-21
 
---- gradle-0.9~rc3.orig/build.gradle
-+++ gradle-0.9~rc3/build.gradle
+--- gradle-0.9.orig/build.gradle
++++ gradle-0.9/build.gradle
 @@ -16,6 +16,7 @@
  
  import java.util.jar.Attributes
@@ -37,7 +37,7 @@ Last-Update: 2010-11-23
 +        commons_lang: 'commons-lang:commons-lang:2.4@jar',
          dom4j: 'dom4j:dom4j:1.6.1@jar',
          google_collections: 'com.google.collections:google-collections:1.0@jar',
--        groovy: 'org.codehaus.groovy:groovy-all:1.7.5@jar',
+-        groovy: 'org.codehaus.groovy:groovy-all:1.7.6@jar',
 -        ivy: 'org.apache.ivy:ivy:2.2.0@jar',
 -        jaxen: 'jaxen:jaxen:1.1@jar',
 -        slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
@@ -82,9 +82,9 @@ Last-Update: 2010-11-23
      }
  
      version = this.version
---- gradle-0.9~rc3.orig/buildSrc/build.gradle
-+++ gradle-0.9~rc3/buildSrc/build.gradle
-@@ -13,12 +13,17 @@
+--- gradle-0.9.orig/buildSrc/build.gradle
++++ gradle-0.9/buildSrc/build.gradle
+@@ -13,13 +13,18 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
   */
@@ -92,6 +92,7 @@ Last-Update: 2010-11-23
  
  apply plugin: 'groovy'
  apply plugin: 'code-quality'
+ apply plugin: 'idea'
  
  repositories {
 -    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
@@ -103,8 +104,23 @@ Last-Update: 2010-11-23
  }
  
  dependencies {
---- gradle-0.9~rc3.orig/subprojects/gradle-core/core.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-core/core.gradle
+@@ -27,7 +32,13 @@ dependencies {
+     compile 'com.google.collections:google-collections:1.0@jar'
+     groovy localGroovy()
+     testCompile 'junit:junit:4.8.1@jar'
+-    testCompile 'org.spockframework:spock-core:0.4-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
++    //testCompile 'org.spockframework:spock-core:0.4-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
++}
++
++// All tests for this subproject are disabled becuase they depend on Spock
++// Framework and that software is not available in Debian yet.
++compileTestGroovy {
++	exclude '**'
+ }
+ 
+ apply from: '../gradle/codeQuality.gradle'
+--- gradle-0.9.orig/subprojects/gradle-core/core.gradle
++++ gradle-0.9/subprojects/gradle-core/core.gradle
 @@ -36,31 +36,40 @@ configurations {
  dependencies {
      groovy libraries.groovy_depends
@@ -154,8 +170,8 @@ Last-Update: 2010-11-23
  
      runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
  
---- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
-+++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
+--- gradle-0.9.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
++++ gradle-0.9/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
 @@ -60,7 +60,7 @@ public abstract class AbstractClassPathP
      protected static List<Pattern> toPatterns(String... patternStrings) {
          List<Pattern> patterns = new ArrayList<Pattern>();
@@ -165,8 +181,8 @@ Last-Update: 2010-11-23
          }
          return patterns;
      }
---- gradle-0.9~rc3.orig/subprojects/gradle-osgi/osgi.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-osgi/osgi.gradle
+--- gradle-0.9.orig/subprojects/gradle-osgi/osgi.gradle
++++ gradle-0.9/subprojects/gradle-osgi/osgi.gradle
 @@ -13,10 +13,6 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
@@ -187,9 +203,9 @@ Last-Update: 2010-11-23
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9~rc3.orig/subprojects/gradle-jetty/jetty.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-jetty/jetty.gradle
-@@ -21,13 +21,11 @@ dependencies {
+--- gradle-0.9.orig/subprojects/gradle-jetty/jetty.gradle
++++ gradle-0.9/subprojects/gradle-jetty/jetty.gradle
+@@ -21,14 +21,12 @@ dependencies {
  
      compile libraries.slf4j_api,
              libraries.jetty_depends,
@@ -200,15 +216,17 @@ Last-Update: 2010-11-23
 -            "org.mortbay.jetty:jsp-2.1:6.1.14@jar",
 -            "org.eclipse.jdt:core:3.1.1@jar",
 -            "org.mortbay.jetty:jetty-naming:6.1.25@jar",
--            "org.mortbay.jetty:jetty-annotations:6.1.25@jar"
+-            "org.mortbay.jetty:jetty-annotations:6.1.25@jar",
+-            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
 +    runtime "org.mortbay.jetty:jsp-api:2.1@jar",
 +            "org.mortbay.jetty:jetty-naming:6.1.24@jar",
 +            "org.mortbay.jetty:jetty-annotations:6.1.24@jar"
++//            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9~rc3.orig/subprojects/gradle-code-quality/code-quality.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-code-quality/code-quality.gradle
+--- gradle-0.9.orig/subprojects/gradle-code-quality/code-quality.gradle
++++ gradle-0.9/subprojects/gradle-code-quality/code-quality.gradle
 @@ -19,7 +19,7 @@ dependencies {
      compile project(':core')
      compile project(':plugins')
@@ -218,12 +236,8 @@ Last-Update: 2010-11-23
      compile libraries.slf4j_api
  
      // CodeNarc dependencies
-@@ -27,10 +27,10 @@ dependencies {
-             "org.gmetrics:GMetrics:0.3@jar"
- 
-     // Checkstyle dependencies
--    runtime "com.puppycrawl.tools:checkstyle:5.3@jar",
-+    runtime "com.puppycrawl.tools:checkstyle:4.4@jar",
+@@ -30,7 +30,7 @@ dependencies {
+     runtime "com.puppycrawl.tools:checkstyle:5.3@jar",
              libraries.google_collections,
              libraries.antlr,
 -            "commons-beanutils:commons-beanutils-core:1.8.3@jar"
@@ -231,8 +245,8 @@ Last-Update: 2010-11-23
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9~rc3.orig/subprojects/gradle-wrapper/wrapper.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-wrapper/wrapper.gradle
+--- gradle-0.9.orig/subprojects/gradle-wrapper/wrapper.gradle
++++ gradle-0.9/subprojects/gradle-wrapper/wrapper.gradle
 @@ -19,7 +19,7 @@ dependencies {
      groovy libraries.groovy_depends
      compile project(':core')
@@ -242,8 +256,8 @@ Last-Update: 2010-11-23
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9~rc3.orig/subprojects/gradle-plugins/plugins.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-plugins/plugins.gradle
+--- gradle-0.9.orig/subprojects/gradle-plugins/plugins.gradle
++++ gradle-0.9/subprojects/gradle-plugins/plugins.gradle
 @@ -33,7 +33,7 @@ dependencies {
  
      // This is for the ant junit task. Without it, we get file locking problems with some jvms because the default

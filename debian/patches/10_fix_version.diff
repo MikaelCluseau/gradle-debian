@@ -1,16 +1,16 @@
 Description: Remove build timestamp from the version string
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: not-needed
-Last-Update: 2010-11-23
+Forwarded: no
+Last-Update: 2010-12-20
 
---- gradle-0.9~rc3.orig/buildSrc/src/main/groovy/org/gradle/build/Version.groovy
-+++ gradle-0.9~rc3/buildSrc/src/main/groovy/org/gradle/build/Version.groovy
-@@ -31,7 +31,7 @@ class Version {
- 
-         project.gradle.taskGraph.whenReady {graph ->
-             if (!graph.hasTask(':releaseVersion')) {
+--- gradle-0.9.orig/buildSrc/src/main/groovy/org/gradle/build/Version.groovy
++++ gradle-0.9/buildSrc/src/main/groovy/org/gradle/build/Version.groovy
+@@ -48,7 +48,7 @@ class Version {
+             if (graph.hasTask(':releaseVersion')) {
+                 release = true
+             } else {
 -                this.versionNumber += "-" + getTimestamp()
 +                //this.versionNumber += "-" + getTimestamp()
                  release = false
-             } else {
-                 release = true
+             }
+         }
