@@ -36,6 +36,7 @@ usr/share/java/maven-project.jar                 usr/share/gradle/lib/maven-proj
 usr/share/java/maven-settings.jar                usr/share/gradle/lib/maven-settings.jar
 usr/share/java/plexus-component-annotations.jar  usr/share/gradle/lib/plexus-component-annotations.jar
 usr/share/java/plexus-component-api.jar          usr/share/gradle/lib/plexus-component-api.jar
+usr/share/java/plexus-utils.jar                  usr/share/gradle/lib/plexus-utils.jar
 usr/share/java/slf4j-api.jar                     usr/share/gradle/lib/slf4j-api.jar
 usr/share/java/wagon-provider-api.jar            usr/share/gradle/lib/wagon-provider-api.jar
 usr/share/java/xmlunit.jar                       usr/share/gradle/lib/xmlunit.jar

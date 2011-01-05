@@ -3,10 +3,10 @@ Description: Generate javadocs and groovydocs only
  using DocBook and other libraries available in Debian.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2010-12-20
+Last-Update: 2010-01-04
 
---- gradle-0.9.orig/build.gradle
-+++ gradle-0.9/build.gradle
+--- gradle-0.9.1.orig/build.gradle
++++ gradle-0.9.1/build.gradle
 @@ -232,7 +232,7 @@ zipRootFolder = "$archivesBaseName-${->
  
  binDistImage = copySpec {
@@ -45,18 +45,18 @@ Last-Update: 2010-12-20
  
  task install(type: Install) {
      description = 'Installs the minimal distribution into directory $gradle_installPath'
-@@ -451,7 +454,8 @@ task releaseArtifacts {
+@@ -450,7 +453,8 @@ task releaseArtifacts {
  task release {
      description = 'Builds, tests and uploads the release artifacts'
      group = 'release'
--    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, ':docs:uploadDocs'
-+    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, ':docs:uploadDocs'
-+    dependsOn releaseVersion, tag, releaseArtifacts, testedDists
+-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
++    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
++    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists
  }
  
- task wrapper(type: Wrapper, dependsOn: binZip)
---- gradle-0.9.orig/subprojects/gradle-docs/docs.gradle
-+++ gradle-0.9/subprojects/gradle-docs/docs.gradle
+ task wrapper(type: Wrapper) {
+--- gradle-0.9.1.orig/subprojects/gradle-docs/docs.gradle
++++ gradle-0.9.1/subprojects/gradle-docs/docs.gradle
 @@ -28,6 +28,7 @@ configurations {
      userGuideTask
  }

@@ -1,10 +1,10 @@
 Description: Build Gradle using libraries available in Debian
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2010-12-21
+Last-Update: 2011-01-03
 
---- gradle-0.9.orig/build.gradle
-+++ gradle-0.9/build.gradle
+--- gradle-0.9.1.orig/build.gradle
++++ gradle-0.9.1/build.gradle
 @@ -16,6 +16,7 @@
  
  import java.util.jar.Attributes
@@ -82,8 +82,8 @@ Last-Update: 2010-12-21
      }
  
      version = this.version
---- gradle-0.9.orig/buildSrc/build.gradle
-+++ gradle-0.9/buildSrc/build.gradle
+--- gradle-0.9.1.orig/buildSrc/build.gradle
++++ gradle-0.9.1/buildSrc/build.gradle
 @@ -13,13 +13,18 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
@@ -119,9 +119,9 @@ Last-Update: 2010-12-21
  }
  
  apply from: '../gradle/codeQuality.gradle'
---- gradle-0.9.orig/subprojects/gradle-core/core.gradle
-+++ gradle-0.9/subprojects/gradle-core/core.gradle
-@@ -36,31 +36,40 @@ configurations {
+--- gradle-0.9.1.orig/subprojects/gradle-core/core.gradle
++++ gradle-0.9.1/subprojects/gradle-core/core.gradle
+@@ -36,31 +36,41 @@ configurations {
  dependencies {
      groovy libraries.groovy_depends
  
@@ -157,6 +157,7 @@ Last-Update: 2010-12-21
 -            'org.codehaus.plexus:plexus-component-annotations:1.5.2'
 +            'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
 +            'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
++            'org.codehaus.plexus:plexus-utils:1.5.15',
 +            'org.apache.maven:maven-model:2.2.1',
 +            'org.apache.maven:maven-settings:2.2.1',
 +            'org.apache.maven:maven-project:2.2.1',
@@ -170,8 +171,8 @@ Last-Update: 2010-12-21
  
      runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
  
---- gradle-0.9.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
-+++ gradle-0.9/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
+--- gradle-0.9.1.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
++++ gradle-0.9.1/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
 @@ -60,7 +60,7 @@ public abstract class AbstractClassPathP
      protected static List<Pattern> toPatterns(String... patternStrings) {
          List<Pattern> patterns = new ArrayList<Pattern>();
@@ -181,8 +182,8 @@ Last-Update: 2010-12-21
          }
          return patterns;
      }
---- gradle-0.9.orig/subprojects/gradle-osgi/osgi.gradle
-+++ gradle-0.9/subprojects/gradle-osgi/osgi.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-osgi/osgi.gradle
++++ gradle-0.9.1/subprojects/gradle-osgi/osgi.gradle
 @@ -13,10 +13,6 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
@@ -203,8 +204,8 @@ Last-Update: 2010-12-21
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.orig/subprojects/gradle-jetty/jetty.gradle
-+++ gradle-0.9/subprojects/gradle-jetty/jetty.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-jetty/jetty.gradle
++++ gradle-0.9.1/subprojects/gradle-jetty/jetty.gradle
 @@ -21,14 +21,12 @@ dependencies {
  
      compile libraries.slf4j_api,
@@ -225,8 +226,8 @@ Last-Update: 2010-12-21
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.orig/subprojects/gradle-code-quality/code-quality.gradle
-+++ gradle-0.9/subprojects/gradle-code-quality/code-quality.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-code-quality/code-quality.gradle
++++ gradle-0.9.1/subprojects/gradle-code-quality/code-quality.gradle
 @@ -19,7 +19,7 @@ dependencies {
      compile project(':core')
      compile project(':plugins')
@@ -245,8 +246,8 @@ Last-Update: 2010-12-21
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.orig/subprojects/gradle-wrapper/wrapper.gradle
-+++ gradle-0.9/subprojects/gradle-wrapper/wrapper.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-wrapper/wrapper.gradle
++++ gradle-0.9.1/subprojects/gradle-wrapper/wrapper.gradle
 @@ -19,7 +19,7 @@ dependencies {
      groovy libraries.groovy_depends
      compile project(':core')
@@ -256,8 +257,8 @@ Last-Update: 2010-12-21
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.orig/subprojects/gradle-plugins/plugins.gradle
-+++ gradle-0.9/subprojects/gradle-plugins/plugins.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-plugins/plugins.gradle
++++ gradle-0.9.1/subprojects/gradle-plugins/plugins.gradle
 @@ -33,7 +33,7 @@ dependencies {
  
      // This is for the ant junit task. Without it, we get file locking problems with some jvms because the default

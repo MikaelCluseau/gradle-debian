@@ -58,6 +58,7 @@ dependencies {
             'org.jruby.ext.posix:jna-posix:1.0.1',
             'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
             'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
+            'org.codehaus.plexus:plexus-utils:1.5.15',
             'org.apache.maven:maven-model:2.2.1',
             'org.apache.maven:maven-settings:2.2.1',
             'org.apache.maven:maven-project:2.2.1',

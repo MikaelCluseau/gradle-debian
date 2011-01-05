@@ -2,10 +2,10 @@ Description: Disable Polyglot Maven features
  Polyglot Maven is not packaged in Debian yet.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: not-needed
-Last-Update: 2010-11-23
+Last-Update: 2011-01-03
 
---- gradle-0.9~rc3.orig/subprojects/gradle-core/core.gradle
-+++ gradle-0.9~rc3/subprojects/gradle-core/core.gradle
+--- gradle-0.9.1.orig/subprojects/gradle-core/core.gradle
++++ gradle-0.9.1/subprojects/gradle-core/core.gradle
 @@ -56,8 +56,6 @@ dependencies {
              libraries.asm_all,
              'org.fusesource.jansi:jansi:1.4',
@@ -14,9 +14,9 @@ Last-Update: 2010-11-23
 -            'org.sonatype.pmaven:pmaven-groovy:0.8-20100325@jar',
              'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
              'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
-             'org.apache.maven:maven-model:2.2.1',
---- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
-+++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
+             'org.codehaus.plexus:plexus-utils:1.5.15',
+--- gradle-0.9.1.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
++++ gradle-0.9.1/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/CustomModelBuilder.java
 @@ -19,9 +19,11 @@ import groovy.util.FactoryBuilderSupport
  import org.apache.maven.model.Model;
  import org.codehaus.plexus.personality.plexus.lifecycle.phase.InitializationException;
@@ -58,8 +58,8 @@ Last-Update: 2010-11-23
 -}
 \ No newline at end of file
 +}
---- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
-+++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
+--- gradle-0.9.1.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
++++ gradle-0.9.1/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/publish/maven/pombuilder/ModelFactory.java
 @@ -17,27 +17,31 @@ package org.gradle.api.internal.artifact
  
  import groovy.util.FactoryBuilderSupport;

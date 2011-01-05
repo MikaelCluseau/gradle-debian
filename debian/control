@@ -13,9 +13,9 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle, quilt,
  libjsch-java, libjzlib-java, testng, libcommons-collections3-java,
  libmaven-ant-tasks-java, libjansi-java, libjna-posix-java,
  libplexus-containers-java, libmaven2-core-java, libplexus-component-api-java,
- libwagon-java, libcodenarc-groovy-java, checkstyle (>= 5.1),
- libcommons-beanutils-java, libsvnkit-java, bnd, libservlet2.5-java,
- libjetty-java, libjetty-extra-java, libxalan2-java
+ libplexus-utils-java, libwagon-java, libcodenarc-groovy-java,
+ checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
+ libservlet2.5-java, libjetty-java, libjetty-extra-java, libxalan2-java
 Standards-Version: 3.9.1
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
@@ -59,7 +59,7 @@ Depends: liblogback-java, libgoogle-collections-java (>= 1.0), groovy,
  libjoptsimple-java, libcommons-collections3-java, libcommons-httpclient-java,
  libcommons-io-java, libcommons-lang-java, ivy, ant, libjansi-java,
  libasm3-java, libslf4j-java, libmaven-ant-tasks-java, libmaven2-core-java,
- libplexus-component-api-java, ${misc:Depends}
+ libplexus-component-api-java, libplexus-utils-java, ${misc:Depends}
 Recommends: gradle (= ${binary:Version})
 Suggests: gradle-doc (= ${binary:Version})
 Description: Groovy based build system - Core library

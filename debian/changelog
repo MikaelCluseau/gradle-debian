@@ -1,5 +1,5 @@
-gradle (0.9-1) UNRELEASED; urgency=low
+gradle (0.9.1-1) UNRELEASED; urgency=low
 
   * Initial release. (Closes: #587832).
 
- -- Miguel Landaeta <miguel@miguel.cc>  Tue, 21 Dec 2010 20:29:24 -0430
+ -- Miguel Landaeta <miguel@miguel.cc>  Tue, 04 Jan 2011 19:43:27 -0430
