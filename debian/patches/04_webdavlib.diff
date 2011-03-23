@@ -6,8 +6,8 @@ Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: not-needed
 Last-Update: 2011-01-03
 
---- gradle-0.9.1.orig/subprojects/gradle-core/core.gradle
-+++ gradle-0.9.1/subprojects/gradle-core/core.gradle
+--- gradle-0.9.1.orig/subprojects/core/core.gradle
++++ gradle-0.9.1/subprojects/core/core.gradle
 @@ -52,7 +52,6 @@ dependencies {
              "commons-codec:commons-codec:1.4@jar",
              libraries.google_collections,
@@ -16,8 +16,8 @@ Last-Update: 2011-01-03
              "org.apache.maven:maven-ant-tasks:2.0.10@jar",
              libraries.asm_all,
              'org.fusesource.jansi:jansi:1.4',
---- gradle-0.9.1.orig/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java
-+++ gradle-0.9.1/subprojects/gradle-core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java
+--- gradle-0.9.1.orig/subprojects/core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java
++++ gradle-0.9.1/subprojects/core/src/main/groovy/org/gradle/api/internal/artifacts/repositories/WebdavRepository.java
 @@ -17,7 +17,6 @@ package org.gradle.api.internal.artifact
  
  import org.apache.commons.httpclient.HttpsURL;

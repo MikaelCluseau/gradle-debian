@@ -1,3 +1,13 @@
+gradle (0.9.2-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Refresh patches.
+  * Add Build-Depends on libgradle-maven-java.
+  * Update watch file.
+  * Update copyright dates.
+
+ -- Miguel Landaeta <miguel@miguel.cc>  Tue, 22 Mar 2011 23:10:13 -0430
+
 gradle (0.9.1-1) experimental; urgency=low
 
   * Initial release. (Closes: #587832).

@@ -3,8 +3,8 @@ Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
 Last-Update: 2010-11-23
 
---- gradle-0.9~rc3.orig/subprojects/gradle-core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
-+++ gradle-0.9~rc3/subprojects/gradle-core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
+--- gradle-0.9.2.orig/subprojects/core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
++++ gradle-0.9.2/subprojects/core/src/main/groovy/org/gradle/logging/internal/Slf4jLoggingConfigurer.java
 @@ -135,7 +135,7 @@ public class Slf4jLoggingConfigurer impl
          levelFilter.setContext(lc);
          levelFilter.setOnMatch(onMatch);

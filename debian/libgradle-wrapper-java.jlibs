@@ -1,1 +1,1 @@
-build/distributions/bin/gradle-*/lib/plugins/gradle-wrapper-*.jar
+build/distributions/bin/gradle-*/lib/gradle-wrapper-*.jar

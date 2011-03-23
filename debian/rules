@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 VERSION := $(shell dpkg-parsechangelog | grep ^Version: | sed 's/^Version: \(.\+\)-.\+$$/\1/')
-JARS := announce antlr code-quality eclipse idea jetty maven osgi plugins scala wrapper
+JARS := announce antlr code-quality eclipse idea jetty maven osgi plugins scala
 export JAVA_HOME=/usr/lib/jvm/default-java
 
 %:
@@ -26,9 +26,11 @@ override_dh_link:
 	for j in $(JARS); do \
 		ln -s ../../../java/gradle-$$j.jar gradle-$$j-$(VERSION).jar; \
 	done ;
-	# core jar symlink
+	# core and wrapper jars symlinks
 	cd debian/gradle/usr/share/gradle/lib && \
-	ln -s ../../java/gradle-core.jar gradle-core-$(VERSION).jar
+	for j in core wrapper; do \
+		ln -s ../../java/gradle-$$j.jar gradle-$$j-$(VERSION).jar; \
+	done ;
 
 override_jh_depends:
 	# jh_depends crashes when checking jar symlinks, should I file a bug?

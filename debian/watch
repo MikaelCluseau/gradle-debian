@@ -1,4 +1,4 @@
 version=3
-http://gradle.org/downloads.html \
-http://gradle.artifactoryonline.com/gradle/distributions/gradle-([\w\.-]+)-src.zip \
+http://repo.gradle.org/gradle/distributions/ \
+http://repo.gradle.org/gradle/distributions/gradle-([\w\.-]+)-src.zip
 debian debian/orig-tar.sh

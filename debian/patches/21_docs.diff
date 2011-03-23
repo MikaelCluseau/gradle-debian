@@ -3,11 +3,11 @@ Description: Generate javadocs and groovydocs only
  using DocBook and other libraries available in Debian.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2010-01-04
+Last-Update: 2011-03-22
 
---- gradle-0.9.1.orig/build.gradle
-+++ gradle-0.9.1/build.gradle
-@@ -232,7 +232,7 @@ zipRootFolder = "$archivesBaseName-${->
+--- gradle-0.9.2.orig/build.gradle
++++ gradle-0.9.2/build.gradle
+@@ -365,7 +365,7 @@ zipRootFolder = "$archivesBaseName-${->
  
  binDistImage = copySpec {
      from 'src/toplevel'
@@ -16,7 +16,7 @@ Last-Update: 2010-01-04
      into('bin') {
          from startScriptsDir
          fileMode = 0755
-@@ -258,14 +258,16 @@ allDistImage = copySpec {
+@@ -391,14 +391,16 @@ allDistImage = copySpec {
      }
  }
  
@@ -35,7 +35,7 @@ Last-Update: 2010-01-04
      classifier = 'bin'
      into(zipRootFolder) {
          with binDistImage
-@@ -375,7 +377,8 @@ def guessMaxForks() {
+@@ -508,7 +510,8 @@ def guessMaxForks() {
  
  task testedDists(dependsOn: [assemble, check, integTest, embeddedIntegTest, 'openApi:integTest', ':ui:integTest'])
  
@@ -45,18 +45,18 @@ Last-Update: 2010-01-04
  
  task install(type: Install) {
      description = 'Installs the minimal distribution into directory $gradle_installPath'
-@@ -450,7 +453,8 @@ task releaseArtifacts {
+@@ -583,7 +586,8 @@ task releaseArtifacts {
  task release {
      description = 'Builds, tests and uploads the release artifacts'
      group = 'release'
--    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
-+    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists, ':docs:uploadDocs'
+-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
++    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
 +    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadDists
  }
  
  task wrapper(type: Wrapper) {
---- gradle-0.9.1.orig/subprojects/gradle-docs/docs.gradle
-+++ gradle-0.9.1/subprojects/gradle-docs/docs.gradle
+--- gradle-0.9.2.orig/subprojects/docs/docs.gradle
++++ gradle-0.9.2/subprojects/docs/docs.gradle
 @@ -28,6 +28,7 @@ configurations {
      userGuideTask
  }
@@ -88,12 +88,12 @@ Last-Update: 2010-01-04
  }
  
  task samplesDocbook(type: AssembleSamplesDocTask) {
-@@ -336,7 +338,8 @@ task userguide {
+@@ -337,7 +339,8 @@ task userguide {
  }
  
  task docs {
 -    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
-+//    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
++    //dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
 +    dependsOn javadoc, groovydoc
      description = 'Generates all documentation'
      group = 'documentation'

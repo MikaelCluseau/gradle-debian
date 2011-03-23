@@ -4,10 +4,10 @@ Description: Disable checkstyle features
  performed.
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2010-12-21
+Last-Update: 2011-03-22
 
---- gradle-0.9.orig/buildSrc/build.gradle
-+++ gradle-0.9/buildSrc/build.gradle
+--- gradle-0.9.2.orig/buildSrc/build.gradle
++++ gradle-0.9.2/buildSrc/build.gradle
 @@ -16,7 +16,7 @@
  import org.apache.ivy.plugins.resolver.FileSystemResolver
  
@@ -15,11 +15,11 @@ Last-Update: 2010-12-21
 -apply plugin: 'code-quality'
 +//apply plugin: 'code-quality'
  apply plugin: 'idea'
+ apply plugin: 'eclipse'
  
- repositories {
-@@ -41,4 +41,4 @@ compileTestGroovy {
- 	exclude '**'
+@@ -43,4 +43,4 @@ compileTestGroovy {
  }
  
+ //apply from: '../gradle/compile.gradle'
 -apply from: '../gradle/codeQuality.gradle'
 +//apply from: '../gradle/codeQuality.gradle'
