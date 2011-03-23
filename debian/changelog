@@ -1,4 +1,4 @@
-gradle (0.9.1-1) UNRELEASED; urgency=low
+gradle (0.9.1-1) experimental; urgency=low
 
   * Initial release. (Closes: #587832).
 
