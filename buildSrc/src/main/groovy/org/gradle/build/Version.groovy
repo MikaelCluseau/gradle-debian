@@ -48,7 +48,7 @@ class Version {
             if (graph.hasTask(':releaseVersion')) {
                 release = true
             } else {
-                //this.versionNumber += "-" + getTimestamp()
+                this.versionNumber += "-" + getTimestamp()
                 release = false
             }
         }
@@ -74,6 +74,14 @@ class Version {
             'https://gradle.artifactoryonline.com/gradle/distributions'
         } else {
             'https://gradle.artifactoryonline.com/gradle/distributions/gradle-snapshots'
+        }
+    }
+
+    String getLibsUrl() {
+        if (release) {
+            'https://gradle.artifactoryonline.com/gradle/libs-releases-local'
+        } else {
+            'https://gradle.artifactoryonline.com/gradle/libs-snapshots-local'
         }
     }
 }
