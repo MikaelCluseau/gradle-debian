@@ -5,8 +5,10 @@ gradle (0.9.2-1) UNRELEASED; urgency=low
   * Add Build-Depends on libgradle-maven-java.
   * Update watch file.
   * Update copyright dates.
+  * Drop unneeded patch for liblogback-java and set (>= 0.9.28) as
+    minimal version to depend on.
 
- -- Miguel Landaeta <miguel@miguel.cc>  Tue, 22 Mar 2011 23:10:13 -0430
+ -- Miguel Landaeta <miguel@miguel.cc>  Thu, 24 Mar 2011 19:45:58 -0430
 
 gradle (0.9.1-1) experimental; urgency=low
 
