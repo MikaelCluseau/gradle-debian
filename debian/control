@@ -3,7 +3,7 @@ Maintainer: Debian Java Maintainers <pkg-java-maintainers@lists.alioth.debian.or
 Uploaders: Miguel Landaeta <miguel@miguel.cc>
 Section: java
 Priority: optional
-Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle, quilt,
+Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libgradle-code-quality-java, libgradle-eclipse-java, libgradle-idea-java,
  libgradle-wrapper-java, libgradle-scala-java, unzip, ant, ant-optional,
  libantlr-java, libasm3-java, libcommons-cli-java, libcommons-io-java,
