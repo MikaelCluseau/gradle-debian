@@ -1,4 +1,4 @@
-gradle (0.9.2-1) UNRELEASED; urgency=low
+gradle (0.9.2-1) unstable; urgency=low
 
   * New upstream release.
   * Upload to unstable.
