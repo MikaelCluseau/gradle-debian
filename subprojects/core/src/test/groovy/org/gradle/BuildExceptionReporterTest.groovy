@@ -24,6 +24,7 @@ import org.gradle.initialization.BuildClientMetaData
 import org.gradle.logging.StyledTextOutputFactory
 import org.gradle.logging.internal.TestStyledTextOutput
 import spock.lang.Specification
+import org.gradle.groovy.scripts.ScriptSource
 
 class BuildExceptionReporterTest extends Specification {
     final TestStyledTextOutput output = new TestStyledTextOutput()
@@ -55,7 +56,7 @@ class BuildExceptionReporterTest extends Specification {
 Build aborted because of an unexpected internal error. Please file an issue at: http://www.gradle.org.
 
 * Try:
-Run with {userinput}-d{normal} option to get additional debug info.
+Run with {userinput}--debug{normal} option to get additional debug info.
 
 * Exception is:
 java.lang.RuntimeException: <message>
@@ -75,7 +76,7 @@ java.lang.RuntimeException: <message>
 <message>
 
 * Try:
-Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--stacktrace{normal} option to get the stack trace. Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 '''
     }
 
@@ -91,7 +92,7 @@ Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more detai
 org.gradle.api.GradleException (no error message)
 
 * Try:
-Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--stacktrace{normal} option to get the stack trace. Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 '''
     }
 
@@ -111,7 +112,7 @@ Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more detai
 Cause: <cause>
 
 * Try:
-Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--stacktrace{normal} option to get the stack trace. Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 '''
     }
 
@@ -132,7 +133,7 @@ Cause: <outer>
 Cause: <cause>
 
 * Try:
-Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--stacktrace{normal} option to get the stack trace. Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 '''
     }
 
@@ -152,7 +153,33 @@ Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more detai
 Cause: java.lang.RuntimeException (no error message)
 
 * Try:
-Run with {userinput}-s{normal} or {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--stacktrace{normal} option to get the stack trace. Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
+'''
+    }
+
+    def showsStacktraceOfCauseOfLocationAwareException() {
+        startParameter.showStacktrace = ShowStacktrace.ALWAYS
+
+        Throwable exception = exception("<location>", "<message>", new GradleException('<failure>'))
+
+        expect:
+        reporter.buildFinished(result(exception))
+        output.value == '''
+{failure}FAILURE: {normal}{failure}Build failed with an exception.{normal}
+
+* Where:
+<location>
+
+* What went wrong:
+<message>
+Cause: <failure>
+
+* Try:
+Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
+
+* Exception is:
+org.gradle.api.GradleException: <failure>
+{stacktrace}
 '''
     }
 
@@ -186,7 +213,7 @@ Run {userinput}[gradle tasks]{normal} to get a list of available tasks.
 <message>
 
 * Try:
-Run with {userinput}-d{normal} option to get more details. Run with {userinput}-S{normal} option to get the full (very verbose) stacktrace.
+Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 
 * Exception is:
 org.gradle.api.GradleException: <message>
@@ -208,7 +235,7 @@ org.gradle.api.GradleException: <message>
 <message>
 
 * Try:
-Run with {userinput}-d{normal} option to get more details. 
+Run with {userinput}--info{normal} or {userinput}--debug{normal} option to get more log output.
 
 * Exception is:
 org.gradle.api.GradleException: <message>
@@ -246,9 +273,13 @@ org.gradle.api.GradleException: <message>
         _ * exception.location >> location
         _ * exception.originalMessage >> message
         _ * exception.reportableCauses >> (causes as List)
+        _ * exception.cause >> causes[0]
         exception
     }
 }
 
-public abstract class TestException extends GradleException implements LocationAwareException {
+public abstract class TestException extends LocationAwareException {
+    TestException(Throwable cause, ScriptSource source, Integer lineNumber) {
+        super(cause, source, lineNumber)
+    }
 }

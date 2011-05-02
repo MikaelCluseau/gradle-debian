@@ -22,12 +22,9 @@ import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.api.tasks.wrapper.internal.DistributionLocator;
+import org.gradle.util.DistributionLocator;
 import org.gradle.api.tasks.wrapper.internal.WrapperScriptGenerator;
-import org.gradle.util.DeprecationLogger;
-import org.gradle.util.GFileUtils;
-import org.gradle.util.GUtil;
-import org.gradle.util.GradleVersion;
+import org.gradle.util.*;
 
 import java.io.File;
 import java.net.URL;
@@ -101,7 +98,7 @@ public class Wrapper extends DefaultTask {
         archiveName = DEFAULT_ARCHIVE_NAME;
         archiveClassifier = DEFAULT_ARCHIVE_CLASSIFIER;
         archivePath = DEFAULT_DISTRIBUTION_PARENT_NAME;
-        gradleVersion = new GradleVersion();
+        gradleVersion = GradleVersion.current();
     }
 
     @TaskAction
@@ -254,7 +251,7 @@ public class Wrapper extends DefaultTask {
      * use for building your project.
      */
     public void setGradleVersion(String gradleVersion) {
-        this.gradleVersion = new GradleVersion(gradleVersion);
+        this.gradleVersion = GradleVersion.version(gradleVersion);
     }
 
     /**

@@ -295,12 +295,27 @@ public class InProcessGradleExecuter extends AbstractGradleExecuter {
             return this;
         }
 
+        public ExecutionResult assertTaskSkipped(String taskPath) {
+            assertThat(skippedTasks, hasItem(taskPath));
+            return this;
+        }
+
         public ExecutionResult assertTasksNotSkipped(String... taskPaths) {
             Set<String> expected = new HashSet<String>(Arrays.asList(taskPaths));
-            Set<String> notSkipped = new HashSet<String>(plannedTasks);
-            notSkipped.removeAll(skippedTasks);
+            Set<String> notSkipped = getExecutedTasks();
             assertThat(notSkipped, equalTo(expected));
             return this;
+        }
+
+        public ExecutionResult assertTaskNotSkipped(String taskPath) {
+            assertThat(getExecutedTasks(), hasItem(taskPath));
+            return this;
+        }
+
+        private Set<String> getExecutedTasks() {
+            Set<String> notSkipped = new HashSet<String>(plannedTasks);
+            notSkipped.removeAll(skippedTasks);
+            return notSkipped;
         }
     }
 
@@ -336,6 +351,16 @@ public class InProcessGradleExecuter extends AbstractGradleExecuter {
             } else {
                 assertThat(failure.getCause(), notNullValue());
                 assertThat(failure.getCause().getMessage(), matcher);
+            }
+            return this;
+        }
+
+        public ExecutionFailure assertHasNoCause() {
+            if (failure instanceof LocationAwareException) {
+                LocationAwareException exception = (LocationAwareException) failure;
+                assertThat(exception.getReportableCauses(), isEmpty());
+            } else {
+                assertThat(failure.getCause(), nullValue());
             }
             return this;
         }

@@ -17,7 +17,7 @@
 package org.gradle.api.internal.artifacts.dsl
 
 import org.apache.ivy.plugins.resolver.ResolverSettings
-import org.apache.maven.artifact.ant.RemoteRepository
+//import org.apache.maven.artifact.ant.RemoteRepository
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.artifacts.ResolverContainer
 import org.gradle.api.artifacts.dsl.RepositoryHandler
@@ -28,10 +28,18 @@ import org.gradle.util.HashUtil
 import org.junit.Test
 import static org.junit.Assert.*
 import org.gradle.api.internal.AsmBackedClassGenerator
+import org.gradle.api.artifacts.dsl.IvyArtifactRepository
+import org.gradle.api.Action
+import org.junit.runner.RunWith
+import org.jmock.integration.junit4.JMock
+import org.gradle.api.internal.artifacts.repositories.ArtifactRepositoryInternal
+import org.apache.ivy.plugins.resolver.DependencyResolver
+import org.hamcrest.Matchers
 
 /**
  * @author Hans Dockter
  */
+@RunWith(JMock)
 class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
     static final String TEST_REPO_URL = 'http://www.gradle.org'
 
@@ -68,7 +76,7 @@ class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
         assertEquals([expectedResolver], repositoryHandler.getResolvers())
     }
 
-    @Test (expected = InvalidUserDataException)
+    @Test(expected = InvalidUserDataException)
     public void testFlatDirWithMissingDirs() {
         repositoryHandler.flatDir([name: 'someName'])
     }
@@ -157,7 +165,7 @@ class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
 
     private def prepareFlatDirResolverCreation(String expectedName, File[] expectedDirs) {
         context.checking {
-          one(resolverFactoryMock).createFlatDirResolver(expectedName, expectedDirs); will(returnValue(expectedResolver))
+            one(resolverFactoryMock).createFlatDirResolver(expectedName, expectedDirs); will(returnValue(expectedResolver))
         }
     }
 
@@ -170,9 +178,9 @@ class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
     }
 
     private def prepareResolverFactoryToTakeAndReturnExpectedResolver() {
-      context.checking {
-        one(resolverFactoryMock).createResolver(expectedResolver); will(returnValue(expectedResolver))
-      }
+        context.checking {
+            one(resolverFactoryMock).createResolver(expectedResolver); will(returnValue(expectedResolver))
+        }
     }
 
     @Test
@@ -192,34 +200,34 @@ class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
         assertSame(expectedResolver, repositoryHandler.mavenDeployer(name: expectedName));
     }
 
-    @Test
-    public void mavenDeployerWithNameAndClosure() {
-        GroovyMavenDeployer expectedResolver = prepareMavenDeployerTests()
-        String expectedName = RepositoryHandler.DEFAULT_MAVEN_DEPLOYER_NAME + "-" +
-                System.identityHashCode(expectedResolver)
-        prepareName(expectedResolver, expectedName) 
-        RemoteRepository repositoryDummy = new RemoteRepository()
-        context.checking {
-            one(expectedResolver).setRepository(repositoryDummy)
-        }
-        assertSame(expectedResolver, repositoryHandler.mavenDeployer() {
-            setRepository(repositoryDummy)
-        });
-    }
-
-    @Test
-    public void mavenDeployerWithoutArgsAndWithClosure() {
-        GroovyMavenDeployer expectedResolver = prepareMavenDeployerTests()
-        String expectedName = "someName"
-        prepareName(expectedResolver, expectedName) 
-        RemoteRepository repositoryDummy = new RemoteRepository()
-        context.checking {
-            one(expectedResolver).setRepository(repositoryDummy)
-        }
-        assertSame(expectedResolver, repositoryHandler.mavenDeployer(name: expectedName) {
-            setRepository(repositoryDummy)
-        });
-    }
+//    @Test
+//    public void mavenDeployerWithNameAndClosure() {
+//        GroovyMavenDeployer expectedResolver = prepareMavenDeployerTests()
+//        String expectedName = RepositoryHandler.DEFAULT_MAVEN_DEPLOYER_NAME + "-" +
+//                System.identityHashCode(expectedResolver)
+//        prepareName(expectedResolver, expectedName)
+//        RemoteRepository repositoryDummy = new RemoteRepository()
+//        context.checking {
+//            one(expectedResolver).setRepository(repositoryDummy)
+//        }
+//        assertSame(expectedResolver, repositoryHandler.mavenDeployer() {
+//            setRepository(repositoryDummy)
+//        });
+//    }
+//
+//    @Test
+//    public void mavenDeployerWithoutArgsAndWithClosure() {
+//        GroovyMavenDeployer expectedResolver = prepareMavenDeployerTests()
+//        String expectedName = "someName"
+//        prepareName(expectedResolver, expectedName)
+//        RemoteRepository repositoryDummy = new RemoteRepository()
+//        context.checking {
+//            one(expectedResolver).setRepository(repositoryDummy)
+//        }
+//        assertSame(expectedResolver, repositoryHandler.mavenDeployer(name: expectedName) {
+//            setRepository(repositoryDummy)
+//        });
+//    }
 
     @Test
     public void mavenInstallerWithoutName() {
@@ -267,9 +275,62 @@ class DefaultRepositoryHandlerTest extends DefaultResolverContainerTest {
         });
     }
 
+    @Test
+    public void createIvyRepositoryUsingClosure() {
+        IvyArtifactRepository repository = context.mock(TestIvyArtifactRepository.class)
+        DependencyResolver resolver = context.mock(DependencyResolver.class)
+
+        context.checking {
+            one(resolverFactoryMock).createIvyRepository()
+            will(returnValue(repository))
+            one(repository).createResolvers(withParam(Matchers.notNullValue()))
+            will { arg -> arg << resolver }
+            one(resolverFactoryMock).createResolver(resolver)
+            will(returnValue(resolver))
+            allowing(resolver).getName()
+            will(returnValue("name"))
+        }
+
+        def arg
+        def result = repositoryHandler.ivy {
+            arg = it
+        }
+
+        assert arg == repository
+        assert result == repository
+        assert repositoryHandler.resolvers.contains(resolver)
+    }
+
+    @Test
+    public void createIvyRepositoryUsingAction() {
+        IvyArtifactRepository repository = context.mock(TestIvyArtifactRepository.class)
+        Action<IvyArtifactRepository> action = context.mock(Action.class)
+        DependencyResolver resolver = context.mock(DependencyResolver.class)
+
+        context.checking {
+            one(resolverFactoryMock).createIvyRepository()
+            will(returnValue(repository))
+            one(action).execute(repository)
+            one(repository).createResolvers(withParam(Matchers.notNullValue()))
+            will { arg -> arg << resolver }
+            one(resolverFactoryMock).createResolver(resolver)
+            will(returnValue(resolver))
+            allowing(resolver).getName()
+            will(returnValue("name"))
+        }
+
+        def result = repositoryHandler.ivy(action)
+        assert result == repository
+        assert repositoryHandler.resolvers.contains(resolver)
+    }
+    
     private void prepareName(mavenResolver, String expectedName) {
         context.checking {
             one(mavenResolver).setName(expectedName)
         }
     }
+}
+
+interface TestIvyArtifactRepository extends IvyArtifactRepository, ArtifactRepositoryInternal {
+
 }

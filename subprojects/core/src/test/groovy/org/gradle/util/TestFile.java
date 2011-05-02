@@ -81,7 +81,11 @@ public class TestFile extends File implements TestFileContext {
     }
 
     public TestFile file(Object... path) {
-        return new TestFile(this, path);
+        try {
+            return new TestFile(this, path);
+        } catch (RuntimeException e) {
+            throw new UncheckedIOException(String.format("Could not locate file '%s' relative to '%s'.", Arrays.toString(path), this), e);
+        }
     }
 
     public List<TestFile> files(Object... paths) {
@@ -251,7 +255,7 @@ public class TestFile extends File implements TestFileContext {
 
     @Override
     public TestFile getParentFile() {
-        return new TestFile(super.getParentFile());
+        return super.getParentFile() == null ? null : new TestFile(super.getParentFile());
     }
 
     @Override
@@ -295,6 +299,7 @@ public class TestFile extends File implements TestFileContext {
     public TestFile assertIsCopyOf(TestFile other) {
         assertIsFile();
         other.assertIsFile();
+        assertEquals(other.length(), this.length());
         assertTrue(Arrays.equals(HashUtil.createHash(this), HashUtil.createHash(other)));
         return this;
     }
@@ -336,6 +341,14 @@ public class TestFile extends File implements TestFileContext {
         return this;
     }
 
+    public TestFile assertIsEmptyDir() {
+        if (exists()) {
+            assertIsDir();
+            assertHasDescendants();
+        }
+        return this;
+    }
+
     private void visit(Set<String> names, String prefix, File file) {
         for (File child : file.listFiles()) {
             if (child.isFile()) {
@@ -356,6 +369,10 @@ public class TestFile extends File implements TestFileContext {
     public TestFile createDir() {
         assertTrue(isDirectory() || mkdirs());
         return this;
+    }
+
+    public TestFile createDir(Object path) {
+        return new TestFile(this, path).createDir();
     }
 
     public TestFile deleteDir() {
@@ -385,6 +402,10 @@ public class TestFile extends File implements TestFileContext {
             throw new UncheckedIOException(e);
         }
         return this;
+    }
+
+    public TestFile createFile(Object path) {
+        return file(path).createFile();
     }
 
     public TestFile zipTo(TestFile zipFile) {

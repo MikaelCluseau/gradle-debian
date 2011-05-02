@@ -21,20 +21,14 @@ import org.gradle.build.docs.dsl.docbook.AssembleDslDocTask
 import org.gradle.build.docs.dsl.ExtractDslMetaDataTask
 
 apply plugin: 'base'
+apply from: "${rootDir}/gradle/ssh.gradle"
 
 configurations {
-    ftpAntTask
     userGuideStyleSheets
     userGuideTask
 }
 
 dependencies {
-    ftpAntTask module("org.apache.ant:ant-commons-net:1.7.0") {
-        module("commons-net:commons-net:1.4.1") {
-            dependencies("oro:oro:2.0.8@jar")
-        }
-    }
-
     userGuideTask 'xalan:xalan:2.7.1', 'xerces:xercesImpl:2.9.1'
     userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
         dependency 'itext:itext:2.0.8@jar'
@@ -59,26 +53,26 @@ docbookSrc = new File(project.buildDir, 'src')
 samplesSrcDir = file('src/samples')
 websiteDocs = new File(buildDir, 'websiteDocs')
 
-tasks.withType(Docbook2Xhtml).allObjects { task->
-    task.dependsOn userguideStyleSheets
-    task.classpath = configurations.userGuideTask
-    task.stylesheetsDir = userguideStyleSheets.destinationDir
+tasks.withType(Docbook2Xhtml) {
+    dependsOn userguideStyleSheets
+    classpath = configurations.userGuideTask
+    stylesheetsDir = userguideStyleSheets.destinationDir
 }
-tasks.withType(UserGuideTransformTask).allObjects { task->
-    task.classpath = configurations.userGuideTask
-    task.dependsOn samples, dslDocbook
-    task.snippetsDir = samples.snippetsDir
-    task.linksFile = dslDocbook.linksFile
+tasks.withType(UserGuideTransformTask) {
+    classpath = configurations.userGuideTask
+    dependsOn samples, dslDocbook
+    snippetsDir = samples.snippetsDir
+    linksFile = dslDocbook.linksFile
 }
-tasks.withType(AssembleDslDocTask).allObjects { task ->
-    task.classpath = configurations.userGuideTask
-    task.classDocbookDir = dslSrcDir
+tasks.withType(AssembleDslDocTask) {
+    classpath = configurations.userGuideTask
+    classDocbookDir = dslSrcDir
 }
 
 task samples(type: ExtractSnippetsTask) {
     source samplesSrcDir
     exclude 'userguideOutput/**'
-    exclude 'userguide/tutorial/antChecksumFiles/**'
+    exclude 'userguide/tutorial/antLoadfileResources/**'
     exclude '**/readme.xml'
     destDir = samplesDir
     snippetsDir = new File(buildDir, 'snippets')
@@ -86,7 +80,7 @@ task samples(type: ExtractSnippetsTask) {
         copy {
             from samplesSrcDir
             into samplesDir
-            include 'userguide/tutorial/antChecksumFiles/**'
+            include 'userguide/tutorial/antLoadfileResources/**'
         }
     }
 }
@@ -172,7 +166,7 @@ task remoteUserguideDocbook(type: UserGuideTransformTask, dependsOn: samples) {
     inputs.files fileTree(dir: docbookSrc, includes: ['*.xml'])
     sourceFile = new File(userguideSrcDir, 'userguide.xml')
     destFile = new File(docbookSrc, 'remoteUserguide.xml')
-    doFirst {
+    gradle.taskGraph.whenReady {
         javadocUrl = remoteLocations.javadocUrl
         groovydocUrl = remoteLocations.groovydocUrl
         dsldocUrl = remoteLocations.dsldocUrl
@@ -242,7 +236,7 @@ task javadoc(type: Javadoc) {
     include 'org/gradle/testfixtures/**'
     include 'org/gradle/tooling/**'
     exclude '**/internal/**'
-    options.links("http://java.sun.com/j2se/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
+    options.links("http://download.oracle.com/javase/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
         "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
     doFirst {
         title = "Gradle API $version"
@@ -260,6 +254,7 @@ task groovydoc(type: Groovydoc) {
     group = 'documentation'
     source groovyProjects().collect {project -> project.sourceSets.main.groovy + project.sourceSets.main.java }
     destinationDir = new File(docsDir, 'groovydoc')
+    classpath = javadoc.classpath
     includes = javadoc.includes
     excludes = javadoc.excludes
     doFirst {
@@ -272,7 +267,7 @@ task userguideFragmentSrc(type: UserGuideTransformTask, dependsOn: [userguideSty
     tags << 'standalone'
     sourceFile = new File(userguideSrcDir, 'installation.xml')
     destFile = new File(docbookSrc, 'installation.xml')
-    doFirst {
+    gradle.taskGraph.whenReady {
         javadocUrl = remoteLocations.javadocUrl
         groovydocUrl = remoteLocations.groovydocUrl
         dsldocUrl = remoteLocations.dsldocUrl
@@ -292,7 +287,7 @@ task websiteUserguideSrc(type: UserGuideTransformTask, dependsOn: [userguideStyl
     sourceFile = new File(userguideSrcDir, 'userguide.xml')
     destFile = new File(docbookSrc, 'website.xml')
     tags << 'website'
-    doFirst {
+    gradle.taskGraph.whenReady {
         javadocUrl = remoteLocations.javadocUrl
         groovydocUrl = remoteLocations.groovydocUrl
         dsldocUrl = remoteLocations.dsldocUrl
@@ -342,32 +337,20 @@ task docs {
     group = 'documentation'
 }
 
-task uploadDocs(dependsOn: docs) << {
-    ftp(action: 'mkdir', remotedir: remoteLocations.docsRemoteDir)
-    ftp(action: 'delete', remotedir: remoteLocations.docsRemoteDir) {
-        fileset() {
-            include(name: '**/*')
-        }
+task uploadDocs(dependsOn: docs, type: Scp) {
+    sourceDir = docsDir
+    host = 'gradle01.managed.contegix.com'
+    gradle.taskGraph.whenReady {
+        destinationDir = remoteLocations.docsUploadDir
     }
-    ftp(action: 'send', remotedir: remoteLocations.docsRemoteDir) {
-        fileset(dir: docsDir)
-    }
+    userName = project.hasProperty('websiteScpUserName') ? project.websiteScpUserName : null
+    password = project.hasProperty('websiteScpUserPassword') ? project.websiteScpUserPassword : null
 }
-
-void ftp(Map args, Closure antFileset = {}) {
-    ant {
-        taskdef(name: 'ftp',
-                classname: 'org.apache.tools.ant.taskdefs.optional.net.FTP',
-                classpath: configurations.ftpAntTask.asPath)
-        Map ftpArgs = args + [
-                server: 'ftp.gradle.org',
-                userid: websiteFtpUserName,
-                password: websiteFtpUserPassword
-        ]
-        delegate.ftp(ftpArgs) {
-            antFileset.delegate = delegate
-            antFileset()
-        }
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(uploadDocs)) {
+        // fail early
+        project.websiteScpUserName
+        project.websiteScpUserPassword
     }
 }
 
@@ -378,6 +361,10 @@ class RemoteLocations {
 
     String getDistributionUploadUrl() {
         version.isRelease() ? 'https://dav.codehaus.org/dist/gradle' : 'https://dav.codehaus.org/snapshots.dist/gradle'
+    }
+
+    String getDocsUploadDir() {
+        '/var/www/domains/gradle.org/www/htdocs/releases/' + docsRemoteDir
     }
 
     String getDocsRemoteDir() {

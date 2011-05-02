@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-import java.util.jar.Attributes
-import org.gradle.api.artifacts.repositories.WebdavResolver
-import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
-
 import org.gradle.build.samples.WrapperProjectCreator
 import org.gradle.build.Version
 import org.gradle.build.Install
 import org.gradle.build.Git
+import java.util.jar.Attributes
+import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
 
 /**
  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
@@ -44,28 +42,27 @@ startScriptsDir = new File("$buildDir/startScripts")
 archivesBaseName = 'gradle'
 
 libraries = [
-        ant: 'org.apache.ant:ant:1.8.1@jar',
-        ant_junit: 'org.apache.ant:ant-junit:1.8.1@jar',
-        ant_launcher: 'org.apache.ant:ant-launcher:1.8.1@jar',
-        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.1@jar',
-        ant_antlr: 'org.apache.ant:ant-antlr:1.8.1@jar',
+        ant: 'org.apache.ant:ant:1.8.2@jar',
+        ant_junit: 'org.apache.ant:ant-junit:1.8.2@jar',
+        ant_launcher: 'org.apache.ant:ant-launcher:1.8.2@jar',
+        ant_antlr: 'org.apache.ant:ant-antlr:1.8.2@jar',
         antlr: 'antlr:antlr:2.7.7@jar',
-        asm_all: 'asm:asm-all:3.2@jar',
+        asm_all: 'asm:asm-all:3.3.1@jar',
         commons_cli: 'commons-cli:commons-cli:1.2@jar',
         commons_io: 'commons-io:commons-io:1.4@jar',
-        commons_lang: 'commons-lang:commons-lang:2.5@jar',
+        commons_lang: 'commons-lang:commons-lang:2.6@jar',
         dom4j: 'dom4j:dom4j:1.6.1@jar',
-        google_collections: 'com.google.collections:google-collections:1.0@jar',
-        groovy: 'org.codehaus.groovy:groovy-all:1.7.6@jar',
+        guava: 'com.google.guava:guava:r08@jar',
+        groovy: 'org.codehaus.groovy:groovy-all:1.7.10@jar',
         ivy: 'org.apache.ivy:ivy:2.2.0@jar',
         jaxen: 'jaxen:jaxen:1.1@jar',
         slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
         jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
         jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
         log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
-        logback_classic: 'ch.qos.logback:logback-classic:0.9.24@jar',
-        logback_core: 'ch.qos.logback:logback-core:0.9.24@jar',
-        junit: 'junit:junit:4.8.1',
+        logback_classic: 'ch.qos.logback:logback-classic:0.9.28@jar',
+        logback_core: 'ch.qos.logback:logback-core:0.9.28@jar',
+        junit: 'junit:junit:4.8.2',
         xmlunit: 'xmlunit:xmlunit:1.3',
 ]
 
@@ -95,7 +92,7 @@ allprojects {
     }
 
     repositories {
-        mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
+        mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
     }
 
     version = this.version
@@ -103,7 +100,6 @@ allprojects {
 
 configure(groovyProjects()) {
     apply plugin: 'groovy'
-    apply plugin: 'eclipse'
 
     archivesBaseName = "gradle-${name.replaceAll("\\p{Upper}") { "-${it.toLowerCase()}" } }"
     dependencies {
@@ -143,14 +139,6 @@ allprojects {
     task ide(type: Sync) {
         into "$ideDir/lib"
         from { config.copyRecursive {dep -> !(dep instanceof ProjectDependency)}.files }
-    }
-    ideaModule {
-        gradleCacheVariable = 'GRADLE_CACHE'
-        outputDir = "$rootProject.projectDir/intellij/out" as File
-        testOutputDir = "$rootProject.projectDir/intellij/testOut" as File
-    }
-    eclipseClasspath {
-        variables = [:]
     }
 }
 
@@ -293,13 +281,42 @@ ideaWorkspace {
     withXml { provider ->
         Node node = provider.asNode()
 
-        Node runConfig = node.component.find { it.'@name' == 'RunManager' }.configuration.find { it.'@type' == 'JUnit'}
+        Node runManagerConfig = node.component.find { it.'@name' == 'RunManager' }
 
-        Node module = runConfig.module[0]
-        module.'@name' = 'launcher'
+        // Add int test configuration to JUnit defaults
+        Node runConfig = runManagerConfig.configuration.find { it.'@type' == 'JUnit'}
 
         Node vmParameters = runConfig.option.find { it.'@name' == 'VM_PARAMETERS' }
         vmParameters.'@value' = "\"-DintegTest.gradleHomeDir=${intTestImage.destinationDir}\" -ea -Dorg.gradle.integtest.executer=embedded"
+
+        // Add an application configuration
+        runManagerConfig.'@selected' = 'Application.Gradle'
+        def appConfig = new XmlParser().parseText('''
+    <configuration default="false" name="Gradle" type="Application" factoryName="Application">
+      <extension name="coverage" enabled="false" merge="false" />
+      <option name="MAIN_CLASS_NAME" value="org.gradle.launcher.Main" />
+      <option name="VM_PARAMETERS" value="" />
+      <option name="PROGRAM_PARAMETERS" value="" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="launcher" />
+      <envs />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="63810" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Debug" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+''')
+        runManagerConfig.append(appConfig)
     }
 }
 
@@ -321,7 +338,12 @@ configure(groovyProjects()) {
     ideaModule {
         scopes.RUNTIME.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets.main.resources.srcDirs })))
         scopes.TEST.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets*.resources*.srcDirs })))
-        beforeConfigured { module -> module.dependencies = [] }
+    }
+    eclipseClasspath {
+        plusConfigurations.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets*.resources*.srcDirs*.findAll { it.isDirectory() }} )))
+        whenConfigured { classpath ->
+            classpath.entries.removeAll { it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder && it.path.endsWith('/resources') }
+        }
     }
 }
 
@@ -333,6 +355,9 @@ configurations {
     plugins {
         visible = false
     }
+    coreImpl {
+        visible = false
+    }
     testRuntime {
         extendsFrom runtime
         extendsFrom plugins
@@ -342,10 +367,11 @@ configurations {
 dependencies {
     runtime runtimeProjects()
     plugins pluginProjects()
+    coreImpl project(':coreImpl')
 }
 
 evaluationDependsOn(':docs')
-evaluationDependsOn(':core')
+evaluationDependsOn(':integTest')
 
 clean.dependsOn subprojects.collect { "$it.path:clean" }
 
@@ -358,7 +384,9 @@ task publishLocalArchives(dependsOn: publishedProjects()*.publishLocalArchives)
 zipRootFolder = "$archivesBaseName-${-> version}"
 
 binDistImage = copySpec {
-    from 'src/toplevel'
+    from('src/toplevel') {
+        expand(version: version)
+    }
     from project(':docs').distDocs.destFile
     into('bin') {
         from startScriptsDir
@@ -368,6 +396,9 @@ binDistImage = copySpec {
         from configurations.runtime
         into('plugins') {
             from configurations.plugins - configurations.runtime
+        }
+        into('core-impl') {
+            from configurations.coreImpl - configurations.runtime
         }
     }
 }
@@ -439,60 +470,16 @@ task intTestImage(type: Sync) {
     }
 }
 
-tasks.withType(Test).allTasks { task ->
-    task.configure {
-        dependsOn intTestImage, publishLocalArchives, binZip, allZip, srcZip, project(':docs').userguideDocbook
-        integTestUserDir = file('intTestHomeDir')
-        systemProperties['integTest.userGuideInfoDir'] = project(':docs').docbookSrc
-        systemProperties['integTest.userGuideOutputDir'] = new File(project(':docs').samplesSrcDir, "userguideOutput").absolutePath
-        systemProperties['integTest.gradleUserHomeDir'] = integTestUserDir.absolutePath
-        forkEvery = 15
-        maxParallelForks = guessMaxForks()
-
-        testClassesDir = project(':core').sourceSets.integTest.classesDir
-        classpath = project(':core').sourceSets.integTest.runtimeClasspath + configurations.testRuntime
-        testResultsDir = file("build/test-results/$name")
-        testReportDir = file("build/reports/tests/$name")
-        testSrcDirs = []
-
-        systemProperties['integTest.gradleHomeDir'] = intTestImage.integTestGradleHome.absolutePath
-        jvmArgs '-Xmx512m', '-XX:+HeapDumpOnOutOfMemoryError'
-
-        doFirst {
-            if (isDevBuild()) {
-                exclude 'org/gradle/integtests/DistributionIntegrationTest.*'
-            }
-        }
-    }
+def isDevBuild() {
+    gradle.taskGraph.hasTask(developerBuild)
 }
 
-task integTest(type: Test) {
+def isCIBuild() {
+    gradle.taskGraph.hasTask(ciBuild)
 }
 
-task embeddedIntegTest(type: Test) {
-    systemProperties['org.gradle.integtest.executer'] = 'embedded'
-    jvmArgs '-Xmx512m', '-XX:MaxPermSize=256m', '-XX:+HeapDumpOnOutOfMemoryError'
-}
-
-task daemonIntegTest(type: Test) {
-    systemProperties['org.gradle.integtest.executer'] = 'daemon'
-}
-
-private def isDevBuild() {
-    gradle.taskGraph.hasTask(':developerBuild')
-}
-
-gradle.taskGraph.whenReady { graph ->
-    if (isDevBuild()) {
-        if (OperatingSystem.current().isWindows()) {
-            embeddedIntegTest.enabled = false
-        } else {
-            integTest.enabled = false
-        }
-    }
-    if (graph.hasTask(':ciBuild')) {
-        embeddedIntegTest.enabled = false
-    }
+def isCommitBuild() {
+    gradle.taskGraph.hasTask(commitBuild)
 }
 
 def guessMaxForks() {
@@ -500,7 +487,7 @@ def guessMaxForks() {
     return Math.max(2, (int) (processors / 2))
 }
 
-task testedDists(dependsOn: [assemble, check, integTest, embeddedIntegTest, 'openApi:integTest', ':ui:integTest'])
+task testedDists(dependsOn: [assemble, check, integTests])
 
 task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
 
@@ -524,10 +511,13 @@ uploadDists {
     dependsOn testedDists
     uploadDescriptor = false
     doFirst {
-        org.apache.ivy.util.url.CredentialsStore.INSTANCE.addCredentials('Artifactory Realm', 'gradle.artifactoryonline.com', artifactoryUserName, artifactoryUserPassword)
-        repositories.add(new org.apache.ivy.plugins.resolver.URLResolver()) {
-            name = 'gradleReleases'
-            addArtifactPattern("${version.distributionUrl}/[artifact]-[revision](-[classifier]).[ext]" as String)
+        repositories {
+            ivy {
+                name = 'gradleReleases'
+                artifactPattern "${version.distributionUrl}/[artifact]-[revision](-[classifier]).[ext]"
+                userName = artifactoryUserName
+                password = artifactoryUserPassword
+            }
         }
     }
 }
@@ -543,13 +533,19 @@ gradle.taskGraph.whenReady {graph ->
 task developerBuild {
     description = 'Builds distributions and runs pre-checkin checks'
     group = 'build'
-    dependsOn clean, testedDists
+    dependsOn testedDists
 }
 
 task ciBuild {
-    description = 'Build performed by the CI server'
+    description = 'Full build performed by the CI server'
     dependsOn clean, testedDists
 }
+
+task commitBuild {
+    description = 'Commit build performed by the CI server'
+    dependsOn testedDists
+}
+
 gradle.taskGraph.whenReady {graph ->
     if (graph.hasTask(ciBuild)) {
         subprojects { reportsDirName = "$rootProject.reportsDir/${path.replaceFirst(':', '').replaceAll(':', '.')}" }
@@ -581,7 +577,7 @@ task release {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '0.9.1'
+    gradleVersion = '1.0-milestone-2'
 }
 
 def groovyProjects() {
@@ -593,11 +589,25 @@ def publishedProjects() {
 }
 
 def runtimeProjects() {
-    groovyProjects() - pluginProjects()
+    groovyProjects() - pluginProjects() - [project(':integTest'), project(':coreImpl')]
 }
 
 def pluginProjects() {
-    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'eclipse', 'idea', 'announce', 'scala'].collect {
+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
         project(it)
     }
 }
+
+switch (System.getProperty("user.name")) {
+    case "pniederw":
+        allprojects {
+            tasks.withType(Test) {
+                maxParallelForks = 1
+                forkEvery = 0
+            }
+        }
+        break
+    default:
+        break
+}
+

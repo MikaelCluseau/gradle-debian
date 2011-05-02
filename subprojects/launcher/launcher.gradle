@@ -5,6 +5,7 @@ dependencies {
 
     compile project(':core')
     compile project(':ui')
+    compile project(':toolingApi')
 
     compile libraries.slf4j_api
 
@@ -23,11 +24,12 @@ task startScripts << {
 }
 
 ideaModule {
-    whenConfigured { module ->
-        def runtimeProjects = rootProject.groovyProjects() - ([project] +
-                configurations.runtime.getAllDependencies(ProjectDependency).collect { it.dependencyProject })
-        runtimeProjects.each { groovyProject ->
-            module.dependencies.add(new org.gradle.plugins.idea.model.ModuleDependency(groovyProject.name, "RUNTIME"))
-        }
-    }
+    scopes.RUNTIME.plus << rootProject.configurations.runtime
+    scopes.RUNTIME.plus << rootProject.configurations.plugins
+    scopes.RUNTIME.plus << rootProject.configurations.coreImpl
+}
+eclipseClasspath {
+    plusConfigurations << rootProject.configurations.runtime
+    plusConfigurations << rootProject.configurations.plugins
+    plusConfigurations << rootProject.configurations.coreImpl
 }

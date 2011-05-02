@@ -15,15 +15,14 @@
  */
 package org.gradle.api.internal.artifacts.ivyservice;
 
-import org.gradle.api.internal.artifacts.IvyService;
-import org.gradle.api.artifacts.*;
-import org.gradle.api.GradleException;
-import org.gradle.api.specs.Spec;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
+import org.gradle.api.artifacts.*;
+import org.gradle.api.internal.artifacts.IvyService;
+import org.gradle.api.specs.Spec;
 
-import java.util.Set;
-import java.util.List;
 import java.io.File;
+import java.util.List;
+import java.util.Set;
 
 public class ErrorHandlingIvyService implements IvyService {
     private final IvyService ivyService;
@@ -41,8 +40,7 @@ public class ErrorHandlingIvyService implements IvyService {
         try {
             ivyService.publish(configurationsToPublish, descriptorDestination, publishResolvers);
         } catch (Throwable e) {
-            throw new GradleException(String.format("Could not publish configurations %s.", configurationsToPublish),
-                    e);
+            throw new PublishException(String.format("Could not publish configurations %s.", configurationsToPublish), e);
         }
     }
 
@@ -101,6 +99,14 @@ public class ErrorHandlingIvyService implements IvyService {
             }
         }
 
+        public Set<ResolvedDependency> getFirstLevelModuleDependencies(Spec<Dependency> dependencySpec) throws ResolveException {
+            try {
+                return resolvedConfiguration.getFirstLevelModuleDependencies(dependencySpec);
+            } catch (Throwable e) {
+                throw wrapException(e, configuration);
+            }
+        }
+
         public Set<ResolvedArtifact> getResolvedArtifacts() throws ResolveException {
             try {
                 return resolvedConfiguration.getResolvedArtifacts();
@@ -132,6 +138,10 @@ public class ErrorHandlingIvyService implements IvyService {
         }
 
         public Set<ResolvedDependency> getFirstLevelModuleDependencies() throws ResolveException {
+            throw wrapException(e, configuration);
+        }
+
+        public Set<ResolvedDependency> getFirstLevelModuleDependencies(Spec<Dependency> dependencySpec) throws ResolveException {
             throw wrapException(e, configuration);
         }
 

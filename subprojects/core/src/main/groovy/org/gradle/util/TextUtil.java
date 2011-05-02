@@ -18,15 +18,37 @@ package org.gradle.util;
 
 public class TextUtil {
     /**
-     * The native line separator for the current platform (e.g. \n or \r\n).
+     * Returns the line separator for Windows.
      */
-    public static final String LINE_SEPARATOR = System.getProperty("line.separator");
+    public static String getWindowsLineSeparator() {
+        return "\r\n";
+    }
 
     /**
-     * Replaces all line separators (\r, \n, \r\n) in the specified string with
-     * the platform's native line separator.
+     * Returns the line separator for Unix.
      */
-    public static String toNativeLineSeparators(String str) {
-        return str.replaceAll("\r\n|\r|\n", LINE_SEPARATOR);
+    public static String getUnixLineSeparator() {
+        return "\n";
+    }
+
+    /**
+     * Returns the line separator for this platform.
+     */
+    public static String getPlatformLineSeparator() {
+        return SystemProperties.getLineSeparator();
+    }
+
+    /**
+     * Converts all line separators in the specified string to the specified line separator.
+     */
+    public static String convertLineSeparators(String str, String sep) {
+        return str.replaceAll("\r\n|\r|\n", sep);
+    }
+
+    /**
+     * Converts all line separators in the specified string to the the platform's line separator.
+     */
+    public static String toPlatformLineSeparators(String str) {
+        return convertLineSeparators(str, getPlatformLineSeparator());
     }
 }

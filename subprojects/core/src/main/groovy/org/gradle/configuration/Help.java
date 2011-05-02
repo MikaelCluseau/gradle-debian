@@ -31,7 +31,7 @@ public class Help extends DefaultTask {
         BuildClientMetaData metaData = getServices().get(BuildClientMetaData.class);
 
         output.println();
-        output.formatln("Welcome to Gradle %s.", new GradleVersion().getVersion());
+        output.formatln("Welcome to Gradle %s.", GradleVersion.current().getVersion());
         output.println();
         output.text("To run a build, run ");
         metaData.describeCommand(output.withStyle(UserInput), "<task> ...");
@@ -42,7 +42,7 @@ public class Help extends DefaultTask {
         output.println();
         output.println();
         output.text("To see a list of command-line options, run ");
-        metaData.describeCommand(output.withStyle(UserInput), "-?");
+        metaData.describeCommand(output.withStyle(UserInput), "--help");
         output.println();
     }
 }
