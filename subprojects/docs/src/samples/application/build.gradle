@@ -1,0 +1,18 @@
+apply plugin:'java'
+// START SNIPPET use-plugin
+apply plugin:'application'
+// END SNIPPET use-plugin
+
+version = '1.0.2'
+
+// START SNIPPET mainClassName-conf
+mainClassName = "org.gradle.sample.Main"
+// END SNIPPET mainClassName-conf
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'commons-collections:commons-collections:3.2.1'
+}

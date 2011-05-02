@@ -61,12 +61,14 @@
     <xi:include href='warPlugin.xml'/>
     <xi:include href='jettyPlugin.xml'/>
     <xi:include href='codeQualityPlugin.xml'/>
+    <xi:include href='sonarPlugin.xml'/>
     <xi:include href='osgi.xml'/>
     <xi:include href='eclipsePlugin.xml'/>
     <xi:include href='ideaPlugin.xml'/>
     <xi:include href='antlrPlugin.xml'/>
     <xi:include href='projectReports.xml'/>
     <xi:include href='announcePlugin.xml'/>
+    <xi:include href='applicationPlugin.xml'/>
 	<xi:include href='depMngmt.xml'/>
     <xi:include href='artifactMngmt.xml'/>
     <xi:include href='mavenPlugin.xml'/>

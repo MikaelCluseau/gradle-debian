@@ -16,6 +16,7 @@
 package org.gradle.api.plugins.quality;
 
 import org.gradle.api.logging.LogLevel;
+import org.gradle.api.plugins.quality.internal.AntCodeNarc;
 import org.gradle.api.tasks.*;
 
 import java.io.File;
@@ -26,14 +27,15 @@ import java.io.File;
 public class CodeNarc extends SourceTask implements VerificationTask {
     private AntCodeNarc antCodeNarc = new AntCodeNarc();
 
-    private File reportFile;
     private File configFile;
+    private String reportFormat;
+    private File reportFile;
     private boolean ignoreFailures;
 
     @TaskAction
     public void check() {
         getLogging().captureStandardOutput(LogLevel.INFO);
-        antCodeNarc.execute(getAnt(), getSource(), getConfigFile(), getReportFile(), isIgnoreFailures());
+        antCodeNarc.execute(getAnt(), getSource(), getConfigFile(), getReportFormat(), getReportFile(), isIgnoreFailures());
     }
 
     /**
@@ -56,9 +58,28 @@ public class CodeNarc extends SourceTask implements VerificationTask {
     }
 
     /**
-     * Returns the file to write the HTML report to.
+     * Returns the format type of the CodeNarc report.
      *
-     * @return The HTML report file. Must not be null.
+     * @return The format type of the CodeNarc report.
+     */
+    @Input
+    public String getReportFormat() {
+        return reportFormat;
+    }
+
+    /**
+     * Specifies the format type of the CodeNarc report.
+     *
+     * @param reportFormat The format type of the CodeNarc report.
+     */
+    public void setReportFormat(String reportFormat) {
+        this.reportFormat = reportFormat;
+    }
+
+    /**
+     * Returns the file to write the report to.
+     *
+     * @return The report file. Must not be null.
      */
     @OutputFile
     public File getReportFile() {

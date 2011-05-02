@@ -15,42 +15,29 @@
  */
 package org.gradle.tooling.internal.consumer
 
-import org.gradle.tooling.internal.protocol.ConnectionFactoryVersion1
-import org.gradle.tooling.internal.protocol.ConnectionVersion1
+import org.gradle.tooling.internal.protocol.ConnectionVersion4
 import spock.lang.Specification
+import org.gradle.listener.ListenerManager
+import org.gradle.logging.ProgressLoggerFactory
 
 class ConnectionFactoryTest extends Specification {
     final ToolingImplementationLoader implementationLoader = Mock()
+    final ListenerManager listenerManager = Mock()
+    final ProgressLoggerFactory progressLoggerFactory = Mock()
     final Distribution distribution = Mock()
-    final ConnectionFactoryVersion1 connectionImplFactory = Mock()
-    final ConnectionVersion1 connectionImpl = Mock()
-    final ConnectionFactory factory = new ConnectionFactory(implementationLoader)
+    final ConnectionVersion4 connectionImpl = Mock()
+    final ConnectionParameters parameters = Mock()
+    final ConnectionFactory factory = new ConnectionFactory(implementationLoader, listenerManager, progressLoggerFactory)
 
     def usesImplementationLoaderToLoadConnectionFactory() {
-        File projectDir = new File('project-dir')
-
         when:
-        factory.create(distribution, projectDir)
+        def result = factory.create(distribution, parameters)
 
         then:
-        1 * implementationLoader.create(distribution) >> connectionImplFactory
-        1 * connectionImplFactory.create(projectDir) >> connectionImpl
+        result instanceof DefaultProjectConnection
+        result.connection instanceof DefaultAsyncConnection
+        result.connection.connection instanceof ProgressLoggingConnection
+        result.connection.connection.connection instanceof LazyConnection
         0 * _._
-    }
-
-    def stopsAllConnectionFactoriesOnStop() {
-        File projectDir = new File('project-dir')
-
-        when:
-        factory.create(distribution, projectDir)
-
-        then:
-        1 * implementationLoader.create(distribution) >> connectionImplFactory
-        
-        when:
-        factory.stop()
-
-        then:
-        1 * connectionImplFactory.stop()
     }
 }

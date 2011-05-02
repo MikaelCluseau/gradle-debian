@@ -15,43 +15,33 @@
  */
 package org.gradle.tooling.internal.consumer;
 
-import org.gradle.messaging.concurrent.Stoppable;
-import org.gradle.tooling.BuildConnection;
-import org.gradle.tooling.internal.protocol.ConnectionFactoryVersion1;
-import org.gradle.tooling.internal.protocol.ConnectionVersion1;
-
-import java.io.File;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import org.gradle.listener.ListenerManager;
+import org.gradle.logging.ProgressLoggerFactory;
+import org.gradle.messaging.concurrent.DefaultExecutorFactory;
+import org.gradle.tooling.ProjectConnection;
+import org.gradle.tooling.internal.protocol.ConnectionVersion4;
 
 /**
  * This is the main internal entry point for the tooling API.
  *
  * This implementation is thread-safe.
  */
-public class ConnectionFactory implements Stoppable {
+public class ConnectionFactory {
     private final ProtocolToModelAdapter adapter = new ProtocolToModelAdapter();
     private final ToolingImplementationLoader toolingImplementationLoader;
-    private final Set<ConnectionFactoryVersion1> factories = new CopyOnWriteArraySet<ConnectionFactoryVersion1>();
+    private final DefaultExecutorFactory executorFactory = new DefaultExecutorFactory();
+    private final ListenerManager listenerManager;
+    private final ProgressLoggerFactory progressLoggerFactory;
 
-    public ConnectionFactory() {
-        this(new CachingToolingImplementationLoader(new DefaultToolingImplementationLoader()));
-    }
-
-    ConnectionFactory(ToolingImplementationLoader toolingImplementationLoader) {
+    public ConnectionFactory(ToolingImplementationLoader toolingImplementationLoader, ListenerManager listenerManager, ProgressLoggerFactory progressLoggerFactory) {
         this.toolingImplementationLoader = toolingImplementationLoader;
+        this.listenerManager = listenerManager;
+        this.progressLoggerFactory = progressLoggerFactory;
     }
 
-    public BuildConnection create(Distribution distribution, File projectDir) {
-        ConnectionFactoryVersion1 factory = toolingImplementationLoader.create(distribution);
-        factories.add(factory);
-        final ConnectionVersion1 connection = factory.create(projectDir);
-        return new DefaultBuildConnection(connection, adapter);
-    }
-
-    public void stop() {
-        for (ConnectionFactoryVersion1 factory : factories) {
-            factory.stop();
-        }
+    public ProjectConnection create(Distribution distribution, ConnectionParameters parameters) {
+        ConnectionVersion4 connection = new ProgressLoggingConnection(new LazyConnection(distribution, toolingImplementationLoader), progressLoggerFactory, listenerManager);
+        AsyncConnection asyncConnection = new DefaultAsyncConnection(connection, executorFactory);
+        return new DefaultProjectConnection(asyncConnection, adapter, parameters);
     }
 }

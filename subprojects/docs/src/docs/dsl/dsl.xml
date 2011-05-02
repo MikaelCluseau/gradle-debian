@@ -149,6 +149,9 @@
                 <td>org.gradle.api.tasks.Copy</td>
             </tr>
             <tr>
+                <td>org.gradle.api.tasks.application.CreateStartScripts</td>
+            </tr>
+            <tr>
                 <td>org.gradle.api.tasks.Delete</td>
             </tr>
             <tr>
@@ -158,16 +161,19 @@
                 <td>org.gradle.api.tasks.diagnostics.DependencyReportTask</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.eclipse.EclipseClasspath</td>
+                <td>org.gradle.plugins.ide.eclipse.GenerateEclipseClasspath</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.eclipse.EclipseJdt</td>
+                <td>org.gradle.plugins.ide.eclipse.GenerateEclipseJdt</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.eclipse.EclipseProject</td>
+                <td>org.gradle.plugins.ide.eclipse.GenerateEclipseProject</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.eclipse.EclipseWtp</td>
+                <td>org.gradle.plugins.ide.eclipse.GenerateEclipseWtpComponent</td>
+            </tr>
+            <tr>
+                <td>org.gradle.plugins.ide.eclipse.GenerateEclipseWtpFacet</td>
             </tr>
             <tr>
                 <td>org.gradle.api.tasks.Exec</td>
@@ -182,13 +188,13 @@
                 <td>org.gradle.api.tasks.javadoc.Groovydoc</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.idea.IdeaModule</td>
+                <td>org.gradle.plugins.ide.idea.GenerateIdeaModule</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.idea.IdeaProject</td>
+                <td>org.gradle.plugins.ide.idea.GenerateIdeaProject</td>
             </tr>
             <tr>
-                <td>org.gradle.plugins.idea.IdeaWorkspace</td>
+                <td>org.gradle.plugins.ide.idea.GenerateIdeaWorkspace</td>
             </tr>
             <tr>
                 <td>org.gradle.api.tasks.bundling.Jar</td>
@@ -219,6 +225,9 @@
             </tr>
             <tr>
                 <td>org.gradle.api.tasks.scala.ScalaDoc</td>
+            </tr>
+            <tr>
+                <td>org.gradle.api.plugins.sonar.Sonar</td>
             </tr>
             <tr>
                 <td>org.gradle.api.tasks.Sync</td>

@@ -16,23 +16,67 @@
 package org.gradle.tooling.internal.consumer
 
 import org.gradle.api.internal.AbstractClassPathProvider
-import org.gradle.tooling.internal.provider.DefaultConnectionFactory
-import spock.lang.Specification
 import org.gradle.messaging.actor.ActorFactory
+import org.gradle.tooling.UnsupportedVersionException
+import org.gradle.util.GradleVersion
+import org.slf4j.Logger
+import spock.lang.Specification
+import java.util.regex.Pattern
+import org.gradle.util.TemporaryFolder
+import org.junit.Rule
 
 class DefaultToolingImplementationLoaderTest extends Specification {
+    @Rule public final TemporaryFolder tmpDir = new TemporaryFolder()
     final Distribution distribution = Mock()
-    final DefaultToolingImplementationLoader loader = new DefaultToolingImplementationLoader()
-    
+
     def usesMetaInfServiceToDetermineFactoryImplementation() {
+        given:
+        def loader = new DefaultToolingImplementationLoader()
+        distribution.toolingImplementationClasspath >> ([
+                getToolingApiResourcesDir(),
+                AbstractClassPathProvider.getClasspathForClass(TestConnection.class),
+                AbstractClassPathProvider.getClasspathForClass(ActorFactory.class),
+                AbstractClassPathProvider.getClasspathForClass(Logger.class),
+                getVersionResourcesDir(),
+                AbstractClassPathProvider.getClasspathForClass(GradleVersion.class)
+        ] as Set)
+
         when:
         def factory = loader.create(distribution)
 
         then:
-        factory.class != DefaultConnectionFactory.class
-        factory.class.name == DefaultConnectionFactory.class.name
-        _ * distribution.toolingImplementationClasspath >> ([AbstractClassPathProvider.getClasspathForClass(DefaultConnectionFactory.class),
-                AbstractClassPathProvider.getClasspathForClass(ActorFactory.class)
-        ] as Set)
+        factory.class != TestConnection.class
+        factory.class.name == TestConnection.class.name
+    }
+
+    private getToolingApiResourcesDir() {
+        tmpDir.file("META-INF/services/org.gradle.tooling.internal.protocol.ConnectionVersion4") << TestConnection.name
+        return tmpDir.dir;
+    }
+
+    private getVersionResourcesDir() {
+        return getResourcesDir("org/gradle/version.properties")
+    }
+
+    private getResourcesDir(String name) {
+        def resource = getClass().classLoader.getResource(name)
+        assert resource
+        assert resource.protocol == 'file'
+        def dir = resource.path.replaceFirst(Pattern.quote(name), '')
+        return new File(dir)
+    }
+
+    def failsWhenNoImplementationDeclared() {
+        ClassLoader cl = new ClassLoader() {}
+        def loader = new DefaultToolingImplementationLoader(cl)
+
+        when:
+        loader.create(distribution)
+
+        then:
+        UnsupportedVersionException e = thrown()
+        e.message == "The specified <dist-display-name> is not supported by this tooling API version (${GradleVersion.current().version}, protocol version 4)"
+        _ * distribution.toolingImplementationClasspath >> ([] as Set)
+        _ * distribution.displayName >> '<dist-display-name>'
     }
 }

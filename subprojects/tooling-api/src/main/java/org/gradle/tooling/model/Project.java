@@ -15,21 +15,37 @@
  */
 package org.gradle.tooling.model;
 
+import java.io.File;
+
 /**
- * Represents a Gradle project.
+ * Represents a project of some kind.
  */
 public interface Project {
     /**
-     * Returns the name of this project.
+     * Returns the fully-qualified path of this project. This is a unique identifier for the project.
+     *
+     * @return The path.
+     */
+    String getPath();
+
+    /**
+     * Returns the name of this project. Note that the name is not a unique identifier for the project.
      *
      * @return The name.
      */
     String getName();
 
     /**
-     * Returns the child projects of this project.
+     * Returns the description of this project.
      *
-     * @return The child projects. Returns an empty set if this project has no children.
+     * @return The description. May be null.
      */
-    DomainObjectSet<? extends Project> getChildProjects();
+    String getDescription();
+
+    /**
+     * Returns the project directory for this project.
+     *
+     * @return The project directory.
+     */
+    File getProjectDirectory();
 }
