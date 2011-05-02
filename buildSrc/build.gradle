@@ -13,19 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.ivy.plugins.resolver.FileSystemResolver
 
 apply plugin: 'groovy'
-//apply plugin: 'code-quality'
+apply plugin: 'code-quality'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 
 repositories {
-    add(new FileSystemResolver()) {
-        name = 'repo'
-        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-        addArtifactPattern "/usr/share/java/[module].[ext]"
-    }
+    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
 }
 
 dependencies {
@@ -33,14 +28,8 @@ dependencies {
     compile 'com.google.collections:google-collections:1.0@jar'
     groovy localGroovy()
     testCompile 'junit:junit:4.8.1@jar'
-    //testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
+    testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
 }
 
-// All tests for this subproject are disabled because they depend on Spock
-// Framework and that software is not available in Debian yet.
-compileTestGroovy {
-   exclude '**'
-}
-
-//apply from: '../gradle/compile.gradle'
-//apply from: '../gradle/codeQuality.gradle'
+apply from: '../gradle/compile.gradle'
+apply from: '../gradle/codeQuality.gradle'

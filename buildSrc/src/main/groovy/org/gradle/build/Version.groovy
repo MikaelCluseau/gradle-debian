@@ -48,7 +48,7 @@ class Version {
             if (graph.hasTask(':releaseVersion')) {
                 release = true
             } else {
-                //this.versionNumber += "-" + getTimestamp()
+                this.versionNumber += "-" + getTimestamp()
                 release = false
             }
         }
