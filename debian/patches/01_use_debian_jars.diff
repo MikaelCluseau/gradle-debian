@@ -1,88 +1,10 @@
 Description: Build Gradle using libraries available in Debian
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2011-03-22
+Last-Update: 2011-05-22
 
---- gradle-0.9.2.orig/build.gradle
-+++ gradle-0.9.2/build.gradle
-@@ -16,6 +16,7 @@
- 
- import java.util.jar.Attributes
- import org.gradle.api.artifacts.repositories.WebdavResolver
-+import org.apache.ivy.plugins.resolver.FileSystemResolver
- import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
- 
- import org.gradle.build.samples.WrapperProjectCreator
-@@ -44,28 +45,29 @@ startScriptsDir = new File("$buildDir/st
- archivesBaseName = 'gradle'
- 
- libraries = [
--        ant: 'org.apache.ant:ant:1.8.1@jar',
--        ant_junit: 'org.apache.ant:ant-junit:1.8.1@jar',
--        ant_launcher: 'org.apache.ant:ant-launcher:1.8.1@jar',
--        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.1@jar',
--        ant_antlr: 'org.apache.ant:ant-antlr:1.8.1@jar',
-+        ant: 'org.apache.ant:ant:1.8.0@jar',
-+        ant_junit: 'org.apache.ant:ant-junit:1.8.0@jar',
-+        ant_launcher: 'org.apache.ant:ant-launcher:1.8.0@jar',
-+        ant_nodeps: 'org.apache.ant:ant-nodeps:1.8.0@jar',
-+        ant_trax: 'org.apache.ant:ant-trax:1.8.0@jar',
-+        ant_antlr: 'org.apache.ant:ant-antlr:1.8.0@jar',
-         antlr: 'antlr:antlr:2.7.7@jar',
--        asm_all: 'asm:asm-all:3.2@jar',
-+        asm_all: 'asm:asm3-all:3.2@jar',
-         commons_cli: 'commons-cli:commons-cli:1.2@jar',
-         commons_io: 'commons-io:commons-io:1.4@jar',
--        commons_lang: 'commons-lang:commons-lang:2.5@jar',
-+        commons_lang: 'commons-lang:commons-lang:2.4@jar',
-         dom4j: 'dom4j:dom4j:1.6.1@jar',
-         google_collections: 'com.google.collections:google-collections:1.0@jar',
--        groovy: 'org.codehaus.groovy:groovy-all:1.7.6@jar',
-+        groovy: 'org.codehaus.groovy:groovy-all:1.7.9@jar',
-         ivy: 'org.apache.ivy:ivy:2.2.0@jar',
--        jaxen: 'jaxen:jaxen:1.1@jar',
-+        jaxen: 'jaxen:jaxen:1.1.2@jar',
-         slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
-         jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
-         jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
-         log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
--        logback_classic: 'ch.qos.logback:logback-classic:0.9.24@jar',
--        logback_core: 'ch.qos.logback:logback-core:0.9.24@jar',
--        junit: 'junit:junit:4.8.1',
-+        logback_classic: 'ch.qos.logback:logback-classic:0.9.28@jar',
-+        logback_core: 'ch.qos.logback:logback-core:0.9.28@jar',
-+        junit: 'junit:junit4:4.8.2',
-         xmlunit: 'xmlunit:xmlunit:1.3',
- ]
- 
-@@ -82,9 +84,9 @@ libraries.jmock = ['org.jmock:jmock:2.5.
-         'org.objenesis:objenesis:1.2',
-         'cglib:cglib-nodep:2.2']
- libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
--libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.25@jar",
--        "org.mortbay.jetty:jetty-util:6.1.25@jar",
--        "org.mortbay.jetty:servlet-api:2.5-20081211@jar"]
-+libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.24@jar",
-+        "org.mortbay.jetty:jetty-util:6.1.24@jar",
-+        "javax.servlet:servlet-api:2.5@jar"]
- 
- allprojects {
-     group = 'org.gradle'
-@@ -95,7 +97,11 @@ allprojects {
-     }
- 
-     repositories {
--        mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
-+        add(new FileSystemResolver()) {
-+            name = 'repo'
-+            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-+            addArtifactPattern "/usr/share/java/[module].[ext]"
-+        }
-     }
- 
-     version = this.version
---- gradle-0.9.2.orig/buildSrc/build.gradle
-+++ gradle-0.9.2/buildSrc/build.gradle
+--- gradle-1.0~m3.orig/buildSrc/build.gradle
++++ gradle-1.0~m3/buildSrc/build.gradle
 @@ -13,6 +13,7 @@
   * See the License for the specific language governing permissions and
   * limitations under the License.
@@ -91,11 +13,12 @@ Last-Update: 2011-03-22
  
  apply plugin: 'groovy'
  apply plugin: 'code-quality'
-@@ -20,7 +21,11 @@ apply plugin: 'idea'
+@@ -20,7 +21,12 @@ apply plugin: 'idea'
  apply plugin: 'eclipse'
  
  repositories {
--    mavenRepo(urls: 'http://gradle.artifactoryonline.com/gradle/libs')
+-    mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
++    //mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
 +    add(new FileSystemResolver()) {
 +        name = 'repo'
 +        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
@@ -104,10 +27,10 @@ Last-Update: 2011-03-22
  }
  
  dependencies {
-@@ -28,8 +33,14 @@ dependencies {
+@@ -28,8 +34,14 @@ dependencies {
      compile 'com.google.collections:google-collections:1.0@jar'
      groovy localGroovy()
-     testCompile 'junit:junit:4.8.1@jar'
+     testCompile 'junit:junit:4.8.2@jar'
 -    testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
 +    //testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
  }
@@ -121,115 +44,170 @@ Last-Update: 2011-03-22
 +
 +//apply from: '../gradle/compile.gradle'
  apply from: '../gradle/codeQuality.gradle'
---- gradle-0.9.2.orig/subprojects/core/core.gradle
-+++ gradle-0.9.2/subprojects/core/core.gradle
-@@ -36,31 +36,41 @@ configurations {
+--- gradle-1.0~m3.orig/build.gradle
++++ gradle-1.0~m3/build.gradle
+@@ -20,6 +20,7 @@ import org.gradle.build.Install
+ import org.gradle.build.Git
+ import java.util.jar.Attributes
+ import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
++import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ /**
+  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
+@@ -47,22 +48,25 @@ libraries = [
+         ant_launcher: 'org.apache.ant:ant-launcher:1.8.2@jar',
+         ant_antlr: 'org.apache.ant:ant-antlr:1.8.2@jar',
+         antlr: 'antlr:antlr:2.7.7@jar',
+-        asm_all: 'asm:asm-all:3.3.1@jar',
++        asm_all: 'asm:asm3-all:3.2@jar',
+         commons_cli: 'commons-cli:commons-cli:1.2@jar',
+         commons_io: 'commons-io:commons-io:1.4@jar',
+-        commons_lang: 'commons-lang:commons-lang:2.6@jar',
++        commons_lang: 'commons-lang:commons-lang:2.4@jar',
+         dom4j: 'dom4j:dom4j:1.6.1@jar',
+-        guava: 'com.google.guava:guava:r08@jar',
++        // Guava is a super set of Google Collections library,
++        // it can be used until Guava is packaged
++        //guava: 'com.google.guava:guava:r08@jar',
++        guava: 'com.google.guava:google-collections:1.0@jar',
+         groovy: 'org.codehaus.groovy:groovy-all:1.7.10@jar',
+         ivy: 'org.apache.ivy:ivy:2.2.0@jar',
+-        jaxen: 'jaxen:jaxen:1.1@jar',
++        jaxen: 'jaxen:jaxen:1.1.2@jar',
+         slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
+         jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
+         jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
+         log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
+         logback_classic: 'ch.qos.logback:logback-classic:0.9.28@jar',
+         logback_core: 'ch.qos.logback:logback-core:0.9.28@jar',
+-        junit: 'junit:junit:4.8.2',
++        junit: 'junit:junit4:4.8.2',
+         xmlunit: 'xmlunit:xmlunit:1.3',
+ ]
+ 
+@@ -79,9 +83,9 @@ libraries.jmock = ['org.jmock:jmock:2.5.
+         'org.objenesis:objenesis:1.2',
+         'cglib:cglib-nodep:2.2']
+ libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
+-libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.25@jar",
+-        "org.mortbay.jetty:jetty-util:6.1.25@jar",
+-        "org.mortbay.jetty:servlet-api:2.5-20081211@jar"]
++libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.24@jar",
++        "org.mortbay.jetty:jetty-util:6.1.24@jar",
++        "javax.servlet:servlet-api:2.5@jar"]
+ 
+ allprojects {
+     group = 'org.gradle'
+@@ -92,7 +96,12 @@ allprojects {
+     }
+ 
+     repositories {
+-        mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
++        //mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
++        add(new FileSystemResolver()) {
++            name = 'repo'
++            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
++            addArtifactPattern "/usr/share/java/[module].[ext]"
++        }
+     }
+ 
+     version = this.version
+--- gradle-1.0~m3.orig/subprojects/plugins/plugins.gradle
++++ gradle-1.0~m3/subprojects/plugins/plugins.gradle
+@@ -31,9 +31,9 @@ dependencies {
+             libraries.asm_all,
+             libraries.junit,
+             libraries.ant,
+-            'org.testng:testng:5.14.10'
++            'org.testng:testng:5.11'
+ 
+-    reports 'css3-pie:css3-pie:1.0beta3'
++    //reports 'css3-pie:css3-pie:1.0beta3'
+     testCompile libraries.xmlunit, 'net.sourceforge.nekohtml:nekohtml:1.9.14'
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+--- gradle-1.0~m3.orig/subprojects/code-quality/code-quality.gradle
++++ gradle-1.0~m3/subprojects/code-quality/code-quality.gradle
+@@ -30,7 +30,7 @@ dependencies {
+     runtime "com.puppycrawl.tools:checkstyle:5.3@jar",
+             libraries.guava,
+             libraries.antlr,
+-            "commons-beanutils:commons-beanutils-core:1.8.3@jar"
++            "commons-beanutils:commons-beanutils:1.8.3@jar"
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
+--- gradle-1.0~m3.orig/subprojects/core-impl/core-impl.gradle
++++ gradle-1.0~m3/subprojects/core-impl/core-impl.gradle
+@@ -10,8 +10,19 @@ dependencies {
+     compile "org.apache.maven:maven-ant-tasks:2.1.1@jar"
+     compile "org.sonatype.pmaven:pmaven-common:0.8-20100325@jar"
+     compile "org.sonatype.pmaven:pmaven-groovy:0.8-20100325@jar"
+-    compile "org.codehaus.plexus:plexus-component-annotations:1.5.2@jar"
++    //compile "org.codehaus.plexus:plexus-component-annotations:1.5.2@jar"
++    compile "org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7@jar"
++    compile "org.codehaus.plexus:plexus-component-api:1.0-alpha-22@jar"
++    compile "org.codehaus.plexus:plexus-utils:1.5.15@jar"
++    compile "org.apache.maven:maven-model:2.2.1@jar"
++    compile "org.apache.maven:maven-settings:2.2.1@jar"
++    compile "org.apache.maven:maven-project:2.2.1@jar"
++    compile "org.apache.maven:maven-artifact:2.2.1@jar"
++    compile "org.apache.maven:maven-artifact-manager:2.2.1@jar"
++    compile "org.apache.maven:maven-settings:2.2.1@jar"
++    compile "org.apache.maven.wagon:wagon-provider-api:1.0-beta-6@jar"
++
+ 
+     testCompile libraries.junit
+     testCompile project(path: ':core', configuration: 'testFixtures')
+-}
+\ No newline at end of file
++}
+--- gradle-1.0~m3.orig/subprojects/core/core.gradle
++++ gradle-1.0~m3/subprojects/core/core.gradle
+@@ -36,7 +36,7 @@ configurations {
  dependencies {
      groovy libraries.groovy_depends
  
 -    compile "commons-httpclient:commons-httpclient:3.0@jar", "commons-codec:commons-codec:1.2@jar", libraries.jcl_to_slf4j
-+    compile "commons-httpclient:commons-httpclient:3.0@jar", "commons-codec:commons-codec:1.4@jar", libraries.jcl_to_slf4j
++    compile "commons-httpclient:commons-httpclient:3.1@jar", "commons-codec:commons-codec:1.5@jar", libraries.jcl_to_slf4j
  
      compile libraries.ivy, "com.jcraft:jsch:0.1.42@jar", 'com.jcraft:jzlib:1.0.7@jar'
  
-     compile libraries.ant,
-             libraries.ant_nodeps,
-+            libraries.ant_trax,
-             libraries.logback_classic,
-             libraries.logback_core,
-             libraries.slf4j_api,
+@@ -48,15 +48,15 @@ dependencies {
              libraries.jul_to_slf4j,
              libraries.commons_io,
              libraries.commons_lang,
 -            "commons-codec:commons-codec:1.2@jar",
-+            "commons-codec:commons-codec:1.4@jar",
-             libraries.google_collections,
++            "commons-codec:commons-codec:1.5@jar",
+             libraries.guava,
 -            "commons-collections:commons-collections:3.2.1@jar",
 +            "commons-collections:commons-collections3:3.2.1@jar",
              "slide:webdavlib:2.0@jar",
--            "org.apache.maven:maven-ant-tasks:2.1.1@jar",
-+            "org.apache.maven:maven-ant-tasks:2.0.10@jar",
              libraries.asm_all,
 -            'org.fusesource.jansi:jansi:1.2.1',
--            'org.jruby.ext.posix:jna-posix:1.0.3',
+-            'org.jruby.ext.posix:jna-posix:1.0.3'
 +            'org.fusesource.jansi:jansi:1.4',
-+            'org.jruby.ext.posix:jna-posix:1.0.1',
-             'org.sonatype.pmaven:pmaven-common:0.8-20100325@jar',
-             'org.sonatype.pmaven:pmaven-groovy:0.8-20100325@jar',
--            'org.codehaus.plexus:plexus-component-annotations:1.5.2'
-+            'org.codehaus.plexus:plexus-component-annotations:1.0-beta-3.0.7',
-+            'org.codehaus.plexus:plexus-component-api:1.0-alpha-22',
-+            'org.codehaus.plexus:plexus-utils:1.5.15',
-+            'org.apache.maven:maven-model:2.2.1',
-+            'org.apache.maven:maven-settings:2.2.1',
-+            'org.apache.maven:maven-project:2.2.1',
-+            'org.apache.maven:maven-artifact:2.2.1',
-+            'org.apache.maven:maven-artifact-manager:2.2.1',
-+            'org.apache.maven:maven-settings:2.2.1',
-+            'org.apache.maven.wagon:wagon-provider-api:1.0-beta-6'
++            'org.jruby.ext.posix:jna-posix:1.0.1'
  
 -    runtime 'net.java.dev.jna:jna:3.2.2'
-+    runtime 'net.java.dev.jna:jna:3.2.4'
++    runtime 'net.java.dev.jna:jna:3.2.7'
  
      runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
  
---- gradle-0.9.2.orig/subprojects/core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
-+++ gradle-0.9.2/subprojects/core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
-@@ -60,7 +60,7 @@ public abstract class AbstractClassPathP
+--- gradle-1.0~m3.orig/subprojects/core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
++++ gradle-1.0~m3/subprojects/core/src/main/groovy/org/gradle/api/internal/AbstractClassPathProvider.java
+@@ -63,7 +63,8 @@ public abstract class AbstractClassPathP
      protected static List<Pattern> toPatterns(String... patternStrings) {
          List<Pattern> patterns = new ArrayList<Pattern>();
          for (String patternString : patternStrings) {
 -            patterns.add(Pattern.compile(patternString + "-.+"));
++            //patterns.add(Pattern.compile(patternString + "-.+"));
 +            patterns.add(Pattern.compile(patternString + "-?.*"));
          }
          return patterns;
      }
---- gradle-0.9.2.orig/subprojects/wrapper/wrapper.gradle
-+++ gradle-0.9.2/subprojects/wrapper/wrapper.gradle
-@@ -19,7 +19,7 @@ dependencies {
-     groovy libraries.groovy_depends
-     compile project(':core')
- 
--    compile libraries.commons_io, libraries.ant, libraries.ant_nodeps
-+    compile libraries.commons_io, libraries.ant, libraries.ant_nodeps, libraries.ant_trax
- 
-     testCompile project(path: ':core', configuration: 'testFixtures')
-     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.2.orig/subprojects/osgi/osgi.gradle
-+++ gradle-0.9.2/subprojects/osgi/osgi.gradle
-@@ -13,10 +13,6 @@
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
--repositories {
--    mavenRepo urls: 'http://www.aQute.biz/repo'
--}
--
- dependencies {
-     groovy libraries.groovy_depends
- 
-@@ -24,7 +20,7 @@ dependencies {
-     compile project(':plugins')
-     compile libraries.slf4j_api
- 
--    compile 'biz.aQute:bndlib:0.0.384@jar'
-+    compile 'biz.aQute:bnd:0.0.384@jar'
- 
-     testCompile project(path: ':core', configuration: 'testFixtures')
-     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.2.orig/subprojects/plugins/plugins.gradle
-+++ gradle-0.9.2/subprojects/plugins/plugins.gradle
-@@ -33,7 +33,7 @@ dependencies {
- 
-     // This is for the ant junit task. Without it, we get file locking problems with some jvms because the default
-     // transformer does not close files
--    runtime 'xalan:xalan:2.7.1'
-+    runtime 'xalan:xalan2:2.7.1'
- 
-     testCompile libraries.xmlunit
- 
---- gradle-0.9.2.orig/subprojects/jetty/jetty.gradle
-+++ gradle-0.9.2/subprojects/jetty/jetty.gradle
+--- gradle-1.0~m3.orig/subprojects/jetty/jetty.gradle
++++ gradle-1.0~m3/subprojects/jetty/jetty.gradle
 @@ -21,14 +21,12 @@ dependencies {
  
      compile libraries.slf4j_api,
@@ -250,23 +228,14 @@ Last-Update: 2011-03-22
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-0.9.2.orig/subprojects/code-quality/code-quality.gradle
-+++ gradle-0.9.2/subprojects/code-quality/code-quality.gradle
-@@ -19,7 +19,7 @@ dependencies {
-     compile project(':core')
+--- gradle-1.0~m3.orig/subprojects/osgi/osgi.gradle
++++ gradle-1.0~m3/subprojects/osgi/osgi.gradle
+@@ -21,7 +21,7 @@ dependencies {
      compile project(':plugins')
- 
--    compile "org.codenarc:CodeNarc:0.12@jar"
-+    compile "org.codenarc:CodeNarc:0.11@jar"
      compile libraries.slf4j_api
  
-     // CodeNarc dependencies
-@@ -30,7 +30,7 @@ dependencies {
-     runtime "com.puppycrawl.tools:checkstyle:5.3@jar",
-             libraries.google_collections,
-             libraries.antlr,
--            "commons-beanutils:commons-beanutils-core:1.8.3@jar"
-+            "commons-beanutils:commons-beanutils:1.8.3@jar"
+-    compile 'biz.aQute:bndlib:1.15.0@jar'
++    compile 'biz.aQute:bnd:0.0.384@jar'
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
