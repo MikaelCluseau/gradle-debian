@@ -2,10 +2,10 @@
 
 set -e
 
-URL="http://repo.gradle.org/gradle/distributions/gradle-0.9.2-bin.zip"
+URL="http://repo.gradle.org/gradle/distributions/gradle-1.0-milestone-3-bin.zip"
 ZIP="$(basename $URL)"
 DIR="$(echo $ZIP | sed 's/-bin\.zip$//')"
-VERSION="0.9.2-0bootstrap1"
+VERSION="1.0~m3-0bootstrap1"
 
 wget $URL -O $ZIP
 unzip $ZIP
