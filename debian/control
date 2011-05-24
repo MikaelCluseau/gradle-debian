@@ -16,7 +16,7 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libplexus-utils-java, libwagon-java, libcodenarc-groovy-java,
  checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
  libservlet2.5-java, libjetty-java, libjetty-extra-java
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
 Vcs-Browser: http://git.debian.org/?p=pkg-java/gradle.git
