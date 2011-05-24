@@ -1,11 +1,12 @@
 #!/usr/bin/make -f
 
 VERSION := $(shell dpkg-parsechangelog | grep ^Version: | sed 's/^Version: \(.\+\)-.\+$$/\1/')
-JARS := announce antlr code-quality eclipse idea jetty maven osgi plugins scala
+UPSTREAM_VERSION := $(shell echo $(VERSION) | sed 's/~m/-milestone-/')
+JARS := announce antlr code-quality ide jetty maven osgi plugins scala
 export JAVA_HOME=/usr/lib/jvm/default-java
 
 %:
-	dh --with javahelper $@
+	dh $@ --with javahelper
 
 override_dh_auto_build:
 	gradle assemble -g $(CURDIR)/.gradlehome
@@ -32,11 +33,11 @@ override_dh_link:
 		ln -s ../../java/gradle-$$j.jar gradle-$$j-$(VERSION).jar; \
 	done ;
 
-override_jh_depends:
+#override_jh_depends:
 	# jh_depends crashes when checking jar symlinks, should I file a bug?
 
 override_jh_installlibs:
-	jh_installlibs --upstream-version=$(VERSION)
+	jh_installlibs --upstream-version=$(UPSTREAM_VERSION)
 
 override_jh_installjavadoc:
 	jh_installjavadoc -pgradle-doc build/distributions/all/gradle-$(VERSION)/docs/javadoc
