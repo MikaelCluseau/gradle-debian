@@ -4,7 +4,7 @@ Uploaders: Miguel Landaeta <miguel@miguel.cc>
 Section: java
 Priority: optional
 Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
- libgradle-code-quality-java, libgradle-eclipse-java, libgradle-idea-java,
+ libgradle-code-quality-java, libgradle-ide-java, libgradle-maven-java,
  libgradle-wrapper-java, libgradle-scala-java, unzip, ant, ant-optional,
  libantlr-java, libasm3-java, libcommons-cli-java, libcommons-io-java,
  libdom4j-java, libgoogle-collections-java (>= 1.0), groovy (>= 1.7.4), ivy,
@@ -15,8 +15,7 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libplexus-containers-java, libmaven2-core-java, libplexus-component-api-java,
  libplexus-utils-java, libwagon-java, libcodenarc-groovy-java,
  checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
- libservlet2.5-java, libjetty-java, libjetty-extra-java, libxalan2-java,
- libgradle-maven-java
+ libservlet2.5-java, libjetty-java, libjetty-extra-java
 Standards-Version: 3.9.1
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
@@ -34,13 +33,12 @@ Depends: default-jre-headless, groovy (>= 1.7.4), ant, ant-optional,
  testng, libcommons-collections3-java, libmaven-ant-tasks-java, libjansi-java,
  libjna-posix-java, libplexus-containers-java, libmaven2-core-java,
  libplexus-component-api-java, libwagon-java, libcodenarc-groovy-java,
- checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
+ checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd, bsh,
  libservlet2.5-java, libjetty-java, libjetty-extra-java, ${misc:Depends}
 Recommends: libgradle-announce-java (= ${binary:Version}),
  libgradle-antlr-java (= ${binary:Version}),
  libgradle-code-quality-java (= ${binary:Version}),
- libgradle-eclipse-java (= ${binary:Version}),
- libgradle-idea-java (= ${binary:Version}),
+ libgradle-ide-java (= ${binary:Version}),
  libgradle-jetty-java (= ${binary:Version}),
  libgradle-maven-java (= ${binary:Version}),
  libgradle-osgi-java (= ${binary:Version}),
@@ -120,11 +118,12 @@ Description: Groovy based build system - Code quality plugin
  tasks which perform code quality checks and generate reports from these
  checks. The following tools are supported: CodeNarc and checkstyle.
 
-Package: libgradle-eclipse-java
+Package: libgradle-ide-java
 Architecture: all
 Depends: libgradle-core-java (= ${binary:Version}), ${misc:Depends}
+Recommends: eclipse-jdt
 Suggests: eclipse
-Description: Groovy based build system - Eclipse plugin
+Description: Groovy based build system - IDE support plugin
  Gradle is a build system written in Groovy. It uses Groovy
  also as the language for its build scripts. It has a powerful
  multi-project build support. It has a layer on top of Ivy
@@ -132,26 +131,8 @@ Description: Groovy based build system - Eclipse plugin
  gives you always the choice between the flexibility of Ant
  and the convenience of a build-by-convention behavior.
  .
- This package contains the Gradle Eclipse plugin that generates
- files that are used by Eclipse IDE, thus making it possible to import the
- project into Eclipse (File - Import... - Existing Projects into Workspace).
- Both external and project dependencies are considered.
-
-Package: libgradle-idea-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}), ${misc:Depends}
-Description: Groovy based build system - IDEA plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle IDEA plugin that generates files
- that are used by IntelliJ Idea IDE, thus making it possible to open the
- project from Idea (File - Open Project). Both external (including associated
- source and javadoc files) and project dependencies are considered.
+ This package contains plugins that provide integration with
+ common used IDEs like Eclipsei and IDEA IntelliJ.
 
 Package: libgradle-jetty-java
 Architecture: all
