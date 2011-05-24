@@ -28,25 +28,26 @@ usr/share/java/jzlib.jar                         usr/share/gradle/lib/jzlib.jar
 usr/share/java/log4j-over-slf4j.jar              usr/share/gradle/lib/log4j-over-slf4j.jar
 usr/share/java/logback-classic.jar               usr/share/gradle/lib/logback-classic.jar
 usr/share/java/logback-core.jar                  usr/share/gradle/lib/logback-core.jar
-usr/share/java/maven-ant-tasks.jar               usr/share/gradle/lib/maven-ant-tasks.jar
-usr/share/java/maven-artifact.jar                usr/share/gradle/lib/maven-artifact.jar
-usr/share/java/maven-artifact-manager.jar        usr/share/gradle/lib/maven-artifact-manager.jar
-usr/share/java/maven-model.jar                   usr/share/gradle/lib/maven-model.jar
-usr/share/java/maven-project.jar                 usr/share/gradle/lib/maven-project.jar
-usr/share/java/maven-settings.jar                usr/share/gradle/lib/maven-settings.jar
-usr/share/java/plexus-component-annotations.jar  usr/share/gradle/lib/plexus-component-annotations.jar
-usr/share/java/plexus-component-api.jar          usr/share/gradle/lib/plexus-component-api.jar
-usr/share/java/plexus-utils.jar                  usr/share/gradle/lib/plexus-utils.jar
 usr/share/java/slf4j-api.jar                     usr/share/gradle/lib/slf4j-api.jar
-usr/share/java/wagon-provider-api.jar            usr/share/gradle/lib/wagon-provider-api.jar
 usr/share/java/xmlunit.jar                       usr/share/gradle/lib/xmlunit.jar
 
-usr/share/java/ant-junit.jar                     usr/share/gradle/lib/plugins/ant-junit.jar
+usr/share/java/maven-ant-tasks.jar               usr/share/gradle/lib/core-impl/maven-ant-tasks.jar
+usr/share/java/maven-artifact.jar                usr/share/gradle/lib/core-impl/maven-artifact.jar
+usr/share/java/maven-artifact-manager.jar        usr/share/gradle/lib/core-impl/maven-artifact-manager.jar
+usr/share/java/maven-model.jar                   usr/share/gradle/lib/core-impl/maven-model.jar
+usr/share/java/maven-project.jar                 usr/share/gradle/lib/core-impl/maven-project.jar
+usr/share/java/maven-settings.jar                usr/share/gradle/lib/core-impl/maven-settings.jar
+usr/share/java/plexus-component-annotations.jar  usr/share/gradle/lib/core-impl/plexus-component-annotations.jar
+usr/share/java/plexus-component-api.jar          usr/share/gradle/lib/core-impl/plexus-component-api.jar
+usr/share/java/plexus-utils.jar                  usr/share/gradle/lib/core-impl/plexus-utils.jar
+usr/share/java/wagon-provider-api.jar            usr/share/gradle/lib/core-impl/wagon-provider-api.jar
+
 usr/share/java/ant-antlr.jar                     usr/share/gradle/lib/plugins/ant-antlr.jar
 usr/share/java/antlr.jar                         usr/share/gradle/lib/plugins/antlr.jar
 usr/share/java/bnd.jar                           usr/share/gradle/lib/plugins/bnd.jar
+usr/share/java/bsh.jar                           usr/share/gradle/lib/plugins/bsh.jar
 usr/share/java/checkstyle.jar                    usr/share/gradle/lib/plugins/checkstyle.jar
-usr/share/java/commons-beanutils.jar             usr/share/gradle/lib/commons-beanutils.jar
+usr/share/java/commons-beanutils.jar             usr/share/gradle/lib/plugins/commons-beanutils.jar
 usr/share/java/commons-collections.jar           usr/share/gradle/lib/commons-collections.jar
 usr/share/java/CodeNarc.jar                      usr/share/gradle/lib/plugins/CodeNarc.jar
 usr/share/java/GMetrics.jar                      usr/share/gradle/lib/plugins/GMetrics.jar
@@ -59,4 +60,3 @@ usr/share/java/jsp-api-2.1.jar                   usr/share/gradle/lib/plugins/js
 usr/share/java/junit4.jar                        usr/share/gradle/lib/plugins/junit4.jar
 usr/share/java/servlet-api-2.5.jar               usr/share/gradle/lib/plugins/servlet-api-2.5.jar
 usr/share/java/testng.jar                        usr/share/gradle/lib/plugins/testng.jar
-usr/share/java/xalan2.jar                        usr/share/gradle/lib/plugins/xalan2.jar

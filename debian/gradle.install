@@ -4,3 +4,5 @@ build/distributions/bin/gradle-*/lib/gradle-launcher-*.jar     usr/share/gradle/
 build/distributions/bin/gradle-*/lib/gradle-open-api-*.jar     usr/share/gradle/lib
 build/distributions/bin/gradle-*/lib/gradle-tooling-api-*.jar  usr/share/gradle/lib
 build/distributions/bin/gradle-*/lib/gradle-ui-*.jar           usr/share/gradle/lib
+
+build/distributions/bin/gradle-*/lib/core-impl/gradle-core-impl-*.jar  usr/share/gradle/lib/core-impl
