@@ -5,5 +5,6 @@
 05_polyglot_maven.diff
 10_fix_version.diff
 11_fix_jni_path.diff
+12_fix_missing_classpath.diff
 21_docs.diff
 22_checkstyle.diff

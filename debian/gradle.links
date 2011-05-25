@@ -60,3 +60,5 @@ usr/share/java/jsp-api-2.1.jar                   usr/share/gradle/lib/plugins/js
 usr/share/java/junit4.jar                        usr/share/gradle/lib/plugins/junit4.jar
 usr/share/java/servlet-api-2.5.jar               usr/share/gradle/lib/plugins/servlet-api-2.5.jar
 usr/share/java/testng.jar                        usr/share/gradle/lib/plugins/testng.jar
+
+# Probably a link to eclipse-jdt jar is needed, I'm not sure yet.

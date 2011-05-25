@@ -1,0 +1,32 @@
+Description: Set missing Class-Path in jars
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: no
+Last-Update: 2011-05-24
+
+--- gradle-1.0~m3.orig/build.gradle
++++ gradle-1.0~m3/build.gradle
+@@ -122,10 +122,20 @@ configure(groovyProjects()) {
+     }
+ 
+     tasks.withType(Jar).each { jar ->
+-        jar.manifest.mainAttributes([
+-                (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
+-                (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
+-        ])
++        // Set missing Class-Path in jars
++        if (jar.getArchiveName() ==~ /^gradle-core-[0-9].*/) {
++            jar.manifest.mainAttributes([
++                    (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
++                    (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
++                    //(Attributes.Name.CLASS_PATH.toString()): 'stuff',
++            ])
++        } else {
++            jar.manifest.mainAttributes([
++                    (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
++                    (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
++                    (Attributes.Name.CLASS_PATH.toString()): 'grails-core.jar',
++            ])
++        }
+     }
+ }
+ 
