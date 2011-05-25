@@ -18,7 +18,7 @@ Last-Update: 2011-05-24
 +            jar.manifest.mainAttributes([
 +                    (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
 +                    (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
-+                    //(Attributes.Name.CLASS_PATH.toString()): 'stuff',
++                    (Attributes.Name.CLASS_PATH.toString()): 'logback-core.jar logback-classic.jar google-collections.jar joptsimple.jar commons-collections3.jar commons-httpclient.jar commons-io.jar commons-lang.jar jansi.jar asm3-all.jar jcl-over-slf4j.jar log4j-over-slf4j.jar slf4j-log4j12.jar jul-to-slf4j.jar maven-ant-tasks.jar maven-artifact-manager.jar maven-artifact.jar maven-model.jar maven-project.jar plexus-component-api.jar plexus-utils.jar libplexus-utils.jar',
 +            ])
 +        } else {
 +            jar.manifest.mainAttributes([
