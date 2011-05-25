@@ -1,6 +1,8 @@
 gradle (1.0~m3-1) UNRELEASED; urgency=low
 
   * New upstream release.
+  * Fix FTBFS due to changes introduced in recent Groovy versions.
+    (Closes: #625767).
   * Refresh patches.
   * Drop libgradle-eclipse-java and libgradle-idea-java packages.
   * Add libgradle-ide-java package.
