@@ -6,9 +6,10 @@ set -e
 echo "version $2"
 package=`dpkg-parsechangelog | sed -n 's/^Source: //p'`
 version=$2
+upstream_version="$(echo $version | sed 's/~m/-milestone-/')"
 tarball=$3
 TAR=${package}_${version}.orig.tar.gz
-DIR=${package}-${version}
+DIR=${package}-${upstream_version}
 
 unzip $tarball
 

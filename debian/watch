@@ -1,4 +1,5 @@
 version=3
-http://repo.gradle.org/gradle/distributions/ \
+opts=uversionmangle=s/-milestone-([0-9])+/~m$1/ \
+http://www.gradle.org/downloads.html \
 http://repo.gradle.org/gradle/distributions/gradle-([\w\.-]+)-src.zip \
 debian debian/orig-tar.sh
