@@ -5,7 +5,7 @@ Section: java
 Priority: optional
 Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libgradle-code-quality-java, libgradle-ide-java, libgradle-maven-java,
- libgradle-wrapper-java, libgradle-scala-java, unzip, ant, ant-optional,
+ libgradle-wrapper-java, libgradle-scala-java, unzip, ant (>= 1.8),
  libantlr-java, libasm3-java, libcommons-cli-java, libcommons-io-java,
  libdom4j-java, libgoogle-collections-java (>= 1.0), groovy (>= 1.7.4), ivy,
  libjaxen-java, libjoptsimple-java, libslf4j-java, liblogback-java (>= 0.9.28),
@@ -15,7 +15,7 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libplexus-containers-java, libmaven2-core-java, libplexus-component-api-java,
  libplexus-utils-java, libwagon-java, libcodenarc-groovy-java,
  checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
- libservlet2.5-java, libjetty-java, libjetty-extra-java
+ libservlet2.5-java, libjetty-java, libjetty-extra-java, ant-optional (>= 1.8)
 Standards-Version: 3.9.2
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
@@ -23,8 +23,8 @@ Vcs-Browser: http://git.debian.org/?p=pkg-java/gradle.git
 
 Package: gradle
 Architecture: all
-Depends: default-jre-headless, groovy (>= 1.7.4), ant, ant-optional,
- libgradle-core-java (= ${binary:Version}),
+Depends: default-jre-headless, groovy (>= 1.7.4), ant (>= 1.8),
+ ant-optional (>= 1.8), libgradle-core-java (= ${binary:Version}),
  libgradle-plugins-java (= ${binary:Version}), libantlr-java, libasm3-java,
  libcommons-cli-java, libcommons-io-java, libdom4j-java,
  libgoogle-collections-java (>= 1.0), ivy, libjaxen-java, libjoptsimple-java,
