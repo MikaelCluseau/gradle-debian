@@ -42,6 +42,7 @@ usr/share/java/plexus-component-api.jar          usr/share/gradle/lib/core-impl/
 usr/share/java/plexus-utils.jar                  usr/share/gradle/lib/core-impl/plexus-utils.jar
 usr/share/java/wagon-provider-api.jar            usr/share/gradle/lib/core-impl/wagon-provider-api.jar
 
+usr/share/java/annotations-api.jar               usr/share/gradle/lib/plugins/annotations-api.jar
 usr/share/java/ant-antlr.jar                     usr/share/gradle/lib/plugins/ant-antlr.jar
 usr/share/java/antlr.jar                         usr/share/gradle/lib/plugins/antlr.jar
 usr/share/java/bnd.jar                           usr/share/gradle/lib/plugins/bnd.jar

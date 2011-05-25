@@ -146,7 +146,7 @@ Last-Update: 2011-05-24
 +    runtime "org.mortbay.jetty:jsp-api:2.1@jar",
 +            "org.mortbay.jetty:jetty-naming:6.1.24@jar",
 +            "org.mortbay.jetty:jetty-annotations:6.1.24@jar"
-+//            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
++            "javax.annotations:annotations-api:6.0.32@jar"
  
      testCompile project(path: ':core', configuration: 'testFixtures')
      testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
