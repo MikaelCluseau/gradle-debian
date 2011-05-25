@@ -1,17 +1,17 @@
-gradle (1.0~m3-0miguel1) UNRELEASED; urgency=low
+gradle (1.0~m3-1) UNRELEASED; urgency=low
 
   * New upstream release.
   * Refresh patches.
   * Drop libgradle-eclipse-java and libgradle-idea-java packages.
   * Add libgradle-ide-java package.
   * Set minimal Ant >= 1.8 as the minimal version to depend on.
-  * Add a Depends on bsh.
+  * Add Depends on bsh and libtomcat6-java.
   * Bump Standards-Version to 3.9.2. No changes were required.
   * Update watch file.
   * Fix missing-classpath lintian warnings.
   * Update copyright dates and make it DEP-5 compliant.
 
- -- Miguel Landaeta <miguel@miguel.cc>  Tue, 24 May 2011 21:09:54 -0430
+ -- Miguel Landaeta <miguel@miguel.cc>  Wed, 25 May 2011 00:07:39 -0430
 
 gradle (0.9.2-1) unstable; urgency=low
 
