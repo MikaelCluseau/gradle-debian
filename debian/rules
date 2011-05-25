@@ -42,7 +42,7 @@ override_jh_installlibs:
 
 override_jh_installjavadoc:
 	jh_installjavadoc -pgradle-doc \
-		build/distributions/all/gradle-$(VERSION)/docs/javadoc
+		build/distributions/all/gradle-$(UPSTREAM_VERSION)/docs/javadoc
 
 get-orig-source:
 	cd $(dir $(firstword $(MAKEFILE_LIST)))../ && \
