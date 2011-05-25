@@ -132,7 +132,7 @@ Description: Groovy based build system - IDE support plugin
  and the convenience of a build-by-convention behavior.
  .
  This package contains plugins that provide integration with
- common used IDEs like Eclipsei and IDEA IntelliJ.
+ common used IDEs like Eclipse and IDEA IntelliJ.
 
 Package: libgradle-jetty-java
 Architecture: all
