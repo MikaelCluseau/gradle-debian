@@ -1,25 +1,39 @@
-The sources where downloaded from
-http://dist.codehaus.org/gradle/gradle-0.9-rc-1-src.zip.
+Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=174
+Upstream-Name: Gradle
+Upstream-Contact: Hans Dockter <mail@dockter.biz>
+Source: http://gradle.org/downloads.html
+Comment: The authors of Gradle are:
+ - Hans Dockter (Founder and Project Lead)
+ - Steve Appling
+ - Steven Devijver
+ - Tom Eyckmans
+ - Adam Murdoch
+ - Russel Winder
+ Contributors:
+ - Franke Henze,
+ - Stefan Groschupf,
+ - Dierk König,
+ - Ken Krugler,
+ - Guillaume Laforge
 
 Files: *
 Copyright: © 2007-2011, The original author or authors.
-Authors: Hans Dockter (Founder and Project Lead),
- Steve Appling,
- Steven Devijver,
- Tom Eyckmans,
- Adam Murdoch,
- Russel Winder
-Contributors: Franke Henze,
- Stefan Groschupf,
- Dierk König,
- Ken Krugler,
- Guillaume Laforge
 License: Apache-2.0
- The full text of the Apache 2.0 license is distributed in
- /usr/share/common-licenses/Apache-2.0 on Debian systems.
 
 Files: debian/*
 Copyright: © 2010-2011, Miguel Landaeta <miguel@miguel.cc>
 License: Apache-2.0
- The full text of the Apache 2.0 license is distributed in
- /usr/share/common-licenses/Apache-2.0 on Debian systems.
+
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+     http://www.apache.org/licenses/LICENSE-2.0
+     /usr/share/common-licenses/Apache-2.0 (on Debian systems)
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
