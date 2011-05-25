@@ -1,12 +1,12 @@
 gradle (1.0~m3-1) UNRELEASED; urgency=low
 
   * New upstream release.
-  * Fix FTBFS due to changes introduced in recent Groovy versions.
+  * Fix FTBFS bug due to changes introduced in recent Groovy versions.
     (Closes: #625767).
   * Refresh patches.
   * Drop libgradle-eclipse-java and libgradle-idea-java packages.
   * Add libgradle-ide-java package.
-  * Set minimal Ant >= 1.8 as the minimal version to depend on.
+  * Set Ant >= 1.8 as the minimal version to depend on.
   * Add Depends on bsh and libtomcat6-java.
   * Bump Standards-Version to 3.9.2. No changes were required.
   * Update watch file.
