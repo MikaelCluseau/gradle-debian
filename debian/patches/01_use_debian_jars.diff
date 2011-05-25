@@ -1,49 +1,8 @@
 Description: Build Gradle using libraries available in Debian
 Author: Miguel Landaeta <miguel@miguel.cc>
 Forwarded: no
-Last-Update: 2011-05-22
+Last-Update: 2011-05-24
 
---- gradle-1.0~m3.orig/buildSrc/build.gradle
-+++ gradle-1.0~m3/buildSrc/build.gradle
-@@ -13,6 +13,7 @@
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  */
-+import org.apache.ivy.plugins.resolver.FileSystemResolver
- 
- apply plugin: 'groovy'
- apply plugin: 'code-quality'
-@@ -20,7 +21,12 @@ apply plugin: 'idea'
- apply plugin: 'eclipse'
- 
- repositories {
--    mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
-+    //mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
-+    add(new FileSystemResolver()) {
-+        name = 'repo'
-+        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-+        addArtifactPattern "/usr/share/java/[module].[ext]"
-+    }
- }
- 
- dependencies {
-@@ -28,8 +34,14 @@ dependencies {
-     compile 'com.google.collections:google-collections:1.0@jar'
-     groovy localGroovy()
-     testCompile 'junit:junit:4.8.2@jar'
--    testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
-+    //testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
- }
- 
--apply from: '../gradle/compile.gradle'
-+// All tests for this subproject are disabled because they depend on Spock
-+// Framework and that software is not available in Debian yet.
-+compileTestGroovy {
-+   exclude '**'
-+}
-+
-+//apply from: '../gradle/compile.gradle'
- apply from: '../gradle/codeQuality.gradle'
 --- gradle-1.0~m3.orig/build.gradle
 +++ gradle-1.0~m3/build.gradle
 @@ -20,6 +20,7 @@ import org.gradle.build.Install
@@ -112,6 +71,85 @@ Last-Update: 2011-05-22
      }
  
      version = this.version
+--- gradle-1.0~m3.orig/buildSrc/build.gradle
++++ gradle-1.0~m3/buildSrc/build.gradle
+@@ -13,6 +13,7 @@
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  */
++import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ apply plugin: 'groovy'
+ apply plugin: 'code-quality'
+@@ -20,16 +21,31 @@ apply plugin: 'idea'
+ apply plugin: 'eclipse'
+ 
+ repositories {
+-    mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
++    //mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
++    add(new FileSystemResolver()) {
++        name = 'repo'
++        addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
++        addArtifactPattern "/usr/share/java/[module].[ext]"
++    }
+ }
+ 
+ dependencies {
+     compile gradleApi()
+     compile 'com.google.collections:google-collections:1.0@jar'
+     groovy localGroovy()
+-    testCompile 'junit:junit:4.8.2@jar'
+-    testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
++    testCompile 'junit:junit4:4.8.2@jar'
++    //testCompile 'org.spockframework:spock-core:0.5-groovy-1.7@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
+ }
+ 
+-apply from: '../gradle/compile.gradle'
++// All tests for this subproject are disabled because they depend on Spock
++// Framework and that software is not available in Debian yet.
++compileTestGroovy {
++   exclude '**'
++}
++
++test {
++    testReport = false
++}
++
++//apply from: '../gradle/compile.gradle'
+ apply from: '../gradle/codeQuality.gradle'
+--- gradle-1.0~m3.orig/subprojects/osgi/osgi.gradle
++++ gradle-1.0~m3/subprojects/osgi/osgi.gradle
+@@ -21,7 +21,7 @@ dependencies {
+     compile project(':plugins')
+     compile libraries.slf4j_api
+ 
+-    compile 'biz.aQute:bndlib:1.15.0@jar'
++    compile 'biz.aQute:bnd:0.0.384@jar'
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
+--- gradle-1.0~m3.orig/subprojects/jetty/jetty.gradle
++++ gradle-1.0~m3/subprojects/jetty/jetty.gradle
+@@ -21,14 +21,12 @@ dependencies {
+ 
+     compile libraries.slf4j_api,
+             libraries.jetty_depends,
+-            "org.mortbay.jetty:jetty-plus:6.1.25@jar"
++            "org.mortbay.jetty:jetty-plus:6.1.24@jar"
+ 
+-    runtime "org.mortbay.jetty:jsp-api-2.1:6.1.14@jar",
+-            "org.mortbay.jetty:jsp-2.1:6.1.14@jar",
+-            "org.eclipse.jdt:core:3.1.1@jar",
+-            "org.mortbay.jetty:jetty-naming:6.1.25@jar",
+-            "org.mortbay.jetty:jetty-annotations:6.1.25@jar",
+-            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
++    runtime "org.mortbay.jetty:jsp-api:2.1@jar",
++            "org.mortbay.jetty:jetty-naming:6.1.24@jar",
++            "org.mortbay.jetty:jetty-annotations:6.1.24@jar"
++//            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
+ 
+     testCompile project(path: ':core', configuration: 'testFixtures')
+     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
 --- gradle-1.0~m3.orig/subprojects/plugins/plugins.gradle
 +++ gradle-1.0~m3/subprojects/plugins/plugins.gradle
 @@ -31,9 +31,9 @@ dependencies {
@@ -206,36 +244,3 @@ Last-Update: 2011-05-22
          }
          return patterns;
      }
---- gradle-1.0~m3.orig/subprojects/jetty/jetty.gradle
-+++ gradle-1.0~m3/subprojects/jetty/jetty.gradle
-@@ -21,14 +21,12 @@ dependencies {
- 
-     compile libraries.slf4j_api,
-             libraries.jetty_depends,
--            "org.mortbay.jetty:jetty-plus:6.1.25@jar"
-+            "org.mortbay.jetty:jetty-plus:6.1.24@jar"
- 
--    runtime "org.mortbay.jetty:jsp-api-2.1:6.1.14@jar",
--            "org.mortbay.jetty:jsp-2.1:6.1.14@jar",
--            "org.eclipse.jdt:core:3.1.1@jar",
--            "org.mortbay.jetty:jetty-naming:6.1.25@jar",
--            "org.mortbay.jetty:jetty-annotations:6.1.25@jar",
--            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
-+    runtime "org.mortbay.jetty:jsp-api:2.1@jar",
-+            "org.mortbay.jetty:jetty-naming:6.1.24@jar",
-+            "org.mortbay.jetty:jetty-annotations:6.1.24@jar"
-+//            "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
- 
-     testCompile project(path: ':core', configuration: 'testFixtures')
-     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
---- gradle-1.0~m3.orig/subprojects/osgi/osgi.gradle
-+++ gradle-1.0~m3/subprojects/osgi/osgi.gradle
-@@ -21,7 +21,7 @@ dependencies {
-     compile project(':plugins')
-     compile libraries.slf4j_api
- 
--    compile 'biz.aQute:bndlib:1.15.0@jar'
-+    compile 'biz.aQute:bnd:0.0.384@jar'
- 
-     testCompile project(path: ':core', configuration: 'testFixtures')
-     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
