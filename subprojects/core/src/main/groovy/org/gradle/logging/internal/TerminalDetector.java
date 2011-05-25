@@ -29,8 +29,9 @@ import java.io.*;
 public class TerminalDetector implements Spec<FileDescriptor> {
     public TerminalDetector(File libCacheDir) {
         // Some hackery to prevent JNA from creating a shared lib in the tmp dir, as it does not clean things up
-        File tmpDir = new File(libCacheDir, "jna");
-        tmpDir.mkdirs();
+        //File tmpDir = new File(libCacheDir, "jna");
+        File tmpDir = new File(libCacheDir, "jni");
+        //tmpDir.mkdirs();
         String libName = System.mapLibraryName("jnidispatch");
         File libFile = new File(tmpDir, libName);
         if (!libFile.exists()) {

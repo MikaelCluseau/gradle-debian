@@ -28,6 +28,7 @@ configurations {
     userGuideTask
 }
 
+/*
 dependencies {
     userGuideTask 'xalan:xalan:2.7.1', 'xerces:xercesImpl:2.9.1'
     userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
@@ -37,6 +38,7 @@ dependencies {
 
     userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
 }
+*/
 
 RemoteLocations remoteLocations = new RemoteLocations(version: version)
 
@@ -94,10 +96,10 @@ task userguideStyleSheets(type: Copy) {
     from(cssSrcDir) {
         include '*.css'
     }
-    from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
-        // Remove the prefix
-        eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
-    }
+    //from(zipTree(configurations.userGuideStyleSheets.singleFile)) {
+    //    // Remove the prefix
+    //    eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
+    //}
 }
 
 task samplesDocbook(type: AssembleSamplesDocTask) {
@@ -332,7 +334,8 @@ task userguide {
 }
 
 task docs {
-    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
+    //dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
+    dependsOn javadoc, groovydoc
     description = 'Generates all documentation'
     group = 'documentation'
 }

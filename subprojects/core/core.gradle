@@ -36,7 +36,7 @@ configurations {
 dependencies {
     groovy libraries.groovy_depends
 
-    compile "commons-httpclient:commons-httpclient:3.0@jar", "commons-codec:commons-codec:1.2@jar", libraries.jcl_to_slf4j
+    compile "commons-httpclient:commons-httpclient:3.1@jar", "commons-codec:commons-codec:1.5@jar", libraries.jcl_to_slf4j
 
     compile libraries.ivy, "com.jcraft:jsch:0.1.42@jar", 'com.jcraft:jzlib:1.0.7@jar'
 
@@ -48,15 +48,15 @@ dependencies {
             libraries.jul_to_slf4j,
             libraries.commons_io,
             libraries.commons_lang,
-            "commons-codec:commons-codec:1.2@jar",
+            "commons-codec:commons-codec:1.5@jar",
             libraries.guava,
-            "commons-collections:commons-collections:3.2.1@jar",
-            "slide:webdavlib:2.0@jar",
+            "commons-collections:commons-collections3:3.2.1@jar",
+            //"slide:webdavlib:2.0@jar",
             libraries.asm_all,
-            'org.fusesource.jansi:jansi:1.2.1',
-            'org.jruby.ext.posix:jna-posix:1.0.3'
+            'org.fusesource.jansi:jansi:1.4',
+            'org.jruby.ext.posix:jna-posix:1.0.1'
 
-    runtime 'net.java.dev.jna:jna:3.2.2'
+    runtime 'net.java.dev.jna:jna:3.2.7'
 
     runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
 

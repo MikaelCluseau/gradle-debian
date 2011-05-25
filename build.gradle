@@ -20,6 +20,7 @@ import org.gradle.build.Install
 import org.gradle.build.Git
 import java.util.jar.Attributes
 import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
+import org.apache.ivy.plugins.resolver.FileSystemResolver
 
 /**
  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
@@ -47,22 +48,25 @@ libraries = [
         ant_launcher: 'org.apache.ant:ant-launcher:1.8.2@jar',
         ant_antlr: 'org.apache.ant:ant-antlr:1.8.2@jar',
         antlr: 'antlr:antlr:2.7.7@jar',
-        asm_all: 'asm:asm-all:3.3.1@jar',
+        asm_all: 'asm:asm3-all:3.2@jar',
         commons_cli: 'commons-cli:commons-cli:1.2@jar',
         commons_io: 'commons-io:commons-io:1.4@jar',
-        commons_lang: 'commons-lang:commons-lang:2.6@jar',
+        commons_lang: 'commons-lang:commons-lang:2.4@jar',
         dom4j: 'dom4j:dom4j:1.6.1@jar',
-        guava: 'com.google.guava:guava:r08@jar',
+        // Guava is a super set of Google Collections library,
+        // it can be used until Guava is packaged
+        //guava: 'com.google.guava:guava:r08@jar',
+        guava: 'com.google.guava:google-collections:1.0@jar',
         groovy: 'org.codehaus.groovy:groovy-all:1.7.10@jar',
         ivy: 'org.apache.ivy:ivy:2.2.0@jar',
-        jaxen: 'jaxen:jaxen:1.1@jar',
+        jaxen: 'jaxen:jaxen:1.1.2@jar',
         slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
         jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
         jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
         log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
         logback_classic: 'ch.qos.logback:logback-classic:0.9.28@jar',
         logback_core: 'ch.qos.logback:logback-core:0.9.28@jar',
-        junit: 'junit:junit:4.8.2',
+        junit: 'junit:junit4:4.8.2',
         xmlunit: 'xmlunit:xmlunit:1.3',
 ]
 
@@ -79,9 +83,9 @@ libraries.jmock = ['org.jmock:jmock:2.5.1@jar',
         'org.objenesis:objenesis:1.2',
         'cglib:cglib-nodep:2.2']
 libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
-libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.25@jar",
-        "org.mortbay.jetty:jetty-util:6.1.25@jar",
-        "org.mortbay.jetty:servlet-api:2.5-20081211@jar"]
+libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.24@jar",
+        "org.mortbay.jetty:jetty-util:6.1.24@jar",
+        "javax.servlet:servlet-api:2.5@jar"]
 
 allprojects {
     group = 'org.gradle'
@@ -92,7 +96,12 @@ allprojects {
     }
 
     repositories {
-        mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
+        //mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
+        add(new FileSystemResolver()) {
+            name = 'repo'
+            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
+            addArtifactPattern "/usr/share/java/[module].[ext]"
+        }
     }
 
     version = this.version
@@ -113,10 +122,20 @@ configure(groovyProjects()) {
     }
 
     tasks.withType(Jar).each { jar ->
-        jar.manifest.mainAttributes([
-                (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
-                (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
-        ])
+        // Set missing Class-Path in jars
+        if (jar.getArchiveName() ==~ /^gradle-core-[0-9].*/) {
+            jar.manifest.mainAttributes([
+                    (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
+                    (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
+                    (Attributes.Name.CLASS_PATH.toString()): 'logback-core.jar logback-classic.jar google-collections.jar joptsimple.jar commons-collections3.jar commons-httpclient.jar commons-io.jar commons-lang.jar jansi.jar asm3-all.jar jcl-over-slf4j.jar log4j-over-slf4j.jar slf4j-log4j12.jar jul-to-slf4j.jar maven-ant-tasks.jar maven-artifact-manager.jar maven-artifact.jar maven-model.jar maven-project.jar plexus-component-api.jar plexus-utils.jar libplexus-utils.jar',
+            ])
+        } else {
+            jar.manifest.mainAttributes([
+                    (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
+                    (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
+                    (Attributes.Name.CLASS_PATH.toString()): 'grails-core.jar',
+            ])
+        }
     }
 }
 
@@ -387,7 +406,7 @@ binDistImage = copySpec {
     from('src/toplevel') {
         expand(version: version)
     }
-    from project(':docs').distDocs.destFile
+    //from project(':docs').distDocs.destFile
     into('bin') {
         from startScriptsDir
         fileMode = 0755
@@ -416,14 +435,16 @@ allDistImage = copySpec {
     }
 }
 
-task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
+//task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
+task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
     classifier = 'all'
     into(zipRootFolder) {
         with allDistImage
     }
 }
 
-task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
+//task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
+task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
     classifier = 'bin'
     into(zipRootFolder) {
         with binDistImage
@@ -489,7 +510,8 @@ def guessMaxForks() {
 
 task testedDists(dependsOn: [assemble, check, integTests])
 
-task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
+//task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
+task nightlyBuild(dependsOn: [clean, testedDists])
 
 task install(type: Install) {
     description = 'Installs the minimal distribution into directory $gradle_installPath'
@@ -573,7 +595,8 @@ task releaseArtifacts {
 task release {
     description = 'Builds, tests and uploads the release artifacts'
     group = 'release'
-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
+    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
+    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists
 }
 
 task wrapper(type: Wrapper) {
@@ -593,7 +616,8 @@ def runtimeProjects() {
 }
 
 def pluginProjects() {
-    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
+    //['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala'].collect {
         project(it)
     }
 }

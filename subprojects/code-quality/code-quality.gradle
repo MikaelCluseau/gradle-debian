@@ -30,7 +30,7 @@ dependencies {
     runtime "com.puppycrawl.tools:checkstyle:5.3@jar",
             libraries.guava,
             libraries.antlr,
-            "commons-beanutils:commons-beanutils-core:1.8.3@jar"
+            "commons-beanutils:commons-beanutils:1.8.3@jar"
 
     testCompile project(path: ':core', configuration: 'testFixtures')
     testRuntime project(path: ':core', configuration: 'testFixturesRuntime')
