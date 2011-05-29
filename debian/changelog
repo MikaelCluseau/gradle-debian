@@ -12,8 +12,9 @@ gradle (1.0~m3-1) UNRELEASED; urgency=low
   * Update watch file.
   * Fix missing-classpath lintian warnings.
   * Update copyright dates and make it DEP-5 compliant.
+  * Add README.source.
 
- -- Miguel Landaeta <miguel@miguel.cc>  Wed, 25 May 2011 00:07:39 -0430
+ -- Miguel Landaeta <miguel@miguel.cc>  Sun, 29 May 2011 09:59:51 -0430
 
 gradle (0.9.2-1) unstable; urgency=low
 
