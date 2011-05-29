@@ -1,0 +1,19 @@
+Description: Link javadocs with local -doc packages
+Author: Miguel Landaeta <miguel@miguel.cc>
+Forwarded: no
+Last-Update: 2011-05-29
+
+--- gradle-1.0~m3.orig/subprojects/docs/docs.gradle
++++ gradle-1.0~m3/subprojects/docs/docs.gradle
+@@ -238,8 +238,9 @@ task javadoc(type: Javadoc) {
+     include 'org/gradle/testfixtures/**'
+     include 'org/gradle/tooling/**'
+     exclude '**/internal/**'
+-    options.links("http://download.oracle.com/javase/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
+-        "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
++    //options.links("http://download.oracle.com/javase/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
++    //    "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
++    options.links("file:///usr/share/doc/default-jdk-doc/api", "file:///usr/share/doc/groovy-doc/gapi/", "file:///usr/share/doc/libmaven2-core-java/api")
+     doFirst {
+         title = "Gradle API $version"
+     }

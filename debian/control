@@ -15,7 +15,8 @@ Build-Depends: debhelper (>= 7.0.50~), default-jdk, javahelper, gradle,
  libplexus-containers-java, libmaven2-core-java, libplexus-component-api-java,
  libplexus-utils-java, libwagon-java, libcodenarc-groovy-java,
  checkstyle (>= 5.1), libcommons-beanutils-java, libsvnkit-java, bnd,
- libservlet2.5-java, libjetty-java, libjetty-extra-java, ant-optional (>= 1.8)
+ libservlet2.5-java, libjetty-java, libjetty-extra-java, ant-optional (>= 1.8),
+ default-jdk-doc, groovy-doc, libmaven2-core-java-doc
 Standards-Version: 3.9.2
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
@@ -238,7 +239,7 @@ Architecture: all
 Section: doc
 Depends: ${misc:Depends}
 Recommends: libgradle-core-java (= ${binary:Version})
-Suggests: default-jdk-doc, groovy-doc
+Suggests: default-jdk-doc, groovy-doc, libmaven2-core-java-doc
 Description: Documentation for gradle
  Documentation for the Gradle core library.
  .
