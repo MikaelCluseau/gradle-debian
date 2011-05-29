@@ -123,6 +123,8 @@ Architecture: all
 Depends: libgradle-core-java (= ${binary:Version}), ${misc:Depends}
 Recommends: eclipse-jdt
 Suggests: eclipse
+Breaks: libgradle-idea-java (<< 1.0~), libgradle-eclipse-java (<< 1.0~)
+Replaces: libgradle-idea-java (<< 1.0~), libgradle-eclipse-java (<< 1.0~)
 Description: Groovy based build system - IDE support plugin
  Gradle is a build system written in Groovy. It uses Groovy
  also as the language for its build scripts. It has a powerful
