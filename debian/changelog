@@ -1,4 +1,4 @@
-gradle (1.0~m3-1) UNRELEASED; urgency=low
+gradle (1.0~m3-1) unstable; urgency=low
 
   * New upstream release.
   * Fix FTBFS bug due to changes introduced in recent Groovy versions.
@@ -15,7 +15,7 @@ gradle (1.0~m3-1) UNRELEASED; urgency=low
   * Add README.source.
   * Link javadocs to system javadocs.
 
- -- Miguel Landaeta <miguel@miguel.cc>  Sun, 29 May 2011 15:17:14 -0430
+ -- Miguel Landaeta <miguel@miguel.cc>  Tue, 31 May 2011 00:47:16 +0200
 
 gradle (0.9.2-1) unstable; urgency=low
 
