@@ -17,6 +17,7 @@ package org.gradle.api.internal.artifacts.repositories;
 
 import org.apache.commons.httpclient.HttpsURL;
 import org.apache.ivy.plugins.repository.url.URLRepository;
+import org.apache.webdav.lib.WebdavResource;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,12 +52,9 @@ public class WebdavRepository extends URLRepository {
         String destinationFileName =  destination.substring(fileNameStart + 1);
         HttpsURL hrl = new HttpsURL(baseUrl);
         hrl.setUserinfo(user, userPassword);
-        /*
         WebdavResource wdr = new WebdavResource(hrl);
         wdr.putMethod(wdr.getPath() + '/' + destinationFileName, source);
         wdr.close();
-        */
-        throw new UnsupportedOperationException("put");
     }
 
     //    Alternative implementation with httpclient only. Unfortunately this is slower.

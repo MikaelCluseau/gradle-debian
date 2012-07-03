@@ -31,9 +31,9 @@ dependencies {
             libraries.asm_all,
             libraries.junit,
             libraries.ant,
-            'org.testng:testng:5.11'
+            'org.testng:testng:5.14.10'
 
-    //reports 'css3-pie:css3-pie:1.0beta3'
+    reports 'css3-pie:css3-pie:1.0beta3'
     testCompile libraries.xmlunit, 'net.sourceforge.nekohtml:nekohtml:1.9.14'
 
     testCompile project(path: ':core', configuration: 'testFixtures')

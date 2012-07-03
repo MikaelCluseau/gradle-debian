@@ -107,8 +107,7 @@ public class LoggingServiceRegistry extends DefaultServiceRegistry {
     protected OutputEventRenderer createOutputEventRenderer() {
         Spec<FileDescriptor> terminalDetector;
         if (detectConsole) {
-            //terminalDetector = new TerminalDetector(StartParameter.DEFAULT_GRADLE_USER_HOME);
-            terminalDetector = new TerminalDetector(new java.io.File("/usr/lib"));
+            terminalDetector = new TerminalDetector(StartParameter.DEFAULT_GRADLE_USER_HOME);
         } else {
             terminalDetector = Specs.satisfyNone();
         }
