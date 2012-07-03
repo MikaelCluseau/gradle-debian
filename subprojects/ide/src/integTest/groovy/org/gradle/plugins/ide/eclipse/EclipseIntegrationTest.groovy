@@ -16,8 +16,10 @@
 package org.gradle.plugins.ide.eclipse
 
 import org.gradle.integtests.fixtures.TestResources
+import org.gradle.util.TextUtil
 import org.junit.Rule
 import org.junit.Test
+import spock.lang.Issue
 
 class EclipseIntegrationTest extends AbstractEclipseIntegrationTest {
     private static String nonAscii = "\\u7777\\u8888\\u9999"
@@ -82,15 +84,15 @@ sourceSets {
     @Test
     void canHandleCircularModuleDependencies() {
         def repoDir = file("repo")
-        def artifact1 = publishArtifact(repoDir, "myGroup", "myArtifact1", "myArtifact2")
-        def artifact2 = publishArtifact(repoDir, "myGroup", "myArtifact2", "myArtifact1")
+        def artifact1 = maven(repoDir).module("myGroup", "myArtifact1").dependsOn("myArtifact2").publish().artifactFile
+        def artifact2 = maven(repoDir).module("myGroup", "myArtifact2").dependsOn("myArtifact1").publish().artifactFile
 
         runEclipseTask """
 apply plugin: "java"
 apply plugin: "eclipse"
 
 repositories {
-    mavenRepo urls: "${repoDir.toURI()}"
+    maven { url "${repoDir.toURI()}" }
 }
 
 dependencies {
@@ -105,22 +107,22 @@ dependencies {
     void eclipseFilesAreWrittenWithUtf8Encoding() {
         runEclipseTask """
 apply plugin: "war"
-apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 
-eclipseProject {
-  projectName = "$nonAscii"
-}
+eclipse {
+    project.name = "$nonAscii"
+    classpath {
+        containers "$nonAscii"
+    }
 
-eclipseClasspath {
-  containers("$nonAscii")
-}
-
-eclipseWtpComponent {
-  deployName = "$nonAscii"
-}
-
-eclipseWtpFacet {
-  facet([name: "$nonAscii"])
+    wtp {
+        component {
+            deployName = "$nonAscii"
+        }
+        facet {
+            facet name: "$nonAscii"
+        }
+    }
 }
         """
 
@@ -137,33 +139,49 @@ eclipseWtpFacet {
         runEclipseTask('''
 apply plugin: 'java'
 apply plugin: 'war'
-apply plugin: 'eclipse'
+apply plugin: 'eclipse-wtp'
 
 def beforeConfiguredObjects = 0
 def whenConfiguredObjects = 0
 
-eclipseProject {
-    beforeConfigured { beforeConfiguredObjects++ }
-    whenConfigured { whenConfiguredObjects++ }
-}
-eclipseClasspath {
-    beforeConfigured { beforeConfiguredObjects++ }
-    whenConfigured { whenConfiguredObjects++ }
-}
-eclipseWtpFacet {
-    beforeConfigured { beforeConfiguredObjects++ }
-    whenConfigured { whenConfiguredObjects++ }
-}
-eclipseWtpComponent {
-    beforeConfigured { beforeConfiguredObjects++ }
-    whenConfigured { whenConfiguredObjects++ }
-}
-eclipseJdt {
-    beforeConfigured { beforeConfiguredObjects++ }
-    whenConfigured { whenConfiguredObjects++ }
+eclipse {
+    project {
+        file {
+            beforeMerged {beforeConfiguredObjects++ }
+            whenMerged {whenConfiguredObjects++ }
+        }
+    }
+
+    classpath {
+        file {
+            beforeMerged {beforeConfiguredObjects++ }
+            whenMerged {whenConfiguredObjects++ }
+        }
+    }
+
+    wtp.component {
+        file {
+            beforeMerged {beforeConfiguredObjects++ }
+            whenMerged {whenConfiguredObjects++ }
+        }
+    }
+
+    wtp.facet {
+        file {
+            beforeMerged {beforeConfiguredObjects++ }
+            whenMerged {whenConfiguredObjects++ }
+        }
+    }
+
+    jdt {
+        file {
+            beforeMerged {beforeConfiguredObjects++ }
+            whenMerged {whenConfiguredObjects++ }
+        }
+    }
 }
 
-eclipse << {
+tasks.eclipse << {
     assert beforeConfiguredObjects == 5 : "beforeConfigured() hooks shoold be fired for domain model objects"
     assert whenConfiguredObjects == 5 : "whenConfigured() hooks shoold be fired for domain model objects"
 }
@@ -174,15 +192,15 @@ eclipse << {
     @Test
     void respectsPerConfigurationExcludes() {
         def repoDir = file("repo")
-        def artifact1 = publishArtifact(repoDir, "myGroup", "myArtifact1", "myArtifact2")
-        def artifact2 = publishArtifact(repoDir, "myGroup", "myArtifact2")
+        def artifact1 = maven(repoDir).module("myGroup", "myArtifact1").dependsOn("myArtifact2").publish().artifactFile
+        maven(repoDir).module("myGroup", "myArtifact2").publish()
 
         runEclipseTask """
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
 repositories {
-    mavenRepo urls: "${repoDir.toURI()}"
+    maven { url "${repoDir.toURI()}" }
 }
 
 configurations {
@@ -200,15 +218,15 @@ dependencies {
     @Test
     void respectsPerDependencyExcludes() {
         def repoDir = file("repo")
-        def artifact1 = publishArtifact(repoDir, "myGroup", "myArtifact1", "myArtifact2")
-        def artifact2 = publishArtifact(repoDir, "myGroup", "myArtifact2")
+        def artifact1 = maven(repoDir).module("myGroup", "myArtifact1").dependsOn("myArtifact2").publish().artifactFile
+        maven(repoDir).module("myGroup", "myArtifact2").publish()
 
         runEclipseTask """
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
 repositories {
-    mavenRepo urls: "${repoDir.toURI()}"
+    maven { url "${repoDir.toURI()}" }
 }
 
 dependencies {
@@ -229,18 +247,17 @@ dependencies {
     }
 
     @Test
-    void addsLinkToTheOutputFile() {
+    void addsLinkToTheProjectFile() {
         runEclipseTask '''
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-eclipseProject {
-    link name: 'one', type: '2', location: '/xyz'
-    link name: 'two', type: '3', locationUri: 'file://xyz'
+eclipse.project {
+    linkedResource name: 'one', type: '2', location: '/xyz'
+    linkedResource name: 'two', type: '3', locationUri: 'file://xyz'
 }
 '''
 
-        println getProjectFile().text
         def xml = parseProjectFile()
         assert xml.linkedResources.link[0].name.text() == 'one'
         assert xml.linkedResources.link[0].type.text() == '2'
@@ -257,7 +274,7 @@ eclipseProject {
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
-eclipseJdt {
+eclipse.jdt {
     sourceCompatibility = '1.4'
     targetCompatibility = 1.3
 }
@@ -266,5 +283,86 @@ eclipseJdt {
         def jdt = parseJdtFile()
         assert jdt.contains('source=1.4')
         assert jdt.contains('targetPlatform=1.3')
+    }
+
+    @Test
+    void dslAllowsShortFormsForProject() {
+        runEclipseTask '''
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+eclipse.project.name = 'x'
+assert eclipse.project.name == 'x'
+
+eclipse {
+    project.name += 'x'
+    assert project.name == 'xx'
+}
+
+eclipse.project {
+    name += 'x'
+    assert name == 'xxx'
+}
+
+'''
+    }
+
+    @Test
+    void dslAllowsShortForms() {
+        runEclipseTask '''
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+eclipse.classpath.downloadSources = false
+assert eclipse.classpath.downloadSources == false
+
+eclipse.classpath.file.withXml {}
+eclipse.classpath {
+    file.withXml {}
+}
+eclipse {
+    classpath.file.withXml {}
+}
+'''
+    }
+
+    @Test
+    @Issue("GRADLE-1157")
+    void canHandleDependencyWithoutSourceJarInFlatDirRepo() {
+        def repoDir = testDir.createDir("repo")
+        repoDir.createFile("lib-1.0.jar")
+
+        runEclipseTask """
+apply plugin: "java"
+apply plugin: "eclipse"
+
+repositories {
+	flatDir { dirs "${TextUtil.escapeString(repoDir)}" }
+}
+
+dependencies {
+	compile "some:lib:1.0"
+}
+        """
+    }
+
+    @Test
+    @Issue("GRADLE-1706") // doesn't prove that the issue is fixed because the test also passes with 1.0-milestone-4
+    void canHandleDependencyWithoutSourceJarInMavenRepo() {
+        def repoDir = testDir.createDir("repo")
+        maven(repoDir).module("some", "lib").publish()
+
+        runEclipseTask """
+apply plugin: "java"
+apply plugin: "eclipse"
+
+repositories {
+    maven { url "${repoDir.toURI()}" }
+}
+
+dependencies {
+	compile "some:lib:1.0"
+}
+        """
     }
 }

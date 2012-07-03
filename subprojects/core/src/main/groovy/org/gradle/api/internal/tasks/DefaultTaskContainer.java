@@ -21,9 +21,13 @@ import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.UnknownTaskException;
-import org.gradle.api.internal.ClassGenerator;
+import org.gradle.api.internal.DynamicObject;
+import org.gradle.api.internal.Instantiator;
+import org.gradle.api.internal.NamedDomainObjectContainerConfigureDelegate;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.project.taskfactory.ITaskFactory;
+import org.gradle.util.ConfigureUtil;
+import org.gradle.util.DeprecationLogger;
 import org.gradle.util.GUtil;
 
 import java.util.HashMap;
@@ -32,8 +36,8 @@ import java.util.Map;
 public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements TaskContainerInternal {
     private final ITaskFactory taskFactory;
 
-    public DefaultTaskContainer(ProjectInternal project, ClassGenerator classGenerator, ITaskFactory taskFactory) {
-        super(Task.class, classGenerator, project);
+    public DefaultTaskContainer(ProjectInternal project, Instantiator instantiator, ITaskFactory taskFactory) {
+        super(Task.class, instantiator, project);
         this.taskFactory = taskFactory;
     }
 
@@ -46,12 +50,17 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
         Task task = taskFactory.createTask(project, mutableOptions);
         String name = task.getName();
 
-        if (!replace && findByNameWithoutRules(name) != null) {
-            throw new InvalidUserDataException(String.format(
-                    "Cannot add %s as a task with that name already exists.", task));
+        Task existing = findByNameWithoutRules(name);
+        if (existing != null) {
+            if (replace) {
+                remove(existing);
+            } else {
+                throw new InvalidUserDataException(String.format(
+                        "Cannot add %s as a task with that name already exists.", task));
+            }
         }
 
-        addObject(name, task);
+        add(task);
 
         return task;
     }
@@ -64,12 +73,20 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
         return type.cast(add(GUtil.map(Task.TASK_NAME, name, Task.TASK_TYPE, type)));
     }
 
+    public Task create(String name) {
+        return add(name);
+    }
+
     public Task add(String name) {
         return add(GUtil.map(Task.TASK_NAME, name));
     }
 
     public Task replace(String name) {
         return add(GUtil.map(Task.TASK_NAME, name, Task.TASK_OVERWRITE, true));
+    }
+
+    public Task create(String name, Closure configureClosure) {
+        return add(name, configureClosure);
     }
 
     public Task add(String name, Closure configureClosure) {
@@ -100,6 +117,11 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
         if (!GUtil.isTrue(path)) {
             throw new InvalidUserDataException("A path must be specified!");
         }
+        if(!(path instanceof CharSequence)) {
+            DeprecationLogger.nagUserWith(String.format("Converting class %s to a task dependency using toString()."
+                    + " This has been deprecated and will be removed in the next version of Gradle. Please use org.gradle.api.Task, java.lang.String, "
+                    + "org.gradle.api.Buildable, org.gradle.tasks.TaskDependency or a Closure to declare your task dependencies.", path.getClass().getName()));
+        }
         return getByPath(path.toString());
     }
 
@@ -109,5 +131,18 @@ public class DefaultTaskContainer extends DefaultTaskCollection<Task> implements
             throw new UnknownTaskException(String.format("Task with path '%s' not found in %s.", path, project));
         }
         return task;
+    }
+
+    protected Object createConfigureDelegate(Closure configureClosure) {
+        return new NamedDomainObjectContainerConfigureDelegate(configureClosure.getOwner(), this);
+    }
+
+    public TaskContainerInternal configure(Closure configureClosure) {
+        ConfigureUtil.configure(configureClosure, createConfigureDelegate(configureClosure));
+        return this;
+    }
+
+    public DynamicObject getTasksAsDynamicObject() {
+        return getElementsAsDynamicObject();
     }
 }

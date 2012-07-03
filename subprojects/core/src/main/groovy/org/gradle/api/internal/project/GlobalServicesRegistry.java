@@ -17,20 +17,28 @@
 package org.gradle.api.internal.project;
 
 import org.gradle.StartParameter;
-import org.gradle.api.internal.ClassPathRegistry;
-import org.gradle.api.internal.DefaultClassPathProvider;
-import org.gradle.api.internal.DefaultClassPathRegistry;
-import org.gradle.api.internal.GradleDistributionLocator;
-import org.gradle.cache.AutoCloseCacheFactory;
-import org.gradle.cache.CacheFactory;
-import org.gradle.cache.DefaultCacheFactory;
-import org.gradle.initialization.ClassLoaderFactory;
-import org.gradle.initialization.CommandLineConverter;
-import org.gradle.initialization.DefaultClassLoaderFactory;
+import org.gradle.api.internal.*;
+import org.gradle.api.internal.classpath.DefaultModuleRegistry;
+import org.gradle.api.internal.classpath.DefaultPluginModuleRegistry;
+import org.gradle.api.internal.classpath.ModuleRegistry;
+import org.gradle.api.internal.classpath.PluginModuleRegistry;
+import org.gradle.cache.internal.*;
+import org.gradle.cli.CommandLineConverter;
+import org.gradle.initialization.ClassLoaderRegistry;
+import org.gradle.initialization.DefaultClassLoaderRegistry;
 import org.gradle.initialization.DefaultCommandLineConverter;
+import org.gradle.internal.Factory;
+import org.gradle.internal.nativeplatform.ProcessEnvironment;
+import org.gradle.internal.nativeplatform.services.NativeServices;
+import org.gradle.internal.service.DefaultServiceRegistry;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.listener.DefaultListenerManager;
 import org.gradle.listener.ListenerManager;
 import org.gradle.logging.LoggingServiceRegistry;
+import org.gradle.messaging.remote.MessagingServer;
+import org.gradle.messaging.remote.internal.MessagingServices;
+import org.gradle.util.ClassLoaderFactory;
+import org.gradle.util.DefaultClassLoaderFactory;
 
 /**
  * Contains the services shared by all builds in a given process.
@@ -42,6 +50,7 @@ public class GlobalServicesRegistry extends DefaultServiceRegistry {
 
     public GlobalServicesRegistry(ServiceRegistry loggingServices) {
         super(loggingServices);
+        add(new NativeServices());
     }
 
     protected CommandLineConverter<StartParameter> createCommandLine2StartParameterConverter() {
@@ -49,27 +58,50 @@ public class GlobalServicesRegistry extends DefaultServiceRegistry {
     }
 
     protected ClassPathRegistry createClassPathRegistry() {
-        return new DefaultClassPathRegistry();
+        return new DefaultClassPathRegistry(new DefaultClassPathProvider(get(ModuleRegistry.class)), new DynamicModulesClassPathProvider(get(ModuleRegistry.class), get(PluginModuleRegistry.class)));
     }
 
-    protected CacheFactory createCacheFactory() {
-        return new AutoCloseCacheFactory(new DefaultCacheFactory());
+    protected DefaultModuleRegistry createModuleRegistry() {
+        return new DefaultModuleRegistry();
     }
 
-    protected ClassLoaderFactory createClassLoaderFactory() {
-        return new DefaultClassLoaderFactory(get(ClassPathRegistry.class));
+    protected PluginModuleRegistry createPluginModuleRegistry() {
+        return new DefaultPluginModuleRegistry(get(ModuleRegistry.class));
+    }
+
+    protected Factory<CacheFactory> createCacheFactory() {
+        return new DefaultCacheFactory(get(FileLockManager.class));
+    }
+
+    protected ClassLoaderRegistry createClassLoaderRegistry() {
+        return new DefaultClassLoaderRegistry(get(ClassPathRegistry.class), get(ClassLoaderFactory.class));
     }
 
     protected ListenerManager createListenerManager() {
         return new DefaultListenerManager();
     }
    
-    protected GradleDistributionLocator createGradleDistributionLocator() {
-        return new DefaultClassPathProvider();
+    protected ClassLoaderFactory createClassLoaderFactory() {
+        return new DefaultClassLoaderFactory();
     }
-    
-    protected IsolatedAntBuilder createIsolatedAntBuilder() {
-        return new DefaultIsolatedAntBuilder(get(ClassPathRegistry.class));
+
+    protected MessagingServices createMessagingServices() {
+        return new MessagingServices(get(ClassLoaderRegistry.class).getPluginsClassLoader());
     }
-    
+
+    protected MessagingServer createMessagingServer() {
+        return get(MessagingServices.class).get(MessagingServer.class);
+    }
+
+    protected ClassGenerator createClassGenerator() {
+        return new AsmBackedClassGenerator();
+    }
+
+    protected Instantiator createInstantiator() {
+        return new ClassGeneratorBackedInstantiator(get(ClassGenerator.class), new DirectInstantiator());
+    }
+
+    protected FileLockManager createFileLockManager() {
+        return new DefaultFileLockManager(new DefaultProcessMetaDataProvider(get(ProcessEnvironment.class)));
+    }
 }

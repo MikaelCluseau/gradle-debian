@@ -49,14 +49,36 @@ import org.gradle.util.ConfigureUtil
  */
 class EclipseModel {
 
+    /**
+     * Configures eclipse project information
+     * <p>
+     * For examples see docs for {@link EclipseProject}
+     */
     EclipseProject project
-    EclipseClasspath classpath
-    EclipseJdt jdt
-
-    EclipseWtp wtp = new EclipseWtp()
 
     /**
-     * Configures eclipse project
+     * Configures eclipse classpath information
+     * <p>
+     * For examples see docs for {@link EclipseClasspath}
+     */
+    EclipseClasspath classpath
+
+    /**
+     * Configures eclipse java compatibility information (jdt)
+     * <p>
+     * For examples see docs for {@link EclipseProject}
+     */
+    EclipseJdt jdt
+
+    /**
+     * Configures eclipse wtp information
+     * <p>
+     * For examples see docs for {@link EclipseWtp}
+     */
+    EclipseWtp wtp
+
+    /**
+     * Configures eclipse project information
      * <p>
      * For examples see docs for {@link EclipseProject}
      *
@@ -102,6 +124,9 @@ class EclipseModel {
     /**
      * Adds path variables to be used for replacing absolute paths in classpath entries.
      * <p>
+     * If the beginning of the absolute path of a library or other path-related element matches a value of a variable,
+     * a variable entry is used. The matching part of the library path is replaced with the variable name.
+     * <p>
      * For example see docs for {@link EclipseModel}
      *
      * @param pathVariables A map with String->File pairs.
@@ -109,7 +134,7 @@ class EclipseModel {
     void pathVariables(Map<String, File> pathVariables) {
         assert pathVariables != null
         classpath.pathVariables.putAll pathVariables
-        if (wtp.component) {
+        if (wtp && wtp.component) {
             wtp.component.pathVariables.putAll pathVariables
         }
     }

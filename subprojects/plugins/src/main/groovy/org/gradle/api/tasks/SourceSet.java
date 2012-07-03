@@ -19,10 +19,23 @@ import groovy.lang.Closure;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.SourceDirectorySet;
 
-import java.io.File;
-
 /**
- * <p>A {@code SourceSet} represents a logical group of Java source and resources.</p>
+ * A {@code SourceSet} represents a logical group of Java source and resources.
+ * <p>
+ * See the example below how {@link SourceSet} 'main' is accessed and how the {@link SourceDirectorySet} 'java'
+ * is configured to exclude some package from compilation.
+ *
+ * <pre autoTested=''>
+ * apply plugin: 'java'
+ *
+ * sourceSets {
+ *   main {
+ *     java {
+ *       exclude 'some/unwanted/package/**'
+ *     }
+ *   }
+ * }
+ * </pre>
  */
 public interface SourceSet {
     /**
@@ -70,26 +83,13 @@ public interface SourceSet {
      */
     void setRuntimeClasspath(FileCollection classpath);
 
-    /**
-     * Returns the directory to assemble the compiled classes into.
+   /**
+     * {@link SourceSetOutput} is a {@link FileCollection} of all output directories (compiled classes, processed resources, etc.)
+     *  and it provides means configure the default output dirs and register additional output dirs. See examples in {@link SourceSetOutput}
      *
-     * @return The classes dir. Never returns null.
+     * @return The output dirs, as a {@link SourceSetOutput}.
      */
-    File getClassesDir();
-
-    /**
-     * Sets the directory to assemble the compiled classes into.
-     *
-     * @param classesDir the classes dir. Should not be null.
-     */
-    void setClassesDir(File classesDir);
-
-    /**
-     * Returns the compiled classes directory for this source set.
-     *
-     * @return The classes dir, as a {@link FileCollection}.
-     */
-    FileCollection getClasses();
+    SourceSetOutput getOutput();
 
     /**
      * Registers a set of tasks which are responsible for compiling this source set into the classes directory. The
@@ -101,7 +101,7 @@ public interface SourceSet {
     SourceSet compiledBy(Object... taskPaths);
 
     /**
-     * Returns the non-Java resources which are to be copied into the class output directory.
+     * Returns the non-Java resources which are to be copied into the resources output directory.
      *
      * @return the resources. Never returns null.
      */
@@ -186,4 +186,16 @@ public interface SourceSet {
      * @return The task name, generally of the form ${verb}${name}${noun}
      */
     String getTaskName(String verb, String target);
+
+    /**
+     * Returns the name of the compile configuration for this source set.
+     * @return The configuration name
+     */
+    String getCompileConfigurationName();
+
+    /**
+     * Returns the name of the runtime configuration for this source set.
+     * @return The runtime configuration name
+     */
+    String getRuntimeConfigurationName();
 }

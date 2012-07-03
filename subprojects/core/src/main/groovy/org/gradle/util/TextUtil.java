@@ -16,6 +16,9 @@
 
 package org.gradle.util;
 
+import org.apache.commons.lang.StringEscapeUtils;
+import org.gradle.internal.SystemProperties;
+
 public class TextUtil {
     /**
      * Returns the line separator for Windows.
@@ -42,13 +45,34 @@ public class TextUtil {
      * Converts all line separators in the specified string to the specified line separator.
      */
     public static String convertLineSeparators(String str, String sep) {
-        return str.replaceAll("\r\n|\r|\n", sep);
+        return str == null ? null : str.replaceAll("\r\n|\r|\n", sep);
     }
 
     /**
      * Converts all line separators in the specified string to the the platform's line separator.
      */
     public static String toPlatformLineSeparators(String str) {
-        return convertLineSeparators(str, getPlatformLineSeparator());
+        return str == null ? null : convertLineSeparators(str, getPlatformLineSeparator());
+    }
+
+    /**
+     * <p>Escapes the toString() representation of {@code obj} for use in a literal string.</p>
+     *
+     * <p>This is useful for interpolating variables into script strings, as well as in other situations.</p>
+     */
+    public static String escapeString(Object obj) {
+        return obj == null ? null : StringEscapeUtils.escapeJava(obj.toString());
+    }
+
+    /**
+     * Tells whether the specified string contains any whitespace characters.
+     */
+    public static boolean containsWhitespace(String str) {
+        for (int i = 0; i < str.length(); i++) {
+            if (Character.isWhitespace(str.charAt(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -15,9 +15,13 @@
  */
 package org.gradle.util
 
+import org.gradle.api.internal.ThreadGlobalInstantiator
+import org.gradle.util.ConfigureUtil.IncompleteInputException
 import org.junit.Test
-import static org.junit.Assert.*
-import static org.hamcrest.Matchers.*
+import static org.hamcrest.Matchers.equalTo
+import static org.hamcrest.Matchers.sameInstance
+import static org.junit.Assert.assertThat
+import static org.junit.Assert.fail
 
 class ConfigureUtilTest {
     @Test
@@ -61,6 +65,25 @@ class ConfigureUtilTest {
     }
 
     @Test
+    public void canConfigureAndValidateObjectUsingMap() {
+        Bean obj = new Bean()
+
+        try {
+            //when
+            ConfigureUtil.configureByMap([prop: 'value'], obj, ['foo'])
+            //then
+            fail();
+        } catch (IncompleteInputException e) {
+            assert e.missingKeys.contains('foo')
+        }
+
+        //when
+        ConfigureUtil.configureByMap([prop: 'value'], obj, ['prop'])
+        //then
+        assert obj.prop == 'value'
+    }
+
+    @Test
     public void throwsExceptionForUnknownProperty() {
         Bean obj = new Bean()
 
@@ -72,6 +95,30 @@ class ConfigureUtilTest {
             assertThat(e.property, equalTo('unknown'))
         }
     }
+    
+    static class TestConfigurable implements Configurable {
+        def props = [:]
+        
+        TestConfigurable configure(Closure closure) {
+            props.with(closure)
+            this
+        }
+    }
+    
+    @Test
+    void testConfigurableAware() {
+        def c = new TestConfigurable()
+        ConfigureUtil.configure({ a = 1 }, c)
+        assert c.props.a == 1
+    }
+    
+    @Test
+    void configureByMapTriesMethodForExtensibleObjects() {
+        Bean bean = ThreadGlobalInstantiator.getOrCreate().newInstance(Bean)
+        ConfigureUtil.configureByMap(bean, method:  "foo")
+        assert bean.prop == "foo"
+    }
+    
 }
 
 class Bean {

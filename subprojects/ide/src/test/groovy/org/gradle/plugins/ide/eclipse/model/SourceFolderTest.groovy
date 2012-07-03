@@ -55,7 +55,39 @@ class SourceFolderTest extends Specification {
     }
 
     def createSourceFolder() {
-        return new SourceFolder('src', 'mynative', [new AccessRule('nonaccessible', 'secret**')] as Set,
-            'bin2', ['**/Test1*' ,'**/Test2*'], ['**/Test3*' ,'**/Test4*'])
+        SourceFolder folder = new SourceFolder('src', 'bin2')
+        folder.nativeLibraryLocation = 'mynative'
+        folder.accessRules += [new AccessRule('nonaccessible', 'secret**')]
+        folder.includes += ['**/Test1*', '**/Test2*']
+        folder.excludes += ['**/Test3*', '**/Test4*']
+        return folder
+    }
+
+    def "ignores null dir in equality"() {
+        given:
+        def one = createSourceFolder()
+        def two = createSourceFolder()
+        one == two
+        two == one
+
+        when:
+        one.dir = null
+        two.dir = new File('.')
+
+        then:
+        one == two
+        two == one
+    }
+
+    def "trims path"() {
+        given:
+        def one = createSourceFolder()
+        one.dir = new File('/some/path/to/foo')
+
+        when:
+        one.trimPath()
+
+        then:
+        one.path == 'foo'
     }
 }

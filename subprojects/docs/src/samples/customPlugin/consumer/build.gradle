@@ -1,0 +1,24 @@
+// START SNIPPET use-plugin
+// START SNIPPET use-task
+buildscript {
+    repositories {
+        maven {
+            url uri('../repo')
+        }
+    }
+    dependencies {
+        classpath group: 'org.gradle', name: 'customPlugin', version: '1.0-SNAPSHOT'
+    }
+}
+// END SNIPPET use-task
+buildscript {
+   configurations.classpath.resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+apply plugin: 'greeting'
+// END SNIPPET use-plugin
+// START SNIPPET use-task
+
+task greeting(type: org.gradle.GreetingTask) {
+    greeting = 'howdy!'
+}
+// END SNIPPET use-task

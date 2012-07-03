@@ -19,40 +19,34 @@ package org.gradle.api.internal.project
 import java.awt.Point
 import java.text.FieldPosition
 import org.apache.tools.ant.types.FileSet
-import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.Module
 import org.gradle.api.artifacts.dsl.ArtifactHandler
 import org.gradle.api.artifacts.dsl.DependencyHandler
 import org.gradle.api.artifacts.dsl.RepositoryHandler
 import org.gradle.api.initialization.dsl.ScriptHandler
-import org.gradle.api.internal.artifacts.ConfigurationContainerFactory
+import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal
 import org.gradle.api.internal.artifacts.configurations.DefaultConfigurationContainer
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider
-import org.gradle.api.internal.artifacts.dsl.PublishArtifactFactory
 import org.gradle.api.internal.artifacts.dsl.dependencies.DependencyFactory
-import org.gradle.api.internal.artifacts.ivyservice.ResolverFactory
-import org.gradle.api.internal.artifacts.repositories.InternalRepository
 import org.gradle.api.internal.file.FileOperations
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.internal.initialization.ScriptClassLoaderProvider
-import org.gradle.api.internal.plugins.DefaultConvention
 import org.gradle.api.internal.tasks.TaskContainerInternal
 import org.gradle.api.invocation.Gradle
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.plugins.Convention
 import org.gradle.api.plugins.PluginContainer
 import org.gradle.api.tasks.Directory
 import org.gradle.configuration.ProjectEvaluator
 import org.gradle.configuration.ScriptPluginFactory
 import org.gradle.groovy.scripts.EmptyScript
 import org.gradle.groovy.scripts.ScriptSource
+import org.gradle.internal.Factory
+import org.gradle.internal.service.ServiceRegistry
 import org.gradle.logging.LoggingManagerInternal
 import org.gradle.logging.StandardOutputCapture
 import org.gradle.util.HelperUtil
 import org.gradle.util.JUnit4GroovyMockery
 import org.gradle.util.TestClosure
 import org.jmock.integration.junit4.JMock
-import org.jmock.lib.legacy.ClassImposteriser
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
@@ -61,7 +55,6 @@ import org.gradle.api.*
 import org.gradle.api.internal.*
 import static org.hamcrest.Matchers.*
 import static org.junit.Assert.*
-import org.gradle.api.internal.Factory
 
 /**
  * @author Hans Dockter
@@ -80,7 +73,7 @@ class DefaultProjectTest {
 
     DefaultProject project, child1, child2, childchild
 
-    ProjectEvaluator projectEvaluator
+    ProjectEvaluator projectEvaluator = context.mock(ProjectEvaluator.class)
 
     IProjectRegistry projectRegistry
 
@@ -88,55 +81,34 @@ class DefaultProjectTest {
 
     groovy.lang.Script testScript
 
-    ScriptSource script;
+    ScriptSource script = context.mock(ScriptSource.class)
 
     ServiceRegistry serviceRegistryMock
     ServiceRegistryFactory projectServiceRegistryFactoryMock
-    TaskContainerInternal taskContainerMock
-    Factory<AntBuilder> antBuilderFactoryMock
+    TaskContainerInternal taskContainerMock = context.mock(TaskContainerInternal.class)
+    Factory<AntBuilder> antBuilderFactoryMock = context.mock(Factory.class)
     AntBuilder testAntBuilder
 
-    ConfigurationContainerFactory configurationContainerFactoryMock;
-    DefaultConfigurationContainer configurationContainerMock;
-    InternalRepository internalRepositoryDummy = context.mock(InternalRepository)
-    ResolverFactory resolverFactoryMock = context.mock(ResolverFactory.class);
-    Factory<RepositoryHandler> repositoryHandlerFactoryMock = context.mock(Factory.class);
-    RepositoryHandler repositoryHandlerMock
-    DependencyFactory dependencyFactoryMock
+    DefaultConfigurationContainer configurationContainerMock = context.mock(DefaultConfigurationContainer.class)
+    RepositoryHandler repositoryHandlerMock = context.mock(RepositoryHandler.class)
+    DependencyFactory dependencyFactoryMock = context.mock(DependencyFactory.class)
     DependencyHandler dependencyHandlerMock = context.mock(DependencyHandler)
     PluginContainer pluginContainerMock = context.mock(PluginContainer)
-    PublishArtifactFactory publishArtifactFactoryMock = context.mock(PublishArtifactFactory)
     ScriptHandler scriptHandlerMock = context.mock(ScriptHandler)
     DependencyMetaDataProvider dependencyMetaDataProviderMock = context.mock(DependencyMetaDataProvider)
-    Gradle build;
-    Convention convention = new DefaultConvention();
-    FileOperations fileOperationsMock
-    LoggingManagerInternal loggingManagerMock;
+    Gradle build = context.mock(GradleInternal)
+    FileOperations fileOperationsMock = context.mock(FileOperations)
+    ProcessOperations processOperationsMock = context.mock(ProcessOperations)
+    LoggingManagerInternal loggingManagerMock = context.mock(LoggingManagerInternal.class)
+    Instantiator instantiatorMock = context.mock(Instantiator)
 
     @Before
     void setUp() {
         rootDir = new File("/path/root").absoluteFile
 
-        context.imposteriser = ClassImposteriser.INSTANCE
-        dependencyFactoryMock = context.mock(DependencyFactory.class)
-        loggingManagerMock = context.mock(LoggingManagerInternal.class)
-        taskContainerMock = context.mock(TaskContainerInternal.class);
-        antBuilderFactoryMock = context.mock(Factory.class)
         testAntBuilder = new DefaultAntBuilder()
         context.checking {
             allowing(antBuilderFactoryMock).create(); will(returnValue(testAntBuilder))
-        }
-        configurationContainerMock = context.mock(DefaultConfigurationContainer.class)
-        configurationContainerFactoryMock = [createConfigurationContainer: {
-          resolverProvider, dependencyMetaDataProvider, projectDependenciesBuildInstruction ->
-            assertSame(build.startParameter.projectDependenciesBuildInstruction, projectDependenciesBuildInstruction)
-            configurationContainerMock}] as ConfigurationContainerFactory
-        repositoryHandlerMock =  context.mock(RepositoryHandler.class);
-        context.checking {
-          allowing(repositoryHandlerFactoryMock).create(); will(returnValue(repositoryHandlerMock))
-        }
-        script = context.mock(ScriptSource.class)
-        context.checking {
             allowing(script).getDisplayName(); will(returnValue('[build file]'))
             allowing(script).getClassName(); will(returnValue('scriptClass'))
             allowing(scriptHandlerMock).getSourceFile(); will(returnValue(new File(rootDir, TEST_BUILD_FILE_NAME)))
@@ -146,24 +118,19 @@ class DefaultProjectTest {
 
         testTask = HelperUtil.createTask(DefaultTask)
 
-        projectEvaluator = context.mock(ProjectEvaluator.class)
         projectRegistry = new DefaultProjectRegistry()
 
         projectServiceRegistryFactoryMock = context.mock(ServiceRegistryFactory.class, 'parent')
         serviceRegistryMock = context.mock(ServiceRegistryFactory.class, 'project')
-        build = context.mock(GradleInternal.class)
-        fileOperationsMock = context.mock(FileOperations.class)
 
         context.checking {
             allowing(projectServiceRegistryFactoryMock).createFor(withParam(notNullValue())); will(returnValue(serviceRegistryMock))
             allowing(serviceRegistryMock).newInstance(TaskContainerInternal); will(returnValue(taskContainerMock))
-            allowing(taskContainerMock).getAsDynamicObject(); will(returnValue(new BeanDynamicObject(new TaskContainerDynamicObject(someTask: testTask))))
+            allowing(taskContainerMock).getTasksAsDynamicObject(); will(returnValue(new BeanDynamicObject(new TaskContainerDynamicObject(someTask: testTask))))
             allowing(serviceRegistryMock).get(RepositoryHandler); will(returnValue(repositoryHandlerMock))
-            allowing(serviceRegistryMock).getFactory(RepositoryHandler); will(returnValue(repositoryHandlerFactoryMock))
-            allowing(serviceRegistryMock).get(ConfigurationContainer); will(returnValue(configurationContainerMock))
+            allowing(serviceRegistryMock).get(ConfigurationContainerInternal); will(returnValue(configurationContainerMock))
             allowing(serviceRegistryMock).get(ArtifactHandler); will(returnValue(context.mock(ArtifactHandler)))
             allowing(serviceRegistryMock).get(DependencyHandler); will(returnValue(dependencyHandlerMock))
-            allowing(serviceRegistryMock).get(Convention); will(returnValue(convention))
             allowing(serviceRegistryMock).get(ProjectEvaluator); will(returnValue(projectEvaluator))
             allowing(serviceRegistryMock).getFactory(AntBuilder); will(returnValue(antBuilderFactoryMock))
             allowing(serviceRegistryMock).get(PluginContainer); will(returnValue(pluginContainerMock))
@@ -173,11 +140,11 @@ class DefaultProjectTest {
             allowing(serviceRegistryMock).get(StandardOutputCapture); will(returnValue(context.mock(StandardOutputCapture)))
             allowing(serviceRegistryMock).get(IProjectRegistry); will(returnValue(projectRegistry))
             allowing(serviceRegistryMock).get(DependencyMetaDataProvider); will(returnValue(dependencyMetaDataProviderMock))
-            allowing(serviceRegistryMock).get(FileResolver); will(returnValue([:] as FileResolver))
-            allowing(serviceRegistryMock).get(ClassGenerator); will(returnValue(new AsmBackedClassGenerator()))
-            allowing(serviceRegistryMock).get(FileOperations);
-            will(returnValue(fileOperationsMock))
-            allowing(serviceRegistryMock).get(ScriptPluginFactory); will(returnValue([:] as ScriptPluginFactory))
+            allowing(serviceRegistryMock).get(FileResolver); will(returnValue([toString: { -> "file resolver" }] as FileResolver))
+            allowing(serviceRegistryMock).get(Instantiator); will(returnValue(instantiatorMock))
+            allowing(serviceRegistryMock).get(FileOperations); will(returnValue(fileOperationsMock))
+            allowing(serviceRegistryMock).get(ProcessOperations); will(returnValue(processOperationsMock))
+            allowing(serviceRegistryMock).get(ScriptPluginFactory); will(returnValue([toString: { -> "script plugin factory" }] as ScriptPluginFactory))
             Object listener = context.mock(ProjectEvaluationListener)
             ignoring(listener)
             allowing(build).getProjectEvaluationBroadcaster();
@@ -185,7 +152,7 @@ class DefaultProjectTest {
         }
 
         // TODO - don't decorate the project objects
-        ClassGenerator classGenerator = new AsmBackedClassGenerator()
+        AsmBackedClassGenerator classGenerator = new AsmBackedClassGenerator()
         project = classGenerator.newInstance(DefaultProject.class, 'root', null, rootDir, script, build, projectServiceRegistryFactoryMock);
         child1 = classGenerator.newInstance(DefaultProject.class, "child1", project, new File("child1"), script, build, projectServiceRegistryFactoryMock)
         project.addChildProject(child1)
@@ -197,14 +164,6 @@ class DefaultProjectTest {
             projectRegistry.addProject(it)
         }
     }
-
-  @Test void testRepositories() {
-      context.checking {
-          allowing(repositoryHandlerFactoryMock).create(); will(returnValue(repositoryHandlerMock))
-          ignoring(repositoryHandlerMock)
-      }
-      assertThat(project.createRepositoryHandler(), sameInstance(repositoryHandlerMock))
-  }
 
   @Ignore void testArtifacts() {
         boolean called = false;
@@ -265,11 +224,9 @@ class DefaultProjectTest {
         assertNotNull(project.convention)
         assertEquals([], project.getDefaultTasks())
         assert project.configurations.is(configurationContainerMock)
-        assert project.repositoryHandlerFactory.is(repositoryHandlerFactoryMock)
         assertSame(repositoryHandlerMock, project.repositories)
         assert projectRegistry.is(project.projectRegistry)
         assertFalse project.state.executed
-        assertEquals DefaultProject.DEFAULT_BUILD_DIR_NAME, project.buildDirName
     }
 
     @Test public void testNullVersionAndStatus() {
@@ -370,6 +327,36 @@ class DefaultProjectTest {
         project.projectEvaluator = mockReader1
         child1.projectEvaluator = mockReader2
         project.evaluate()
+        assertTrue mockReader1Called
+        assertTrue mockReader2Finished
+    }
+
+    @Test
+    void testEvaluationDependsOnChildren() {
+        boolean child1MockReaderFinished = false
+        boolean child2MockReaderFinished = false
+        boolean mockReader1Called = false
+        final ProjectEvaluator mockReader1 = [evaluate: {DefaultProject project, state ->
+            project.evaluationDependsOnChildren()
+            assertTrue(child1MockReaderFinished)
+            assertTrue(child2MockReaderFinished)
+            mockReader1Called = true
+            testScript
+        }] as ProjectEvaluator
+        final ProjectEvaluator mockReader2 = [
+                evaluate: {DefaultProject project, state ->
+                    child1MockReaderFinished = true
+                    testScript
+                }] as ProjectEvaluator
+        final ProjectEvaluator mockReader3 = [
+                evaluate: {DefaultProject project, state ->
+                    child2MockReaderFinished = true
+                    testScript
+                }] as ProjectEvaluator
+        project.projectEvaluator = mockReader1
+        child1.projectEvaluator = mockReader2
+        child2.projectEvaluator = mockReader3
+        project.evaluate();
         assertTrue mockReader1Called
     }
 
@@ -499,46 +486,6 @@ class DefaultProjectTest {
         project.defaultTasks("a", null);
     }
 
-    @Test public void testCreateTaskWithName() {
-        context.checking {
-            one(taskContainerMock).add([name: TEST_TASK_NAME]); will(returnValue(testTask))
-        }
-        assertSame(testTask, project.createTask(TEST_TASK_NAME));
-    }
-
-    @Test public void testCreateTaskWithNameAndArgs() {
-        Map testArgs = [a: 'b']
-        context.checking {
-            one(taskContainerMock).add(testArgs + [name: TEST_TASK_NAME]); will(returnValue(testTask))
-        }
-        assertSame(testTask, project.createTask(testArgs, TEST_TASK_NAME));
-    }
-
-    @Test public void testCreateTaskWithNameAndAction() {
-        Action<Task> testAction = {} as Action
-        context.checking {
-            one(taskContainerMock).add([name: TEST_TASK_NAME, action: testAction]); will(returnValue(testTask))
-        }
-        assertSame(testTask, project.createTask(TEST_TASK_NAME, testAction));
-    }
-
-    @Test public void testCreateTaskWithNameAndClosureAction() {
-        Closure testAction = {}
-        context.checking {
-            one(taskContainerMock).add([name: TEST_TASK_NAME, action: testAction]); will(returnValue(testTask))
-        }
-        assertSame(testTask, project.createTask(TEST_TASK_NAME, testAction));
-    }
-
-    @Test public void testCreateTaskWithNameArgsAndActions() {
-        Map testArgs = [a: 'b']
-        Action<Task> testAction = {} as Action
-        context.checking {
-            one(taskContainerMock).add(testArgs + [name: TEST_TASK_NAME, action: testAction]); will(returnValue(testTask))
-        }
-        assertSame(testTask, project.createTask(testArgs, TEST_TASK_NAME, testAction));
-    }
-
     @Test void testCanAccessTaskAsAProjectProperty() {
         assertThat(project.someTask, sameInstance(testTask))
     }
@@ -635,10 +582,14 @@ class DefaultProjectTest {
         expectedMap[childchild] = [] as TreeSet
 
         context.checking {
-            one(taskContainerMock).getAll(); will(returnValue([projectTask] as Set))
-            one(taskContainerMock).getAll(); will(returnValue([child1Task] as Set))
-            one(taskContainerMock).getAll(); will(returnValue([child2Task] as Set))
-            one(taskContainerMock).getAll(); will(returnValue([] as Set))
+            atMost(1).of(taskContainerMock).size(); will(returnValue(1))
+            one(taskContainerMock).iterator(); will(returnValue(([projectTask] as Set).iterator()))
+            atMost(1).of(taskContainerMock).size(); will(returnValue(1))
+            one(taskContainerMock).iterator(); will(returnValue(([child1Task] as Set).iterator()))
+            atMost(1).of(taskContainerMock).size(); will(returnValue(1))
+            one(taskContainerMock).iterator(); will(returnValue(([child2Task] as Set).iterator()))
+            atMost(1).of(taskContainerMock).size(); will(returnValue(0))
+            one(taskContainerMock).iterator(); will(returnValue(([] as Set).iterator()))
         }
 
         assertEquals(expectedMap, project.getAllTasks(true))
@@ -651,7 +602,8 @@ class DefaultProjectTest {
         expectedMap[project] = [projectTask] as TreeSet
 
         context.checking {
-            one(taskContainerMock).getAll(); will(returnValue([projectTask] as Set))
+            allowing(taskContainerMock).size(); will(returnValue(1))
+            one(taskContainerMock).iterator(); will(returnValue(([projectTask] as Set).iterator()))
         }
 
         assertEquals(expectedMap, project.getAllTasks(false))
@@ -752,13 +704,12 @@ def scriptMethod(Closure closure) {
     }
 
     @Test void testSetPropertyAndPropertyMissingWithConventionProperty() {
-        String propertyName = 'conv'
         String expectedValue = 'somevalue'
         project.convention.plugins.test = new TestConvention()
-        project."$propertyName" = expectedValue
-        assertEquals(expectedValue, project."$propertyName")
-        assertEquals(expectedValue, project.convention."$propertyName")
-        assertEquals(expectedValue, child1."$propertyName")
+        project.conv = expectedValue
+        assertEquals(expectedValue, project.conv)
+        assertEquals(expectedValue, project.convention.plugins.test.conv)
+        assertEquals(expectedValue, child1.conv)
     }
 
     @Test void testSetPropertyAndPropertyMissingWithProjectAndConventionProperty() {
@@ -791,11 +742,7 @@ def scriptMethod(Closure closure) {
         assertFalse(child1.hasProperty(propertyName))
 
         project.convention.plugins.test = new FieldPosition(0)
-        project.convention."$propertyName" = 5
-        assertTrue(project.hasProperty(propertyName))
-        assertTrue(child1.hasProperty(propertyName))
-        project.convention = new DefaultConvention()
-        project."$propertyName" = 4
+        project."$propertyName" = 5
         assertTrue(project.hasProperty(propertyName))
         assertTrue(child1.hasProperty(propertyName))
     }
@@ -812,13 +759,6 @@ def scriptMethod(Closure closure) {
         assertEquals(properties.name, 'root')
         assertEquals(properties.additional, 'additional')
         assertSame(properties['someTask'], testTask)
-    }
-
-    @Test void testAdditionalProperty() {
-        String expectedPropertyName = 'somename'
-        String expectedPropertyValue = 'somevalue'
-        project.additionalProperties[expectedPropertyName] = expectedPropertyValue
-        assertEquals(project."$expectedPropertyName", expectedPropertyValue)
     }
 
     @Test void testAdditionalPropertiesAreInheritable() {
@@ -991,22 +931,6 @@ def scriptMethod(Closure closure) {
     }
 
     @Test
-    void disableStandardOutputCapture() {
-        context.checking {
-            one(loggingManagerMock).disableStandardOutputCapture()
-        }
-        project.disableStandardOutputCapture()
-    }
-
-    @Test
-    void captureStandardOutput() {
-        context.checking {
-            one(loggingManagerMock).captureStandardOutput(LogLevel.DEBUG)
-        }
-        project.captureStandardOutput(LogLevel.DEBUG)
-    }
-
-    @Test
     void configure() {
         Point expectedPoint = new Point(4, 3)
         Point actualPoint = project.configure(new Point()) {
@@ -1057,12 +981,14 @@ def scriptMethod(Closure closure) {
     }
 
     @Test void createsADomainObjectContainer() {
-        assertThat(project.container(String.class), instanceOf(DefaultAutoCreateDomainObjectContainer.class))
-        assertThat(project.container(String.class), instanceOf(IConventionAware.class))
-
-        assertThat(project.container(String.class, context.mock(NamedDomainObjectFactory.class)), instanceOf(DefaultAutoCreateDomainObjectContainer.class))
-
-        assertThat(project.container(String.class, { }), instanceOf(DefaultAutoCreateDomainObjectContainer.class))
+        def container = context.mock(FactoryNamedDomainObjectContainer)
+        context.checking {
+            allowing(instantiatorMock).newInstance(withParam(equalTo(FactoryNamedDomainObjectContainer)), withParam(notNullValue()))
+            will(returnValue(container))
+        }
+        assertThat(project.container(String.class), sameInstance(container))
+        assertThat(project.container(String.class, context.mock(NamedDomainObjectFactory.class)), sameInstance(container))
+        assertThat(project.container(String.class, { }), sameInstance(container))
     }
 
 }

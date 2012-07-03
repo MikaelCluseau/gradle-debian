@@ -25,7 +25,8 @@ import org.gradle.util.TestFile
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import static org.junit.Assert.*
+import static org.junit.Assert.assertEquals
+import org.gradle.api.internal.artifacts.ivyservice.DefaultCacheLockingManager
 
 /**
  * @author Hans Dockter
@@ -45,42 +46,102 @@ class CacheProjectIntegrationTest {
 
     @Before
     public void setUp() {
+        // Use own home dir so we don't blast the shared one when we run with -C rebuild
+        dist.requireOwnUserHomeDir()
+
         String version = GradleVersion.current().version
         projectDir = dist.getTestDir().file("project")
         projectDir.mkdirs()
         userHomeDir = dist.getUserHomeDir()
         buildFile = projectDir.file('build.gradle')
         ScriptSource source = new UriScriptSource("build file", buildFile)
-        propertiesFile = userHomeDir.file("caches/$version/scripts/$source.className/cache.properties")
-        classFile = userHomeDir.file("caches/$version/scripts/$source.className/no_buildscript_ProjectScript/${source.className}.class")
-        artifactsCache = projectDir.file(".gradle/$version/taskArtifacts/cache.bin")
+        propertiesFile = userHomeDir.file("caches/$version/scripts/$source.className/ProjectScript/no_buildscript/cache.properties")
+        classFile = userHomeDir.file("caches/$version/scripts/$source.className/ProjectScript/no_buildscript/classes/${source.className}.class")
+        artifactsCache = projectDir.file(".gradle/$version/taskArtifacts/taskArtifacts.bin")
     }
 
     @Test
-    public void cachesBuildScript() {
+    public void "caches compiled build script"() {
         createLargeBuildScript()
         testBuild("hello1", "Hello 1")
         TestFile.Snapshot classFileSnapshot = classFile.snapshot()
-        TestFile.Snapshot artifactsCacheSnapshot = artifactsCache.snapshot()
 
         testBuild("hello2", "Hello 2")
         classFile.assertHasNotChangedSince(classFileSnapshot)
-        artifactsCache.assertHasNotChangedSince(artifactsCacheSnapshot)
 
         modifyLargeBuildScript()
         testBuild("newTask", "I am new")
         classFile.assertHasChangedSince(classFileSnapshot)
-        artifactsCache.assertHasNotChangedSince(artifactsCacheSnapshot)
         classFileSnapshot = classFile.snapshot()
+
+        testBuild("newTask", "I am new", "--recompile-scripts")
+        classFile.assertHasChangedSince(classFileSnapshot)
+    }
+
+    @Test
+    public void "caches incremental build state"() {
+        createLargeBuildScript()
+        testBuild("hello1", "Hello 1")
+        TestFile.Snapshot artifactsCacheSnapshot = artifactsCache.snapshot()
+
+        testBuild("hello1", "Hello 1")
+        artifactsCache.assertHasNotChangedSince(artifactsCacheSnapshot)
+
+        testBuild("hello2", "Hello 2")
+        artifactsCache.assertHasChangedSince(artifactsCacheSnapshot)
         artifactsCacheSnapshot = artifactsCache.snapshot()
 
-        testBuild("newTask", "I am new", "-Crebuild")
-        classFile.assertHasChangedSince(classFileSnapshot)
+        testBuild("hello2", "Hello 2", "-rerun-tasks")
         artifactsCache.assertHasChangedSince(artifactsCacheSnapshot)
     }
 
+    @Test
+    public void "does not rebuild artifact cache when run with --recompile-scripts"() {
+        createLargeBuildScript()
+        testBuild("hello1", "Hello 1")
+
+        TestFile dependenciesCache = findDependencyCacheDir()
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+
+        modifyLargeBuildScript()
+        testBuild("newTask", "I am new", "--recompile-scripts")
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+    }
+
+    @Test
+    public void "does not rebuild artifact cache when run with --cache rebuild"() {
+        createLargeBuildScript()
+        testBuild("hello1", "Hello 1")
+
+        TestFile dependenciesCache = findDependencyCacheDir()
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+
+        modifyLargeBuildScript()
+        testBuild("newTask", "I am new", "-Crebuild")
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+    }
+
+    @Test
+    public void "does not rebuild artifact cache when run with --rerun-tasks"() {
+        createLargeBuildScript()
+        testBuild("hello1", "Hello 1")
+
+        TestFile dependenciesCache = findDependencyCacheDir()
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+
+        modifyLargeBuildScript()
+        testBuild("newTask", "I am new", "--rerun-tasks")
+        assert dependenciesCache.isDirectory() && dependenciesCache.listFiles().length > 0
+    }
+
+    private TestFile findDependencyCacheDir() {
+        def cacheVersion = DefaultCacheLockingManager.CACHE_LAYOUT_VERSION
+        def resolverArtifactCache = new TestFile(userHomeDir.file("caches/artifacts-${cacheVersion}/filestore"))
+        return resolverArtifactCache.file("commons-io/commons-io/")
+    }
+
     private def testBuild(String taskName, String expected, String... args) {
-        executer.inDirectory(projectDir).withTasks(taskName).withArguments(args).withQuietLogging().run()
+        executer.inDirectory(projectDir).withTasks(taskName).withArguments(args).run()
         assertEquals(expected, projectDir.file(TEST_FILE).text)
         classFile.assertIsFile()
         propertiesFile.assertIsFile()
@@ -92,12 +153,22 @@ class CacheProjectIntegrationTest {
 
     def createLargeBuildScript() {
         File buildFile = projectDir.file('build.gradle')
-        String content = ""
+        String content = """
+repositories { mavenCentral() }
+configurations { compile }
+dependencies { compile 'commons-io:commons-io:1.4@jar' }
+"""
+
         50.times {i ->
-            content += """task 'hello$i' << {
+            content += """
+task 'hello$i' {
     File file = file('$TEST_FILE')
-    file.parentFile.mkdirs()
-    file.write('Hello $i')
+    outputs.file file
+    doLast {
+        configurations.compile.resolve()
+        file.parentFile.mkdirs()
+        file.write('Hello $i')
+    }
 }
 
 void someMethod$i() {
@@ -112,10 +183,17 @@ void someMethod$i() {
     def void modifyLargeBuildScript() {
         File buildFile = projectDir.file('build.gradle')
         String newContent = buildFile.text + """
-task newTask << {
+configurations { other }
+dependencies { other 'commons-lang:commons-lang:2.6@jar' }
+
+task newTask {
     File file = file('$TEST_FILE')
-    file.parentFile.mkdirs()
-    file.write('I am new')
+    outputs.file file
+    doLast {
+        configurations.other.resolve()
+        file.parentFile.mkdirs()
+        file.write('I am new')
+    }
 }
 """
         buildFile.write(newContent)

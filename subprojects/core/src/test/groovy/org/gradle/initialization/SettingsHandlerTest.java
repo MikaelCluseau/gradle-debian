@@ -19,7 +19,9 @@ import org.gradle.StartParameter;
 import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.SettingsInternal;
 import org.gradle.api.internal.project.IProjectRegistry;
+import org.gradle.util.GFileUtils;
 import org.gradle.util.MultiParentClassLoader;
+import org.gradle.util.WrapUtil;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -33,8 +35,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Hans Dockter
@@ -44,9 +46,8 @@ public class SettingsHandlerTest {
         setImposteriser(ClassImposteriser.INSTANCE);
     }};
     private GradleInternal gradle = context.mock(GradleInternal.class);
-    private IGradlePropertiesLoader gradlePropertiesLoader = context.mock(IGradlePropertiesLoader.class);
     private SettingsInternal settings = context.mock(SettingsInternal.class);
-    private SettingsLocation settingsLocation = new SettingsLocation(new File("someDir"), null);
+    private SettingsLocation settingsLocation = new SettingsLocation(GFileUtils.canonicalise(new File("someDir")), null);
     private StartParameter startParameter = new StartParameter();
     private URLClassLoader urlClassLoader = new URLClassLoader(new URL[0]);
     private ISettingsFinder settingsFinder = context.mock(ISettingsFinder.class);
@@ -64,17 +65,26 @@ public class SettingsHandlerTest {
                     settingsLocation.getSettingsDir(), BaseSettings.DEFAULT_BUILD_SRC_DIR))));
             will(returnValue(urlClassLoader));
         }});
-        assertThat(settingsHandler.findAndLoadSettings(gradle, gradlePropertiesLoader), sameInstance(settings));
+        assertThat(settingsHandler.findAndLoadSettings(gradle), sameInstance(settings));
     }
 
     private void prepareForExistingSettings() {
-        final ProjectSpec projectSpec = context.mock(ProjectSpec.class);
         final IProjectRegistry projectRegistry = context.mock(IProjectRegistry.class);
-        startParameter.setDefaultProjectSelector(projectSpec);
+        final DefaultProjectDescriptor projectDescriptor = context.mock(DefaultProjectDescriptor.class);
+        startParameter.setCurrentDir(settingsLocation.getSettingsDir());
 
         context.checking(new Expectations() {{
             allowing(settings).getProjectRegistry();
             will(returnValue(projectRegistry));
+
+            allowing(projectRegistry).getAllProjects();
+            will(returnValue(WrapUtil.toSet(projectDescriptor)));
+
+            allowing(projectDescriptor).getProjectDir();
+            will(returnValue(settingsLocation.getSettingsDir()));
+
+            allowing(projectDescriptor).getBuildFile();
+            will(returnValue(new File(settingsLocation.getSettingsDir(), "build.gradle")));
 
             allowing(settings).getClassLoader();
             will(returnValue(urlClassLoader));
@@ -82,17 +92,13 @@ public class SettingsHandlerTest {
             allowing(gradle).getScriptClassLoader();
             will(returnValue(scriptClassLoader));
 
-            allowing(projectSpec).containsProject(projectRegistry);
-            will(returnValue(true));
-
             allowing(gradle).getStartParameter();
             will(returnValue(startParameter));
 
             allowing(settingsFinder).find(startParameter);
             will(returnValue(settingsLocation));
 
-            one(settingsProcessor).process(gradle, settingsLocation, urlClassLoader,
-                    startParameter, gradlePropertiesLoader);
+            one(settingsProcessor).process(gradle, settingsLocation, urlClassLoader, startParameter);
             will(returnValue(settings));
 
             one(scriptClassLoader).addParent(urlClassLoader);

@@ -16,17 +16,22 @@
 
 package org.gradle.messaging.dispatch;
 
+import org.gradle.internal.UncheckedException;
 import org.gradle.messaging.concurrent.AsyncStoppable;
-import org.gradle.util.UncheckedException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * <p>Receives messages asynchronously. One or more {@link Receive} instances can use used as a source of messages.
- * Messages are sent to a {@link Dispatch} </p>
+ * <p>Receives messages asynchronously. One or more {@link Receive} instances can use used as a source of messages. Messages are sent to a {@link Dispatch} </p>
+ * 
+ * <p>It is also possible to specify an <code>onReceiversExhausted</code> Runnable callback that will be run when all of the given receivers
+ * have been exhausted of messages. However, the current implementation is flawed in that this may erroneously fire if the first receiver
+ * is exhausted before the second starts.
  */
 public class AsyncReceive<T> implements AsyncStoppable {
     private enum State {
@@ -36,15 +41,45 @@ public class AsyncReceive<T> implements AsyncStoppable {
     private final Lock lock = new ReentrantLock();
     private final Condition condition = lock.newCondition();
     private final Executor executor;
-    private final Dispatch<? super T> dispatch;
+    private final List<Dispatch<? super T>> dispatches = new ArrayList<Dispatch<? super T>>();
+    private final Runnable onReceiversExhausted;
     private int receivers;
     private State state = State.Init;
 
-    public AsyncReceive(Executor executor, final Dispatch<? super T> dispatch) {
-        this.executor = executor;
-        this.dispatch = dispatch;
+    public AsyncReceive(Executor executor) {
+        this(executor, (Runnable)null);
     }
 
+    public AsyncReceive(Executor executor, Runnable onReceiversExhausted) {
+        this.executor = executor;
+        this.onReceiversExhausted = onReceiversExhausted;
+    }
+
+    public AsyncReceive(Executor executor, final Dispatch<? super T> dispatch) {
+        this(executor, dispatch, null);
+    }
+
+    public AsyncReceive(Executor executor, final Dispatch<? super T> dispatch, Runnable onReceiversExhausted) {
+        this(executor, onReceiversExhausted);
+        dispatchTo(dispatch);
+    }
+
+    /**
+     * Starts dispatching to the given dispatch. The dispatch does not need be thread-safe.
+     */
+    public void dispatchTo(final Dispatch<? super T> dispatch) {
+        lock.lock();
+        try {
+            dispatches.add(dispatch);
+            condition.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Starts receiving from the given receive. The receive does not need to be thread-safe.
+     */
     public void receiveFrom(final Receive<? extends T> receive) {
         onReceiveThreadStart();
         executor.execute(new Runnable() {
@@ -74,6 +109,9 @@ public class AsyncReceive<T> implements AsyncStoppable {
         lock.lock();
         try {
             receivers--;
+            if (receivers == 0 && onReceiversExhausted != null) {
+                onReceiversExhausted.run();
+            }
             condition.signalAll();
         } finally {
             lock.unlock();
@@ -82,20 +120,39 @@ public class AsyncReceive<T> implements AsyncStoppable {
 
     private void receiveMessages(Receive<? extends T> receive) {
         while (true) {
-            T message = receive.receive();
-            if (message == null) {
-                return;
-            }
-
-            dispatch.dispatch(message);
-
+            Dispatch<? super T> dispatch;
             lock.lock();
             try {
+                while (dispatches.isEmpty() && state == State.Init) {
+                    try {
+                        condition.await();
+                    } catch (InterruptedException e) {
+                        throw UncheckedException.throwAsUncheckedException(e);
+                    }
+                }
                 if (state != State.Init) {
                     return;
                 }
+                dispatch = dispatches.remove(0);
             } finally {
                 lock.unlock();
+            }
+
+            try {
+                T message = receive.receive();
+                if (message == null) {
+                    return;
+                }
+
+                dispatch.dispatch(message);
+            } finally {
+                lock.lock();
+                try {
+                    dispatches.add(dispatch);
+                    condition.signalAll();
+                } finally {
+                    lock.unlock();
+                }
             }
         }
     }
@@ -105,6 +162,9 @@ public class AsyncReceive<T> implements AsyncStoppable {
         condition.signalAll();
     }
 
+    /**
+     * Stops receiving new messages.
+     */
     public void requestStop() {
         lock.lock();
         try {
@@ -122,6 +182,9 @@ public class AsyncReceive<T> implements AsyncStoppable {
         }
     }
 
+    /**
+     * Stops receiving new messages. Blocks until all queued messages have been delivered.
+     */
     public void stop() {
         lock.lock();
         try {

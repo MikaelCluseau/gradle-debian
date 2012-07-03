@@ -3,8 +3,8 @@ apply plugin: 'java'
 defaultTasks 'javaexecTask', 'javaexecByMethod'
 
 task javaexecTask(type: JavaExec, dependsOn: classes) {
-    testFile = file("$buildDir/$name")
-    classpath(sourceSets.main.classesDir)
+    ext.testFile = file("$buildDir/$name")
+    classpath(sourceSets.main.output.classesDir)
     main = 'org.gradle.TestMain'
     args projectDir, testFile
     doLast {
@@ -13,10 +13,10 @@ task javaexecTask(type: JavaExec, dependsOn: classes) {
 }
 
 task javaexecByMethod(dependsOn: classes) {
-    testFile = file("$buildDir/$name")
+    ext.testFile = file("$buildDir/$name")
     doFirst {
         javaexec {
-            classpath(sourceSets.main.classesDir)
+            classpath(sourceSets.main.output.classesDir)
             main = 'org.gradle.TestMain'
             args projectDir, testFile
         }

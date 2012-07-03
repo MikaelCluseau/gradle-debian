@@ -22,31 +22,26 @@ import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.internal.file.DefaultSourceDirectorySet;
 import org.gradle.api.internal.file.FileResolver;
-import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetOutput;
 import org.gradle.util.ConfigureUtil;
 import org.gradle.util.GUtil;
 
-import java.io.File;
-import java.util.concurrent.Callable;
-
 public class DefaultSourceSet implements SourceSet {
     private final String name;
-    private final FileResolver fileResolver;
-    private File classesDir;
     private FileCollection compileClasspath;
     private FileCollection runtimeClasspath;
     private final SourceDirectorySet javaSource;
     private final SourceDirectorySet allJavaSource;
     private final SourceDirectorySet resources;
-    private final DefaultConfigurableFileCollection classes;
     private final String displayName;
     private final SourceDirectorySet allSource;
 
-    public DefaultSourceSet(String name, FileResolver fileResolver, TaskResolver taskResolver) {
+    private DefaultSourceSetOutput output;
+
+    public DefaultSourceSet(String name, FileResolver fileResolver) {
         this.name = name;
-        this.fileResolver = fileResolver;
         displayName = GUtil.toWords(this.name);
 
         String javaSrcDisplayName = String.format("%s Java source", displayName);
@@ -70,13 +65,6 @@ public class DefaultSourceSet implements SourceSet {
         allSource = new DefaultSourceDirectorySet(allSourceDisplayName, fileResolver);
         allSource.source(resources);
         allSource.source(javaSource);
-
-        String classesDisplayName = String.format("%s classes", displayName);
-        classes = new DefaultConfigurableFileCollection(classesDisplayName, fileResolver, taskResolver, new Callable() {
-            public Object call() throws Exception {
-                return getClassesDir();
-            }
-        });
     }
 
     public String getName() {
@@ -122,20 +110,24 @@ public class DefaultSourceSet implements SourceSet {
         return name.equals(SourceSet.MAIN_SOURCE_SET_NAME) ? "" : GUtil.toCamelCase(name);
     }
 
-    public File getClassesDir() {
-        return classesDir;
+    public String getCompileConfigurationName() {
+        return StringUtils.uncapitalize(String.format("%sCompile", getTaskBaseName()));
     }
 
-    public void setClassesDir(File classesDir) {
-        this.classesDir = fileResolver.resolve(classesDir);
+    public String getRuntimeConfigurationName() {
+        return StringUtils.uncapitalize(String.format("%sRuntime", getTaskBaseName()));
     }
 
-    public FileCollection getClasses() {
-        return classes;
+    public SourceSetOutput getOutput() {
+        return output;
+    }
+
+    public void setClasses(DefaultSourceSetOutput classes) {
+        this.output = classes;
     }
 
     public SourceSet compiledBy(Object... taskPaths) {
-        classes.builtBy(taskPaths);
+        output.builtBy(taskPaths);
         return this;
     }
 

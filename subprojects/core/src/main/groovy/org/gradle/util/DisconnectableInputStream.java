@@ -15,6 +15,7 @@
  */
 package org.gradle.util;
 
+import org.gradle.internal.UncheckedException;
 import org.gradle.messaging.concurrent.ExecutorFactory;
 
 import java.io.IOException;
@@ -99,7 +100,7 @@ public class DisconnectableInputStream extends BulkReadInputStream {
                     } finally {
                         lock.unlock();
                     }
-                    throw UncheckedException.asUncheckedException(throwable);
+                    throw UncheckedException.throwAsUncheckedException(throwable);
                 }
             }
         });
@@ -126,7 +127,7 @@ public class DisconnectableInputStream extends BulkReadInputStream {
             assert writePos >= readPos;
             condition.signalAll();
         } catch (InterruptedException e) {
-            throw UncheckedException.asUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         } finally {
             lock.unlock();
         }

@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
-
 package org.gradle.plugins.ide.eclipse
 
+import org.gradle.integtests.fixtures.ExecutionResult
 import org.gradle.plugins.ide.AbstractIdeIntegrationTest
 
 class AbstractEclipseIntegrationTest extends AbstractIdeIntegrationTest {
-    protected runEclipseTask(settingsScript = "rootProject.name = 'root'", buildScript) {
+    protected ExecutionResult runEclipseTask(settingsScript = "rootProject.name = 'root'", buildScript) {
         runTask("eclipse", settingsScript, buildScript)
     }
 
@@ -69,5 +67,9 @@ class AbstractEclipseIntegrationTest extends AbstractIdeIntegrationTest {
         def classpath = parseClasspathFile()
         def libs = findEntries(classpath, "lib")
         assert libs*.@path*.text().collect { new File(it).name } as Set == filenames as Set
+    }
+
+    protected EclipseClasspathFixture getClasspath() {
+        return new EclipseClasspathFixture(distribution.testDir, distribution.userHomeDir)
     }
 }

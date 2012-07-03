@@ -19,15 +19,20 @@ import org.gradle.api.Task;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.maven.Conf2ScopeMapping;
 import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer;
+import org.gradle.api.artifacts.maven.MavenResolver;
+import org.gradle.api.internal.plugins.DslObject;
 import org.gradle.api.internal.project.DefaultProject;
+import org.gradle.api.tasks.Upload;
 import org.gradle.util.HelperUtil;
+import org.hamcrest.Matchers;
+
+import java.io.File;
+import java.util.Set;
+
 import static org.gradle.util.WrapUtil.toSet;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-
-import java.util.Set;
 
 /**
  * @author Hans Dockter
@@ -35,6 +40,22 @@ import java.util.Set;
 public class MavenPluginTest {
     private final DefaultProject project = HelperUtil.createRootProject();
     private final MavenPlugin mavenPlugin = new MavenPlugin();
+
+    @org.junit.Test
+    public void addsConventionToProject() {
+        mavenPlugin.apply(project);
+
+        assertThat(project.getConvention().getPlugin(MavenPluginConvention.class), Matchers.<MavenPluginConvention>notNullValue());
+    }
+    
+    @org.junit.Test
+    public void defaultConventionValues() {
+        mavenPlugin.apply(project);
+
+        MavenPluginConvention convention = project.getConvention().getPlugin(MavenPluginConvention.class);
+        assertThat(convention.getMavenPomDir(), equalTo(new File(project.getBuildDir(), "poms")));
+        assertThat(convention.getConf2ScopeMappings(), notNullValue());
+    }
 
     @org.junit.Test
     public void applyWithWarPlugin() {
@@ -51,7 +72,7 @@ public class MavenPluginTest {
     }
 
     private void assertHasConfigurationAndMapping(DefaultProject project, String configurationName, String scope, int priority) {
-        Conf2ScopeMappingContainer scopeMappingContainer = project.getRepositories().getMavenScopeMappings();
+        Conf2ScopeMappingContainer scopeMappingContainer = project.getConvention().getPlugin(MavenPluginConvention.class).getConf2ScopeMappings();
         ConfigurationContainer configurationContainer = project.getConfigurations();
         Conf2ScopeMapping mapping = scopeMappingContainer.getMappings().get(configurationContainer.getByName(configurationName));
         assertThat(mapping.getScope(), equalTo(scope));
@@ -74,6 +95,29 @@ public class MavenPluginTest {
         Task task = project.getTasks().getByName(MavenPlugin.INSTALL_TASK_NAME);
         Set dependencies = task.getTaskDependencies().getDependencies(task);
         assertEquals(dependencies, toSet(project.getTasks().getByName(JavaPlugin.JAR_TASK_NAME)));
+    }
+
+    @org.junit.Test
+    public void addsAndConfiguresAnInstallTask() {
+        project.getPlugins().apply(JavaPlugin.class);
+        mavenPlugin.apply(project);
+
+        Upload task = project.getTasks().withType(Upload.class).getByName(MavenPlugin.INSTALL_TASK_NAME);
+        assertThat(task.getRepositories().get(0), instanceOf(MavenResolver.class));
+    }
+
+    @org.junit.Test
+    public void addsConventionMappingToTheRepositoryContainerOfEachUploadTask() {
+        project.getPlugins().apply(JavaPlugin.class);
+        mavenPlugin.apply(project);
+
+        Upload task = project.getTasks().withType(Upload.class).getByName(MavenPlugin.INSTALL_TASK_NAME);
+        MavenRepositoryHandlerConvention convention = new DslObject(task.getRepositories()).getConvention().getPlugin(MavenRepositoryHandlerConvention.class);
+        assertThat(convention, notNullValue());
+
+        task = project.getTasks().add("customUpload", Upload.class);
+        convention = new DslObject(task.getRepositories()).getConvention().getPlugin(MavenRepositoryHandlerConvention.class);
+        assertThat(convention, notNullValue());
     }
 
     @org.junit.Test

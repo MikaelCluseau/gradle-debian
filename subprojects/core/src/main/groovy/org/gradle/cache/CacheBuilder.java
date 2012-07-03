@@ -18,34 +18,60 @@ package org.gradle.cache;
 
 import java.util.Map;
 
-public interface CacheBuilder {
+public interface CacheBuilder<T> {
+    enum VersionStrategy {
+        /**
+         * A separate cache instance for each Gradle version. This is the default.
+         */
+        CachePerVersion,
+        /**
+         * A single cache instance shared by all Gradle versions. It is the caller's responsibility to make sure that this is shared only with
+         * those versions of Gradle that are compatible with the cache implementation and contents.
+         */
+        SharedCache,
+        /**
+         * A single cache instance, which is invalidated when the Gradle version changes.
+         */
+        SharedCacheInvalidateOnVersionChange,
+    }
+
     /**
-     * Specifies the additional key properties for the cache. The cache is treated as invalid if any of the properties
-     * do not match the properties used to create the cache. The default for this is an empty map.
+     * Specifies the additional key properties for the cache. The cache is treated as invalid if any of the properties do not match the properties used to create the cache. The default for this is an
+     * empty map.
      *
      * @param properties additional properties for the cache.
      * @return this
      */
-    CacheBuilder withProperties(Map<String, ?> properties);
+    CacheBuilder<T> withProperties(Map<String, ?> properties);
 
     /**
-     * Specifies the target domain object.  This might be a task, project, or similar. The cache is scoped for the given
-     * target object. The default is to use a globally-scoped cache.
+     * Specifies the target domain object.  This might be a task, project, or similar. The cache is scoped for the given target object. The default is to use a globally-scoped cache.
      *
      * @param target The target domain object which the cache is for.
      * @return this
      */
-    CacheBuilder forObject(Object target);
+    CacheBuilder<T> forObject(Object target);
 
     /**
-     * Invalidates this cache on Gradle version change. The default is to maintain a separate cache for each version.
+     * Specifies the versioning strategy for this cache. The default is {@link VersionStrategy#CachePerVersion}.
      *
+     * @param strategy The strategy
      * @return this
      */
-    CacheBuilder invalidateOnVersionChange();
+    CacheBuilder<T> withVersionStrategy(VersionStrategy strategy);
 
     /**
-     * Creates the cache.
+     * Specifies a cache validator for this cache. If {@link CacheValidator#isValid()} results in false, the Cache is considered as invalid.
+     *
+     * @param validator The validator
+     * @return this
      */
-    PersistentCache open();
+    CacheBuilder<T> withValidator(CacheValidator validator);
+
+    /**
+     * Opens the cache.
+     *
+     * @return The cache.
+     */
+    T open() throws CacheOpenException;
 }

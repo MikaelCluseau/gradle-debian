@@ -15,20 +15,23 @@
  */
 package org.gradle.tooling.internal.provider
 
-import spock.lang.Specification
-import org.gradle.tooling.internal.protocol.BuildOperationParametersVersion1
-import org.gradle.launcher.GradleLauncherActionExecuter
-import org.gradle.logging.LoggingManagerInternal
+import org.gradle.api.logging.LogLevel
 import org.gradle.initialization.GradleLauncherAction
-import org.gradle.api.internal.Factory
+import org.gradle.internal.Factory
+import org.gradle.launcher.exec.GradleLauncherActionExecuter
+import org.gradle.logging.LoggingManagerInternal
+import org.gradle.tooling.internal.provider.input.ProviderOperationParameters
+import spock.lang.Specification
 
 class LoggingBridgingGradleLauncherActionExecuterTest extends Specification {
-    final GradleLauncherActionExecuter<BuildOperationParametersVersion1> target = Mock()
+    final GradleLauncherActionExecuter<ProviderOperationParameters> target = Mock()
     final Factory<LoggingManagerInternal> loggingManagerFactory = Mock()
     final LoggingManagerInternal loggingManager = Mock()
     final GradleLauncherAction<String> action = Mock()
-    final BuildOperationParametersVersion1 parameters = Mock()
-    final LoggingBridgingGradleLauncherActionExecuter executer = new LoggingBridgingGradleLauncherActionExecuter(target, loggingManagerFactory)
+    final ProviderOperationParameters parameters = Mock()
+
+    //declared type-lessly to work around groovy eclipse plugin bug
+    final executer = new LoggingBridgingGradleLauncherActionExecuter(target, loggingManagerFactory)
 
     def configuresLoggingWhileActionIsExecuting() {
         when:
@@ -55,5 +58,17 @@ class LoggingBridgingGradleLauncherActionExecuterTest extends Specification {
         1 * loggingManager.start()
         1 * target.execute(action, parameters) >> {throw failure}
         1 * loggingManager.stop()
+    }
+
+    def "sets log level accordingly"() {
+        given:
+        loggingManagerFactory.create() >> loggingManager
+
+        when:
+        parameters.getBuildLogLevel() >> LogLevel.QUIET
+        executer.execute(action, parameters)
+        
+        then:
+        1 * loggingManager.setLevel(LogLevel.QUIET)
     }
 }

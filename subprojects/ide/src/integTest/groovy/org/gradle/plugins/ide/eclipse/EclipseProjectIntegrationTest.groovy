@@ -20,7 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Author: Szczepan Faber
+ * @author Szczepan Faber
  */
 class EclipseProjectIntegrationTest extends AbstractEclipseIntegrationTest {
 
@@ -52,6 +52,10 @@ eclipse {
 
     linkedResource name: 'linkToFolderFoo', type: 'aFolderFoo', location: '/test/folders/foo'
     linkedResource name: 'linkToUriFoo', type: 'aFooUri', locationUri: 'http://test/uri/foo'
+
+    file {
+      withXml { it.asNode().appendNode('motto', 'Stay happy!') }
+    }
   }
 
   jdt {
@@ -63,7 +67,6 @@ eclipse {
 
         //then
         content = getFile([:], '.project').text
-        println content
 
         def dotProject = parseProjectFile()
         assert dotProject.name.text() == 'someBetterName'
@@ -76,9 +79,109 @@ eclipse {
         contains('linkToFolderFoo', 'aFolderFoo', '/test/folders/foo')
         contains('linkToUriFoo', 'aFooUri', 'http://test/uri/foo')
 
+        contains('<motto>Stay happy!</motto>')
+
         def jdt = parseJdtFile()
         assert jdt.contains('targetPlatform=1.3')
         assert jdt.contains('source=1.4')
+    }
+
+    @Test
+    void enablesBeforeAndWhenHooksForProject() {
+        //given
+        def project = file('.project')
+        project << '''<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>root</name>
+	<comment/>
+	<projects/>
+	<natures>
+		<nature>org.eclipse.jdt.core.javanature</nature>
+		<nature>some.nature.one</nature>
+	</natures>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.jdt.core.javabuilder</name>
+			<arguments/>
+		</buildCommand>
+	</buildSpec>
+	<linkedResources/>
+</projectDescription>'''
+
+        //when
+        runEclipseTask """
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+eclipse {
+  project {
+    file {
+      beforeMerged {
+        assert it.natures.contains('some.nature.one')
+        it.natures << 'some.nature.two'
+      }
+      whenMerged {
+        assert it.natures.contains('some.nature.one')
+        assert it.natures.contains('some.nature.two')
+
+        it.natures << 'some.nature.three'
+      }
+    }
+  }
+}
+        """
+
+        content = getFile([:], '.project').text
+        //then
+
+        contains('some.nature.one', 'some.nature.two', 'some.nature.three')
+    }
+
+    @Test
+    void enablesBeforeAndWhenAndWithPropertiesHooksForJdt() {
+        //given
+        def jdtFile = file('.settings/org.eclipse.jdt.core.prefs')
+        jdtFile << '''
+org.eclipse.jdt.core.compiler.codegen.targetPlatform=1.3
+'''
+
+        //when
+        runEclipseTask """
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+ext.hooks = []
+
+eclipse {
+
+  jdt {
+    file {
+      beforeMerged {
+        hooks << 'beforeMerged'
+      }
+      whenMerged {
+        hooks << 'whenMerged'
+        assert '1.1' != it.targetCompatibility.toString()
+        it.targetCompatibility = JavaVersion.toVersion('1.1')
+      }
+      withProperties {
+        hooks << 'withProperties'
+        it.dummy = 'testValue'
+      }
+    }
+  }
+}
+
+eclipseJdt.doLast() {
+  assert hooks == ['beforeMerged', 'whenMerged', 'withProperties']
+}
+        """
+
+        def jdt = parseJdtFile()
+
+        //then
+        assert jdt.contains('targetPlatform=1.1')
+        assert jdt.contains('dummy=testValue')
     }
 
     protected def contains(String ... contents) {

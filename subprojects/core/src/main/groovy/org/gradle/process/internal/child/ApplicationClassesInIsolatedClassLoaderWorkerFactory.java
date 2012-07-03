@@ -17,10 +17,11 @@
 package org.gradle.process.internal.child;
 
 import org.gradle.api.internal.ClassPathRegistry;
+import org.gradle.messaging.remote.Address;
+import org.gradle.process.JavaExecSpec;
 import org.gradle.process.internal.WorkerProcessBuilder;
 import org.gradle.util.GFileUtils;
 
-import java.io.File;
 import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
@@ -32,19 +33,19 @@ import java.util.concurrent.Callable;
  *
  * <p>Class loader hierarchy:</p>
  * <pre>
- *                              bootstrap
- *                                 |
- *                   +-------------+------------+
- *                   |                          |
- *                 system                   application
- *  (ImplementationClassLoaderWorker, logging)           |
- *                   |                          |
- *                filter                     filter
- *              (logging)               (shared packages)
- *                   |                         |
- *                   +-------------+-----------+
- *                                 |
- *                          implementation
+ *                              jvm bootstrap
+ *                                   |
+ *                   +---------------+----------------+
+ *                   |                                |
+ *               jvm system                       application
+ *  (ImplementationClassLoaderWorker, logging)        |
+ *                   |                                |
+ *                filter                           filter
+ *              (logging)                     (shared packages)
+ *                   |                                |
+ *                   +--------------+-----------------+
+ *                                  |
+ *                            implementation
  *                (ActionExecutionWorker + action implementation)
  * </pre>
  *
@@ -54,11 +55,11 @@ public class ApplicationClassesInIsolatedClassLoaderWorkerFactory implements Wor
     private final String displayName;
     private final WorkerProcessBuilder processBuilder;
     private final Collection<URL> implementationClassPath;
-    private final URI serverAddress;
+    private final Address serverAddress;
     private final ClassPathRegistry classPathRegistry;
 
     public ApplicationClassesInIsolatedClassLoaderWorkerFactory(Object workerId, String displayName, WorkerProcessBuilder processBuilder,
-                                            Collection<URL> implementationClassPath, URI serverAddress,
+                                            Collection<URL> implementationClassPath, Address serverAddress,
                                             ClassPathRegistry classPathRegistry) {
         this.workerId = workerId;
         this.displayName = displayName;
@@ -68,12 +69,12 @@ public class ApplicationClassesInIsolatedClassLoaderWorkerFactory implements Wor
         this.classPathRegistry = classPathRegistry;
     }
 
-    public Collection<File> getSystemClasspath() {
-        return classPathRegistry.getClassPathFiles("WORKER_PROCESS");
+    public void prepareJavaCommand(JavaExecSpec execSpec) {
+        execSpec.classpath(classPathRegistry.getClassPath("WORKER_PROCESS").getAsFiles());
     }
 
     public Callable<?> create() {
-        List<URL> applicationClassPath = GFileUtils.toURLs(processBuilder.getApplicationClasspath());
+        List<URI> applicationClassPath = GFileUtils.toURIs(processBuilder.getApplicationClasspath());
         ActionExecutionWorker injectedWorker = new ActionExecutionWorker(processBuilder.getWorker(), workerId,
                 displayName, serverAddress);
         ImplementationClassLoaderWorker worker = new ImplementationClassLoaderWorker(processBuilder.getLogLevel(),

@@ -26,43 +26,41 @@ import org.gradle.api.logging.StandardOutputListener;
 import org.gradle.configuration.BuildConfigurer;
 import org.gradle.execution.BuildExecuter;
 import org.gradle.logging.LoggingManagerInternal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DefaultGradleLauncher extends GradleLauncher {
     private enum Stage {
         Configure, PopulateTaskGraph, Build
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultGradleLauncher.class);
-
     private final GradleInternal gradle;
     private final SettingsHandler settingsHandler;
-    private final IGradlePropertiesLoader gradlePropertiesLoader;
     private final BuildLoader buildLoader;
     private final BuildConfigurer buildConfigurer;
     private final ExceptionAnalyser exceptionAnalyser;
     private final BuildListener buildListener;
     private final InitScriptHandler initScriptHandler;
     private final LoggingManagerInternal loggingManager;
+    private final ModelConfigurationListener modelConfigurationListener;
+    private final BuildExecuter buildExecuter;
 
     /**
      * Creates a new instance.  Don't call this directly, use {@link #newInstance(org.gradle.StartParameter)} or {@link
      * #newInstance(String...)} instead.  Note that this method is package-protected to discourage it's direct use.
      */
     public DefaultGradleLauncher(GradleInternal gradle, InitScriptHandler initScriptHandler, SettingsHandler settingsHandler,
-                                 IGradlePropertiesLoader gradlePropertiesLoader, BuildLoader buildLoader,
-                                 BuildConfigurer buildConfigurer, BuildListener buildListener,
-                                 ExceptionAnalyser exceptionAnalyser, LoggingManagerInternal loggingManager) {
+                                 BuildLoader buildLoader, BuildConfigurer buildConfigurer, BuildListener buildListener,
+                                 ExceptionAnalyser exceptionAnalyser, LoggingManagerInternal loggingManager,
+                                 ModelConfigurationListener modelConfigurationListener, BuildExecuter buildExecuter) {
         this.gradle = gradle;
         this.initScriptHandler = initScriptHandler;
         this.settingsHandler = settingsHandler;
-        this.gradlePropertiesLoader = gradlePropertiesLoader;
         this.buildLoader = buildLoader;
         this.buildConfigurer = buildConfigurer;
         this.exceptionAnalyser = exceptionAnalyser;
         this.buildListener = buildListener;
         this.loggingManager = loggingManager;
+        this.modelConfigurationListener = modelConfigurationListener;
+        this.buildExecuter = buildExecuter;
     }
 
     public GradleInternal getGradle() {
@@ -130,32 +128,31 @@ public class DefaultGradleLauncher extends GradleLauncher {
         initScriptHandler.executeScripts(gradle);
 
         // Evaluate settings script
-        SettingsInternal settings = settingsHandler.findAndLoadSettings(gradle, gradlePropertiesLoader);
+        SettingsInternal settings = settingsHandler.findAndLoadSettings(gradle);
         buildListener.settingsEvaluated(settings);
 
         // Load build
-        buildLoader.load(settings.getRootProject(), gradle, gradlePropertiesLoader.getGradleProperties());
+        buildLoader.load(settings.getRootProject(), gradle);
         buildListener.projectsLoaded(gradle);
 
         // Configure build
         buildConfigurer.configure(gradle);
         buildListener.projectsEvaluated(gradle);
+        modelConfigurationListener.onConfigure(gradle);
 
         if (upTo == Stage.Configure) {
             return;
         }
 
         // Populate task graph
-        BuildExecuter executer = gradle.getStartParameter().getBuildExecuter();
-        executer.select(gradle);
+        buildExecuter.select(gradle);
 
         if (upTo == Stage.PopulateTaskGraph) {
             return;
         }
 
         // Execute build
-        LOGGER.info(String.format("Starting build for %s.", executer.getDisplayName()));
-        executer.execute();
+        buildExecuter.execute();
 
         assert upTo == Stage.Build;
     }

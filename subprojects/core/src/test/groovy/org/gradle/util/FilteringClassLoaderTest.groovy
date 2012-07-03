@@ -129,4 +129,26 @@ class FilteringClassLoaderTest {
         assertThat(classLoader.getResourceAsStream('org/gradle/util/ClassLoaderTest.txt'), notNullValue())
         assertTrue(classLoader.getResources('org/gradle/util/ClassLoaderTest.txt').hasMoreElements())
     }
+
+    @Test
+    public void passesThroughResourcesWithSpecifiedPrefix() {
+        assertThat(classLoader.getResource('org/gradle/util/ClassLoaderTest.txt'), nullValue())
+
+        classLoader.allowResources('org/gradle')
+
+        assertThat(classLoader.getResource('org/gradle/util/ClassLoaderTest.txt'), notNullValue())
+        assertThat(classLoader.getResourceAsStream('org/gradle/util/ClassLoaderTest.txt'), notNullValue())
+        assertTrue(classLoader.getResources('org/gradle/util/ClassLoaderTest.txt').hasMoreElements())
+    }
+
+    @Test
+    public void passesThroughSpecifiedResources() {
+        assertThat(classLoader.getResource('org/gradle/util/ClassLoaderTest.txt'), nullValue())
+
+        classLoader.allowResource('org/gradle/util/ClassLoaderTest.txt')
+
+        assertThat(classLoader.getResource('org/gradle/util/ClassLoaderTest.txt'), notNullValue())
+        assertThat(classLoader.getResourceAsStream('org/gradle/util/ClassLoaderTest.txt'), notNullValue())
+        assertTrue(classLoader.getResources('org/gradle/util/ClassLoaderTest.txt').hasMoreElements())
+    }
 }

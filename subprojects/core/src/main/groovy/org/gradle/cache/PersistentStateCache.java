@@ -20,7 +20,28 @@ package org.gradle.cache;
  * A persistent store containing an object of type T.
  */
 public interface PersistentStateCache<T> {
+    /**
+     * Fetches the value from this cache. A shared or exclusive lock is held while fetching the value, depending on implementation.
+     */
     T get();
 
+    /**
+     * Sets the value for this cache. An exclusive lock is held while setting the value.
+     */
     void set(T newValue);
+
+    /**
+     * Replaces the value for this cache. An exclusive lock is held while the update action is executing.
+     */
+    void update(UpdateAction<T> updateAction);
+
+    static interface UpdateAction<T> {
+        /**
+         * should return the new value
+         *
+         * @param oldValue, null means there wasn't any value before
+         * @return new value
+         */
+        T update(T oldValue);
+    }
 }

@@ -19,13 +19,14 @@ import org.gradle.StartParameter;
 import org.gradle.api.execution.TaskExecutionGraphListener;
 import org.gradle.api.execution.TaskExecutionListener;
 import org.gradle.api.internal.GradleInternal;
-import org.gradle.api.internal.artifacts.ivyservice.moduleconverter.PublishModuleDescriptorConverter;
-import org.gradle.api.internal.artifacts.repositories.DefaultInternalRepository;
-import org.gradle.api.internal.artifacts.repositories.InternalRepository;
 import org.gradle.api.internal.plugins.DefaultPluginRegistry;
 import org.gradle.api.internal.plugins.PluginRegistry;
+import org.gradle.cache.CacheRepository;
+import org.gradle.execution.BuildExecuter;
+import org.gradle.execution.DefaultBuildExecuter;
 import org.gradle.execution.DefaultTaskGraphExecuter;
 import org.gradle.execution.TaskGraphExecuter;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.listener.ListenerBroadcast;
 import org.gradle.listener.ListenerManager;
 import org.gradle.util.JUnit4GroovyMockery;
@@ -48,15 +49,11 @@ public class GradleInternalServiceRegistryTest {
     private final ServiceRegistry parent = context.mock(ServiceRegistry.class);
     private final GradleInternalServiceRegistry registry = new GradleInternalServiceRegistry(parent, gradle);
     private final StartParameter startParameter = new StartParameter();
-    private final PublishModuleDescriptorConverter publishModuleDescriptorConverter =
-            context.mock(PublishModuleDescriptorConverter.class);
     private final ListenerManager listenerManager = context.mock(ListenerManager.class);
 
     @Before
     public void setUp() {
         context.checking(new Expectations() {{
-            allowing(parent).get(PublishModuleDescriptorConverter.class);
-            will(returnValue(publishModuleDescriptorConverter));
             allowing(parent).get(ListenerManager.class);
             will(returnValue(listenerManager));
             allowing(gradle).getStartParameter();
@@ -86,6 +83,17 @@ public class GradleInternalServiceRegistryTest {
     }
 
     @Test
+    public void providesABuildExecuter() {
+        context.checking(new Expectations(){{
+            allowing(parent).get(CacheRepository.class);
+            will(returnValue(context.mock(CacheRepository.class)));
+        }});
+
+        assertThat(registry.get(BuildExecuter.class), instanceOf(DefaultBuildExecuter.class));
+        assertThat(registry.get(BuildExecuter.class), sameInstance(registry.get(BuildExecuter.class)));
+    }
+
+    @Test
     public void providesATaskGraphExecuter() {
         context.checking(new Expectations() {{
             one(listenerManager).createAnonymousBroadcaster(TaskExecutionGraphListener.class);
@@ -93,13 +101,8 @@ public class GradleInternalServiceRegistryTest {
             one(listenerManager).createAnonymousBroadcaster(TaskExecutionListener.class);
             will(returnValue(new ListenerBroadcast<TaskExecutionListener>(TaskExecutionListener.class)));
         }});
+
         assertThat(registry.get(TaskGraphExecuter.class), instanceOf(DefaultTaskGraphExecuter.class));
         assertThat(registry.get(TaskGraphExecuter.class), sameInstance(registry.get(TaskGraphExecuter.class)));
-    }
-
-    @Test
-    public void providesAnInternalRepository() {
-        assertThat(registry.get(InternalRepository.class), instanceOf(DefaultInternalRepository.class));
-        assertThat(registry.get(InternalRepository.class), sameInstance(registry.get(InternalRepository.class)));
     }
 }

@@ -16,14 +16,18 @@
 package org.gradle.launcher;
 
 import org.gradle.api.internal.ClassPathRegistry;
+import org.gradle.api.internal.DefaultClassPathProvider;
 import org.gradle.api.internal.DefaultClassPathRegistry;
+import org.gradle.api.internal.classpath.DefaultModuleRegistry;
+import org.gradle.util.ClassLoaderFactory;
+import org.gradle.util.ClassPath;
+import org.gradle.util.DefaultClassLoaderFactory;
+import org.gradle.util.MutableURLClassLoader;
 
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 
 public class ProcessBootstrap {
-    void run(String mainClassName, String[] args) {
+    public void run(String mainClassName, String[] args) {
         try {
             runNoExit(mainClassName, args);
             System.exit(0);
@@ -34,14 +38,14 @@ public class ProcessBootstrap {
     }
 
     private void runNoExit(String mainClassName, String[] args) throws Exception {
-        ClassPathRegistry classPathRegistry = new DefaultClassPathRegistry();
-        URL[] antClasspath = classPathRegistry.getClassPathUrls("ANT");
-        URL[] runtimeClasspath = classPathRegistry.getClassPathUrls("GRADLE_RUNTIME");
-        ClassLoader rootClassLoader = ClassLoader.getSystemClassLoader().getParent();
-        URLClassLoader antClassLoader = new URLClassLoader(antClasspath, rootClassLoader);
-        URLClassLoader runtimeClassLoader = new URLClassLoader(runtimeClasspath, antClassLoader);
+        ClassPathRegistry classPathRegistry = new DefaultClassPathRegistry(new DefaultClassPathProvider(new DefaultModuleRegistry()));
+        ClassLoaderFactory classLoaderFactory = new DefaultClassLoaderFactory();
+        ClassPath antClasspath = classPathRegistry.getClassPath("ANT");
+        ClassPath runtimeClasspath = classPathRegistry.getClassPath("GRADLE_RUNTIME");
+        ClassLoader antClassLoader = classLoaderFactory.createIsolatedClassLoader(antClasspath);
+        ClassLoader runtimeClassLoader = new MutableURLClassLoader(antClassLoader, runtimeClasspath);
         Thread.currentThread().setContextClassLoader(runtimeClassLoader);
-        Class mainClass = runtimeClassLoader.loadClass(mainClassName);
+        Class<?> mainClass = runtimeClassLoader.loadClass(mainClassName);
         Method mainMethod = mainClass.getMethod("main", String[].class);
         mainMethod.invoke(null, new Object[]{args});
     }

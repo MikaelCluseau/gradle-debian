@@ -17,12 +17,11 @@
 package org.gradle.initialization;
 
 import org.gradle.CacheUsage;
-import org.gradle.CommandLineArgumentException;
+import org.gradle.RefreshOptions;
 import org.gradle.StartParameter;
-import org.gradle.api.internal.artifacts.ProjectDependenciesBuildInstruction;
 import org.gradle.api.logging.LogLevel;
-import org.gradle.groovy.scripts.UriScriptSource;
-import org.gradle.util.GUtil;
+import org.gradle.cli.CommandLineArgumentException;
+import org.gradle.logging.ShowStacktrace;
 import org.gradle.util.TemporaryFolder;
 import org.gradle.util.TestFile;
 import org.junit.Rule;
@@ -32,9 +31,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import static java.util.Arrays.asList;
 import static org.gradle.util.WrapUtil.*;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -51,22 +50,27 @@ public class DefaultCommandLineConverterTest {
     private File expectedProjectDir = currentDir;
     private List<String> expectedTaskNames = toList();
     private Set<String> expectedExcludedTasks = toSet();
-    private ProjectDependenciesBuildInstruction expectedProjectDependenciesBuildInstruction
-            = new ProjectDependenciesBuildInstruction(true);
+    private boolean buildProjectDependencies = true;
     private Map<String, String> expectedSystemProperties = new HashMap<String, String>();
     private Map<String, String> expectedProjectProperties = new HashMap<String, String>();
     private List<File> expectedInitScripts = new ArrayList<File>();
     private CacheUsage expectedCacheUsage = CacheUsage.ON;
     private boolean expectedSearchUpwards = true;
     private boolean expectedDryRun;
-    private StartParameter.ShowStacktrace expectedShowStackTrace = StartParameter.ShowStacktrace.INTERNAL_EXCEPTIONS;
+    private ShowStacktrace expectedShowStackTrace = ShowStacktrace.INTERNAL_EXCEPTIONS;
     private String expectedEmbeddedScript = "somescript";
     private LogLevel expectedLogLevel = LogLevel.LIFECYCLE;
     private boolean expectedColorOutput = true;
     private StartParameter actualStartParameter;
     private boolean expectedProfile;
-
+    private File expectedProjectCacheDir;
+    private boolean expectedRefreshDependencies;
+    private boolean expectedRerunTasks;
     private final DefaultCommandLineConverter commandLineConverter = new DefaultCommandLineConverter();
+    private boolean expectedContinue;
+    private boolean expectedOffline;
+    private RefreshOptions expectedRefreshOptions = RefreshOptions.NONE;
+    private boolean expectedRecompileScripts;
 
     @Test
     public void withoutAnyOptions() {
@@ -74,20 +78,22 @@ public class DefaultCommandLineConverterTest {
     }
 
     private void checkConversion(String... args) {
-        checkConversion(false, args);
+        actualStartParameter = new StartParameter();
+        actualStartParameter.setCurrentDir(currentDir);
+        commandLineConverter.convert(asList(args), actualStartParameter);
+        // We check the params passed to the build factory
+        checkStartParameter(actualStartParameter);
     }
 
     private void checkStartParameter(StartParameter startParameter) {
         assertEquals(expectedBuildFile, startParameter.getBuildFile());
         assertEquals(expectedTaskNames, startParameter.getTaskNames());
-        assertEquals(expectedProjectDependenciesBuildInstruction,
-                startParameter.getProjectDependenciesBuildInstruction());
+        assertEquals(buildProjectDependencies, startParameter.isBuildProjectDependencies());
         assertEquals(expectedProjectDir.getAbsoluteFile(), startParameter.getCurrentDir().getAbsoluteFile());
         assertEquals(expectedCacheUsage, startParameter.getCacheUsage());
         assertEquals(expectedSearchUpwards, startParameter.isSearchUpwards());
         assertEquals(expectedProjectProperties, startParameter.getProjectProperties());
         assertEquals(expectedSystemProperties, startParameter.getSystemPropertiesArgs());
-        assertEquals(expectedGradleUserHome.getAbsoluteFile(), startParameter.getGradleUserHomeDir().getAbsoluteFile());
         assertEquals(expectedGradleUserHome.getAbsoluteFile(), startParameter.getGradleUserHomeDir().getAbsoluteFile());
         assertEquals(expectedLogLevel, startParameter.getLogLevel());
         assertEquals(expectedColorOutput, startParameter.isColorOutput());
@@ -96,19 +102,13 @@ public class DefaultCommandLineConverterTest {
         assertEquals(expectedExcludedTasks, startParameter.getExcludedTaskNames());
         assertEquals(expectedInitScripts, startParameter.getInitScripts());
         assertEquals(expectedProfile, startParameter.isProfile());
-    }
-
-    private void checkConversion(final boolean embedded, String... args) {
-        actualStartParameter = new StartParameter();
-        actualStartParameter.setCurrentDir(currentDir);
-        commandLineConverter.convert(Arrays.asList(args), actualStartParameter);
-        // We check the params passed to the build factory
-        checkStartParameter(actualStartParameter);
-        if (embedded) {
-            assertThat(actualStartParameter.getBuildScriptSource().getResource().getText(), equalTo(expectedEmbeddedScript));
-        } else {
-            assert !GUtil.isTrue(actualStartParameter.getBuildScriptSource());
-        }
+        assertEquals(expectedContinue, startParameter.isContinueOnFailure());
+        assertEquals(expectedOffline, startParameter.isOffline());
+        assertEquals(expectedRecompileScripts, startParameter.isRecompileScripts());
+        assertEquals(expectedRerunTasks, startParameter.isRerunTasks());
+        assertEquals(expectedRefreshOptions, startParameter.getRefreshOptions());
+        assertEquals(expectedRefreshDependencies, startParameter.isRefreshDependencies());
+        assertEquals(expectedProjectCacheDir, startParameter.getProjectCacheDir());
     }
 
     @Test
@@ -118,6 +118,12 @@ public class DefaultCommandLineConverterTest {
 
         expectedGradleUserHome = currentDir.file("home");
         checkConversion("-g", "home");
+    }
+
+    @Test
+    public void withSpecifiedProjectCacheDir() {
+        expectedProjectCacheDir = new File(currentDir, ".foo");
+        checkConversion("--project-cache-dir", ".foo");
     }
 
     @Test
@@ -147,8 +153,7 @@ public class DefaultCommandLineConverterTest {
 
         checkConversion("-c", "somesettings");
 
-        assertThat(actualStartParameter.getSettingsScriptSource(), instanceOf(UriScriptSource.class));
-        assertThat(actualStartParameter.getSettingsScriptSource().getResource().getFile(), equalTo(expectedSettingsFile));
+        assertThat(actualStartParameter.getSettingsFile(), equalTo(expectedSettingsFile));
     }
 
     @Test
@@ -171,6 +176,24 @@ public class DefaultCommandLineConverterTest {
         expectedSystemProperties = toMap(prop1, valueProp1);
         expectedSystemProperties.put(prop2, valueProp2);
         checkConversion("-D", prop1 + "=" + valueProp1, "-D", prop2 + "=" + valueProp2);
+    }
+    
+    @Test
+    public void withSpecifiedGradleUserHomeDirectoryBySystemProperty() {
+        expectedGradleUserHome = testDir.file("home");
+        String propName = "gradle.user.home";
+        String propValue = expectedGradleUserHome.getAbsolutePath();
+        expectedSystemProperties = toMap(propName, propValue);
+        checkConversion("-D", propName+"="+propValue);
+    }
+
+    @Test
+    public void privilegeCmdLineOptionOverSystemPrefForGradleUserHome() {
+        expectedGradleUserHome = testDir.file("home");
+        String propName = "gradle.user.home";
+        String propValue = "home2";
+        expectedSystemProperties = toMap(propName, propValue);
+        checkConversion("-D", propName+"="+propValue, "-g", expectedGradleUserHome.getAbsolutePath());
     }
 
     @Test
@@ -214,14 +237,20 @@ public class DefaultCommandLineConverterTest {
 
     @Test
     public void withShowFullStacktrace() {
-        expectedShowStackTrace = StartParameter.ShowStacktrace.ALWAYS_FULL;
+        expectedShowStackTrace = ShowStacktrace.ALWAYS_FULL;
         checkConversion("-S");
     }
 
     @Test
     public void withShowStacktrace() {
-        expectedShowStackTrace = StartParameter.ShowStacktrace.ALWAYS;
+        expectedShowStackTrace = ShowStacktrace.ALWAYS;
         checkConversion("-s");
+    }
+
+    @Test
+    public void withRerunTasks() {
+        expectedRerunTasks = true;
+        checkConversion("--rerun-tasks");
     }
 
     @Test(expected = CommandLineArgumentException.class)
@@ -243,12 +272,6 @@ public class DefaultCommandLineConverterTest {
         checkConversion("-x", "excluded", "-x", "excluded2");
     }
 
-    @Test
-    public void withEmbeddedScript() {
-        expectedSearchUpwards = false;
-        checkConversion(true, "-e", expectedEmbeddedScript);
-    }
-
     @Test(expected = CommandLineArgumentException.class)
     public void withEmbeddedScriptAndConflictingNoSearchUpwardsOption() {
         checkConversion("-e", "someScript", "-u", "clean");
@@ -266,7 +289,7 @@ public class DefaultCommandLineConverterTest {
 
     @Test
     public void withNoProjectDependencyRebuild() {
-        expectedProjectDependenciesBuildInstruction = new ProjectDependenciesBuildInstruction(false);
+        buildProjectDependencies = false;
         checkConversion("-a");
     }
 
@@ -294,37 +317,6 @@ public class DefaultCommandLineConverterTest {
         checkConversion("--no-color");
     }
 
-    @Test
-    public void withShowTasks() {
-        expectedTaskNames = toList("tasks");
-        checkConversion(false, "-t");
-    }
-
-    @Test
-    public void withShowAllTasks() {
-        expectedTaskNames = toList("tasks", "--all");
-        checkConversion(false, "-t", "--all");
-    }
-
-    @Test
-    public void withShowTasksAndEmbeddedScript() {
-        expectedSearchUpwards = false;
-        expectedTaskNames = toList("tasks");
-        checkConversion(true, "-e", expectedEmbeddedScript, "-t");
-    }
-
-    @Test
-    public void withShowProperties() {
-        expectedTaskNames = toList("properties");
-        checkConversion(false, "-r");
-    }
-
-    @Test
-    public void withShowDependencies() {
-        expectedTaskNames = toList("dependencies");
-        checkConversion(false, "-n");
-    }
-
     @Test(expected = CommandLineArgumentException.class)
     public void withLowerPParameterWithoutArgument() {
         checkConversion("-p");
@@ -346,6 +338,43 @@ public class DefaultCommandLineConverterTest {
         checkConversion("--profile");
     }
 
+    @Test
+    public void withContinue() {
+        expectedContinue = true;
+        checkConversion("--continue");
+    }
+
+    @Test
+    public void withOffline() {
+        expectedOffline = true;
+        checkConversion("--offline");
+    }
+
+    @Test
+    public void withRefreshDependencies() {
+        expectedRefreshDependencies = true;
+        expectedRefreshOptions = new RefreshOptions(asList(RefreshOptions.Option.DEPENDENCIES));
+        checkConversion("--refresh-dependencies");
+    }
+
+    @Test
+    public void withRecompileScripts() {
+        expectedRecompileScripts = true;
+        checkConversion("--recompile-scripts");
+    }
+
+    @Test
+    public void withRefreshDependenciesSet() {
+        expectedRefreshDependencies = true;
+        expectedRefreshOptions = new RefreshOptions(Arrays.asList(RefreshOptions.Option.DEPENDENCIES));
+        checkConversion("--refresh", "dependencies");
+    }
+
+    @Test(expected = CommandLineArgumentException.class)
+    public void withUnknownRefreshOption() {
+        checkConversion("--refresh", "unknown");
+    }
+
     @Test(expected = CommandLineArgumentException.class)
     public void withUnknownOption() {
         checkConversion("--unknown");
@@ -356,5 +385,4 @@ public class DefaultCommandLineConverterTest {
         expectedTaskNames = toList("someTask", "--some-task-option");
         checkConversion("someTask", "--some-task-option");
     }
-
 }

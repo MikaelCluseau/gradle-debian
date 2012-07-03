@@ -17,6 +17,7 @@ package org.gradle.integtests
 
 import org.gradle.integtests.fixtures.GradleDistribution
 import org.gradle.integtests.fixtures.GradleDistributionExecuter
+import org.gradle.integtests.fixtures.JUnitTestExecutionResult
 import org.gradle.integtests.fixtures.TestResources
 import org.gradle.util.TestFile
 import org.junit.Rule
@@ -36,7 +37,6 @@ apply plugin: 'groovy'
 apply plugin: 'scala'
 
 repositories {
-    mavenRepo urls: 'http://scala-tools.org/repo-releases/'
     mavenCentral()
 }
 dependencies {
@@ -86,8 +86,6 @@ sourceSets.each {
         File buildDir = dist.testFile('build')
 
         buildDir.file('classes/main').assertHasDescendants(
-                'org/gradle/main/resource.txt',
-                'org/gradle/main/resource2.txt',
                 'org/gradle/JavaClass.class',
                 'org/gradle/JavaClass2.class',
                 'org/gradle/GroovyClass.class',
@@ -96,15 +94,23 @@ sourceSets.each {
                 'org/gradle/ScalaClass2.class'
         )
 
+        buildDir.file('resources/main').assertHasDescendants(
+                'org/gradle/main/resource.txt',
+                'org/gradle/main/resource2.txt'
+        )
+
         buildDir.file('classes/test').assertHasDescendants(
-                'org/gradle/test/resource.txt',
-                'org/gradle/test/resource2.txt',
                 'org/gradle/JavaClassTest.class',
                 'org/gradle/JavaClassTest2.class',
                 'org/gradle/GroovyClassTest.class',
                 'org/gradle/GroovyClassTest2.class',
                 'org/gradle/ScalaClassTest.class',
                 'org/gradle/ScalaClassTest2.class'
+        )
+
+        buildDir.file('resources/test').assertHasDescendants(
+                'org/gradle/test/resource.txt',
+                'org/gradle/test/resource2.txt',
         )
 
         TestFile tmpDir = dist.testFile('jarContents')

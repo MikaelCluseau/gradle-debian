@@ -17,8 +17,11 @@
 package org.gradle.messaging.concurrent;
 
 import org.gradle.api.logging.Logging;
-import org.gradle.messaging.dispatch.ExceptionTrackingListener;
-import org.gradle.util.UncheckedException;
+import org.gradle.internal.CompositeStoppable;
+import org.gradle.internal.Stoppable;
+import org.gradle.internal.UncheckedException;
+import org.gradle.messaging.dispatch.DispatchException;
+import org.gradle.messaging.dispatch.ExceptionTrackingFailureHandler;
 
 import java.util.Set;
 import java.util.concurrent.*;
@@ -47,12 +50,12 @@ public class DefaultExecutorFactory implements ExecutorFactory, Stoppable {
 
     private class StoppableExecutorImpl implements StoppableExecutor {
         private final ExecutorService executor;
-        private final ExceptionTrackingListener exceptionListener;
+        private final ExceptionTrackingFailureHandler failureHandler;
         private final ThreadLocal<Runnable> executing = new ThreadLocal<Runnable>();
 
         public StoppableExecutorImpl(ExecutorService executor) {
             this.executor = executor;
-            exceptionListener = new ExceptionTrackingListener(Logging.getLogger(StoppableExecutorImpl.class));
+            failureHandler = new ExceptionTrackingFailureHandler(Logging.getLogger(StoppableExecutorImpl.class));
         }
 
         public void execute(final Runnable command) {
@@ -62,7 +65,7 @@ public class DefaultExecutorFactory implements ExecutorFactory, Stoppable {
                     try {
                         command.run();
                     } catch (Throwable throwable) {
-                        exceptionListener.execute(throwable);
+                        failureHandler.dispatchFailed(command, throwable);
                     } finally {
                         executing.set(null);
                     }
@@ -92,7 +95,11 @@ public class DefaultExecutorFactory implements ExecutorFactory, Stoppable {
                 } catch (InterruptedException e) {
                     throw new UncheckedException(e);
                 }
-                exceptionListener.stop();
+                try {
+                    failureHandler.stop();
+                } catch (DispatchException e) {
+                    throw UncheckedException.throwAsUncheckedException(e.getCause());
+                }
             } finally {
                 executors.remove(this);
             }

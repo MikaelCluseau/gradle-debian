@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 the original author or authors.
+ * Copyright 2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,45 +18,41 @@ package org.gradle.cache;
 import java.io.File;
 
 /**
- * Represents a directory which can be used for caching.
+ * Represents a directory that can be used for caching.
+ *
+ * <p>By default, a shared lock is held on this cache by this process, to prevent it being removed or rebuilt by another process
+ * while it is in use. You can change this use {@link DirectoryCacheBuilder#withLockMode(org.gradle.cache.internal.FileLockManager.LockMode)}.
+ *
+ * <p>You can use {@link DirectoryCacheBuilder#withInitializer(org.gradle.api.Action)} to provide an action to initialize the contents
+ * of the cache, for building a read-only cache. An exclusive lock is held by this process while the initializer is running.</p>
+ *
+ * <p>You can also use {@link #useCache(String, org.gradle.internal.Factory)} to perform some action on the cache while holding an exclusive
+ * lock on the cache.
+ * </p>
  */
-public interface PersistentCache {
+public interface PersistentCache extends CacheAccess {
     /**
      * Returns the base directory for this cache.
      */
     File getBaseDir();
 
     /**
-     * Returns true if this cache is valid. If the cache is valid, its contents can be used. If not, the base directory
-     * will be empty, and the cache contents must be rebuilt. You must call {@link #markValid} to indicate that the
-     * contents have been rebuilt.
-     */
-    boolean isValid();
-
-    /**
-     * Marks the contents of the cache as valid.
-     */
-    void markValid();
-
-    /**
-     * Opens an indexed cache backed by this cache.
+     * Creates an indexed cache implementation that is contained within this cache. This method may be used at any time.
      *
-     * @param serializer The serializer to use to serialise the cache entries.
-     * @return The cache.
+     * <p>The returned cache may only be used by an action being run from {@link #useCache(String, org.gradle.internal.Factory)}.
+     * In this instance, an exclusive lock will be held on the cache.
+     *
+     * <p>The returned cache may not be used by an action being run from {@link #longRunningOperation(String, org.gradle.internal.Factory)}.
      */
-    <K, V> PersistentIndexedCache<K, V> openIndexedCache(Serializer<V> serializer);
+    <K, V> PersistentIndexedCache<K, V> createCache(File cacheFile, Class<K> keyType, Class<V> valueType);
 
     /**
-     * Opens an indexed cache backed by this cache.
+     * Creates an indexed cache implementation that is contained within this cache. This method may be used at any time.
      *
-     * @return The cache.
-     */
-    <K, V> PersistentIndexedCache<K, V> openIndexedCache();
-
-    /**
-     * Opens a state cache backed by this cache.
+     * <p>The returned cache may only be used by an action being run from {@link #useCache(String, org.gradle.internal.Factory)}.
+     * In this instance, an exclusive lock will be held on the cache.
      *
-     * @return The cache.
+     * <p>The returned cache may not be used by an action being run from {@link #longRunningOperation(String, org.gradle.internal.Factory)}.
      */
-    <T> PersistentStateCache<T> openStateCache();
+    <K, V> PersistentIndexedCache<K, V> createCache(File cacheFile, Class<K> keyType, Serializer<V> valueSerializer);
 }

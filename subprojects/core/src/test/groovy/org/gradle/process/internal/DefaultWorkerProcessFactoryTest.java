@@ -17,11 +17,14 @@
 package org.gradle.process.internal;
 
 import org.gradle.api.Action;
+import org.gradle.util.ClassPath;
 import org.gradle.api.internal.ClassPathRegistry;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.collections.SimpleFileCollection;
 import org.gradle.api.logging.LogLevel;
+import org.gradle.messaging.remote.Address;
 import org.gradle.messaging.remote.MessagingServer;
+import org.gradle.messaging.remote.internal.inet.SocketInetAddress;
 import org.gradle.process.internal.child.IsolatedApplicationClassLoaderWorker;
 import org.gradle.process.internal.launcher.GradleWorkerMain;
 import org.gradle.util.IdGenerator;
@@ -35,13 +38,13 @@ import org.junit.runner.RunWith;
 import java.io.File;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.net.URI;
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 @RunWith(JMock.class)
 public class DefaultWorkerProcessFactoryTest {
@@ -56,9 +59,12 @@ public class DefaultWorkerProcessFactoryTest {
     @Test
     public void createsAndConfiguresAWorkerProcess() throws Exception {
         final Set<File> processClassPath = Collections.singleton(new File("something.jar"));
+        final ClassPath classPath = context.mock(ClassPath.class);
 
         context.checking(new Expectations() {{
-            one(classPathRegistry).getClassPathFiles("WORKER_PROCESS");
+            one(classPathRegistry).getClassPath("WORKER_PROCESS");
+            will(returnValue(classPath));
+            allowing(classPath).getAsFiles();
             will(returnValue(processClassPath));
             allowing(fileResolver).resolveLater(".");
             allowing(fileResolver).resolveFiles(with(Matchers.<Object>notNullValue()));
@@ -74,7 +80,7 @@ public class DefaultWorkerProcessFactoryTest {
         builder.applicationClasspath(Arrays.asList(new File("app.jar")));
         builder.sharedPackages("package1", "package2");
 
-        final URI serverAddress = new URI("test:something");
+        final Address serverAddress = new SocketInetAddress(InetAddress.getByName("127.0.0.1"), 40);
 
         context.checking(new Expectations(){{
             one(messagingServer).accept(with(notNullValue(Action.class)));

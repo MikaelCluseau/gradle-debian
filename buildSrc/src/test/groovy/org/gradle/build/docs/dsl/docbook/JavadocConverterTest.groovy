@@ -160,7 +160,7 @@ line 2</para>'''
         def result = parser.parse(classMetaData, listener)
 
         then:
-        format(result.docbook) == '''<programlisting>this is some
+        format(result.docbook) == '''<programlisting language="java">this is some
 
 literal code</programlisting>'''
     }
@@ -176,7 +176,7 @@ literal code</programlisting>'''
         def result = parser.parse(classMetaData, listener)
 
         then:
-        format(result.docbook) == '''<para>for example: </para><programlisting>this is some
+        format(result.docbook) == '''<para>for example: </para><programlisting language="java">this is some
 literal code</programlisting><para> does something.
 </para><para>another para.
 </para><itemizedlist><listitem>item1</listitem></itemizedlist>'''
@@ -247,6 +247,16 @@ literal code</programlisting><para> does something.
         _ * classMetaData.className >> 'org.gradle.Class'
     }
 
+    def convertsAnAElementWithAnHref() {
+        _ * classMetaData.rawCommentText >> '<a href="http://gradle.org">some value</a>'
+
+        when:
+        def result = parser.parse(classMetaData, listener)
+
+        then:
+        format(result.docbook) == '<para><ulink url="http://gradle.org">some value</ulink></para>'
+    }
+
     def convertsAnEmElementToAnEmphasisElement() {
         _ * classMetaData.rawCommentText >> '<em>text</em>'
 
@@ -265,6 +275,16 @@ literal code</programlisting><para> does something.
 
         then:
         format(result.docbook) == '''<para><emphasis>text</emphasis> <emphasis>other</emphasis></para>'''
+    }
+
+    def convertsTTElementToALiteralElement() {
+        _ * classMetaData.rawCommentText >> '<tt>text</tt>'
+
+        when:
+        def result = parser.parse(classMetaData, listener)
+
+        then:
+        format(result.docbook) == '''<para><literal>text</literal></para>'''
     }
 
     def convertsHeadingsToSections() {

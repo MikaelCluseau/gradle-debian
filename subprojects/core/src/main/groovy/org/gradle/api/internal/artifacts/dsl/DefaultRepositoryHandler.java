@@ -15,196 +15,119 @@
  */
 package org.gradle.api.internal.artifacts.dsl;
 
+import com.google.common.collect.Lists;
 import groovy.lang.Closure;
-import org.apache.ivy.plugins.resolver.AbstractResolver;
 import org.apache.ivy.plugins.resolver.DependencyResolver;
-import org.apache.ivy.plugins.resolver.FileSystemResolver;
 import org.gradle.api.Action;
-import org.gradle.api.InvalidUserDataException;
-import org.gradle.api.artifacts.dsl.ArtifactRepository;
-import org.gradle.api.artifacts.dsl.IvyArtifactRepository;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
-import org.gradle.api.artifacts.maven.GroovyMavenDeployer;
-import org.gradle.api.artifacts.maven.MavenResolver;
-import org.gradle.api.internal.ClassGenerator;
-import org.gradle.api.internal.artifacts.DefaultResolverContainer;
-import org.gradle.api.internal.artifacts.ivyservice.ResolverFactory;
-import org.gradle.api.internal.artifacts.repositories.ArtifactRepositoryInternal;
+import org.gradle.api.artifacts.repositories.FlatDirectoryArtifactRepository;
+import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.internal.Instantiator;
+import org.gradle.api.internal.artifacts.DefaultArtifactRepositoryContainer;
+import org.gradle.api.internal.artifacts.ResolverFactory;
+import org.gradle.api.internal.artifacts.configurations.ResolverProvider;
+import org.gradle.api.internal.artifacts.repositories.FixedResolverArtifactRepository;
 import org.gradle.util.ConfigureUtil;
-import org.gradle.util.GUtil;
-import org.gradle.util.HashUtil;
-import org.gradle.util.WrapUtil;
+import org.gradle.util.DeprecationLogger;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author Hans Dockter
  */
-public class DefaultRepositoryHandler extends DefaultResolverContainer implements RepositoryHandler {
-    public DefaultRepositoryHandler(ResolverFactory resolverFactory, ClassGenerator classGenerator) {
-        super(resolverFactory, classGenerator);
+public class DefaultRepositoryHandler extends DefaultArtifactRepositoryContainer implements RepositoryHandler, ResolverProvider {
+    public DefaultRepositoryHandler(ResolverFactory resolverFactory, Instantiator instantiator) {
+        super(resolverFactory, instantiator);
     }
 
-    public FileSystemResolver flatDir(Map args) {
-        Object[] rootDirPaths = getFlatDirRootDirs(args);
-        File[] rootDirs = new File[rootDirPaths.length];
-        for (int i = 0; i < rootDirPaths.length; i++) {
-            Object rootDirPath = rootDirPaths[i];
-            rootDirs[i] = new File(rootDirPath.toString());
+    public FlatDirectoryArtifactRepository flatDir(Action<? super FlatDirectoryArtifactRepository> action) {
+        return addRepository(getResolverFactory().createFlatDirRepository(), action, "flatDir");
+    }
+
+    public FlatDirectoryArtifactRepository flatDir(Closure configureClosure) {
+        return addRepository(getResolverFactory().createFlatDirRepository(), configureClosure, "flatDir");
+    }
+
+    public FlatDirectoryArtifactRepository flatDir(Map<String, ?> args) {
+        Map<String, Object> modifiedArgs = new HashMap<String, Object>(args);
+        if (modifiedArgs.containsKey("dirs")) {
+            modifiedArgs.put("dirs", toList(modifiedArgs.get("dirs")));
         }
-        FileSystemResolver resolver = getResolverFactory().createFlatDirResolver(
-                getNameFromMap(args, HashUtil.createHash(GUtil.join(rootDirPaths, ""))),
-                rootDirs);
-        return (FileSystemResolver) add(resolver);
+        return addRepository(getResolverFactory().createFlatDirRepository(), modifiedArgs, "flatDir");
     }
 
-    private String getNameFromMap(Map args, String defaultName) {
-        Object name = args.get("name");
-        return name != null ? name.toString() : defaultName;
+    public MavenArtifactRepository mavenCentral() {
+        return mavenCentral(Collections.<String, Object>emptyMap());
     }
 
-    private Object[] getFlatDirRootDirs(Map args) {
-        List dirs = createStringifiedListFromMapArg(args, "dirs");
-        if (dirs == null) {
-            throw new InvalidUserDataException("You must specify dirs for the flat dir repository.");
+    public MavenArtifactRepository mavenCentral(Map<String, ?> args) {
+        Map<String, Object> modifiedArgs = new HashMap<String, Object>(args);
+        if (modifiedArgs.containsKey("urls")) {
+            DeprecationLogger.nagUserWith("The 'urls' property of the RepositoryHandler.mavenCentral() method is deprecated and will be removed in a future version of Gradle. "
+                    + "You should use the 'artifactUrls' property to define additional artifact locations.");
+            List<Object> urls = toList(modifiedArgs.remove("urls"));
+            modifiedArgs.put("artifactUrls", urls);
         }
-        return dirs.toArray();
+        return addRepository(getResolverFactory().createMavenCentralRepository(), modifiedArgs, DEFAULT_MAVEN_CENTRAL_REPO_NAME);
     }
 
-    private List<String> createStringifiedListFromMapArg(Map args, String argName) {
-        Object dirs = args.get(argName);
-        if (dirs == null) {
-            return null;
-        }
-        Iterable<Object> iterable;
-        if (dirs instanceof Iterable) {
-            iterable = (Iterable<Object>) dirs;
-        } else {
-            iterable = WrapUtil.toSet(dirs);
-        }
-        List<String> list = new ArrayList<String>();
-        for (Object o : iterable) {
-            list.add(o.toString());
-        }
-        return list;
+    public MavenArtifactRepository mavenLocal() {
+        return addRepository(getResolverFactory().createMavenLocalRepository(), DEFAULT_MAVEN_LOCAL_REPO_NAME);
     }
 
-    public DependencyResolver mavenCentral() {
-        return mavenCentral(Collections.emptyMap());
-    }
-
-    public DependencyResolver mavenCentral(Map args) {
-        List<String> urls = createStringifiedListFromMapArg(args, "urls");
-        return add(getResolverFactory().createMavenRepoResolver(
-                getNameFromMap(args, DEFAULT_MAVEN_CENTRAL_REPO_NAME),
-                MAVEN_CENTRAL_URL,
-                urls == null ? new String[0] : urls.toArray(new String[urls.size()])));
-    }
-
-    public DependencyResolver mavenLocal() {
-        return add(getResolverFactory().createMavenLocalResolver(DEFAULT_MAVEN_LOCAL_REPO_NAME));
-    }
-
-    public DependencyResolver mavenRepo(Map args) {
+    public DependencyResolver mavenRepo(Map<String, ?> args) {
         return mavenRepo(args, null);
     }
 
-    public DependencyResolver mavenRepo(Map args, Closure configClosure) {
-        List<String> urls = createStringifiedListFromMapArg(args, "urls");
-        if (urls == null) {
-            throw new InvalidUserDataException("You must specify a urls for a Maven repo.");
+    public DependencyResolver mavenRepo(Map<String, ?> args, Closure configClosure) {
+        Map<String, Object> modifiedArgs = new HashMap<String, Object>(args);
+        if (modifiedArgs.containsKey("urls")) {
+            List<Object> urls = toList(modifiedArgs.remove("urls"));
+            if (!urls.isEmpty()) {
+                DeprecationLogger.nagUserWith("The 'urls' property of the RepositoryHandler.mavenRepo() method is deprecated and will be removed in a future version of Gradle. "
+                        + "You should use the 'url' property to define the core maven repository & the 'artifactUrls' property to define any additional artifact locations.");
+                modifiedArgs.put("url", urls.get(0));
+                List<Object> extraUrls = urls.subList(1, urls.size());
+                modifiedArgs.put("artifactUrls", extraUrls);
+            }
         }
-        List<String> extraUrls = urls.subList(1, urls.size());
-        AbstractResolver resolver = getResolverFactory().createMavenRepoResolver(
-                getNameFromMap(args, urls.get(0)),
-                urls.get(0),
-                urls.size() == 1 ? new String[0] : extraUrls.toArray(new String[extraUrls.size()]));
-        return add(resolver, configClosure);
+
+        MavenArtifactRepository repository = getResolverFactory().createMavenRepository();
+        ConfigureUtil.configureByMap(modifiedArgs, repository);
+        DependencyResolver resolver = toResolver(DependencyResolver.class, repository);
+        ConfigureUtil.configure(configClosure, resolver);
+        addRepository(new FixedResolverArtifactRepository(resolver), "maven");
+        return resolver;
     }
 
-    public GroovyMavenDeployer mavenDeployer(Map args) {
-        GroovyMavenDeployer mavenDeployer = createMavenDeployer(args);
-        return (GroovyMavenDeployer) add(mavenDeployer);
+    private List<Object> toList(Object object) {
+        if (object instanceof List) {
+            return (List<Object>) object;
+        }
+        if (object instanceof Iterable) {
+            return Lists.newArrayList((Iterable<Object>) object);
+        }
+        return Collections.singletonList(object);
     }
 
-    private GroovyMavenDeployer createMavenDeployer(Map args) {
-        GroovyMavenDeployer mavenDeployer = createMavenDeployer("dummyName");
-        String defaultName = RepositoryHandler.DEFAULT_MAVEN_DEPLOYER_NAME + "-" + System.identityHashCode(
-                mavenDeployer);
-        mavenDeployer.setName(getNameFromMap(args, defaultName));
-        return mavenDeployer;
+    public MavenArtifactRepository maven(Action<? super MavenArtifactRepository> action) {
+        return addRepository(getResolverFactory().createMavenRepository(), action, "maven");
     }
 
-    public GroovyMavenDeployer mavenDeployer() {
-        return mavenDeployer(Collections.emptyMap());
-    }
-
-    public GroovyMavenDeployer mavenDeployer(Closure configureClosure) {
-        return mavenDeployer(Collections.emptyMap(), configureClosure);
-    }
-
-    public GroovyMavenDeployer mavenDeployer(Map args, Closure configureClosure) {
-        GroovyMavenDeployer mavenDeployer = createMavenDeployer(args);
-        return (GroovyMavenDeployer) add(mavenDeployer, configureClosure);
-    }
-
-    public MavenResolver mavenInstaller() {
-        return mavenInstaller(Collections.emptyMap());
-    }
-
-    public MavenResolver mavenInstaller(Closure configureClosure) {
-        return mavenInstaller(Collections.emptyMap(), configureClosure);
-    }
-
-    public MavenResolver mavenInstaller(Map args) {
-        MavenResolver mavenInstaller = createMavenInstaller(args);
-        return (MavenResolver) add(mavenInstaller);
-    }
-
-    public MavenResolver mavenInstaller(Map args, Closure configureClosure) {
-        MavenResolver mavenInstaller = createMavenInstaller(args);
-        return (MavenResolver) add(mavenInstaller, configureClosure);
-    }
-
-    private MavenResolver createMavenInstaller(Map args) {
-        MavenResolver mavenInstaller = createMavenInstaller("dummyName");
-        String defaultName = RepositoryHandler.DEFAULT_MAVEN_INSTALLER_NAME + "-" + System.identityHashCode(
-                mavenInstaller);
-        mavenInstaller.setName(getNameFromMap(args, defaultName));
-        return mavenInstaller;
+    public MavenArtifactRepository maven(Closure closure) {
+        return addRepository(getResolverFactory().createMavenRepository(), closure, "maven");
     }
 
     public IvyArtifactRepository ivy(Action<? super IvyArtifactRepository> action) {
-        IvyArtifactRepository repository = getResolverFactory().createIvyRepository();
-        addRepository(repository, action);
-        return repository;
+        return addRepository(getResolverFactory().createIvyRepository(), action, "ivy");
     }
 
     public IvyArtifactRepository ivy(Closure closure) {
-        IvyArtifactRepository repository = getResolverFactory().createIvyRepository();
-        addRepository((ArtifactRepositoryInternal) repository, closure);
-        return repository;
+        return addRepository(getResolverFactory().createIvyRepository(), closure, "ivy");
     }
 
-    private <T extends ArtifactRepository> void addRepository(T repository, Action<? super T> action) {
-        action.execute(repository);
-        addRepository((ArtifactRepositoryInternal) repository);
-    }
-
-    private void addRepository(ArtifactRepositoryInternal repository, Closure closure) {
-        ConfigureUtil.configure(closure, repository);
-        addRepository(repository);
-    }
-
-    private void addRepository(ArtifactRepositoryInternal repository) {
-        List<DependencyResolver> resolvers = new ArrayList<DependencyResolver>();
-        repository.createResolvers(resolvers);
-        for (DependencyResolver resolver : resolvers) {
-            add(resolver);
-        }
-    }
 }

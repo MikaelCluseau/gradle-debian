@@ -104,7 +104,7 @@ public class TestTest extends AbstractConventionTaskTest {
         assertNull(test.getTestReportDir());
         assertThat(test.getIncludes(), isEmpty());
         assertThat(test.getExcludes(), isEmpty());
-        assertFalse(test.isIgnoreFailures());
+        assertFalse(test.getIgnoreFailures());
     }
 
     @org.junit.Test
@@ -146,12 +146,12 @@ public class TestTest extends AbstractConventionTaskTest {
     }
 
     @org.junit.Test
-    public void testAddsDefaultIncludeAndExcludePatternsWhenTestScanningIsOff() {
+    public void testDisablesParallelExecutionWhenInDebugMode() {
         configureTask();
-        test.setScanForTestClasses(false);
+        test.setDebug(true);
+        test.setMaxParallelForks(4);
 
-        FileTree classFiles = test.getCandidateClassFiles();
-        assertIsDirectoryTree(classFiles, toSet("**/*Tests.class", "**/*Test.class"), toSet("**/Abstract*.class"));
+        assertEquals(1, test.getMaxParallelForks());
     }
 
     private void assertIsDirectoryTree(FileTree classFiles, Set<String> includes, Set<String> excludes) {

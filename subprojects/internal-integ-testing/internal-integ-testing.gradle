@@ -1,0 +1,50 @@
+/*
+ * Copyright 2011 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+apply from: "$rootDir/gradle/classycle.gradle"
+
+dependencies {
+    groovy libraries.groovy
+    compile project(":internalTesting")
+    compile project(':cli')
+    compile project(':launcher')
+    compile project(':native')
+    compile libraries.jetty
+    compile module("org.littleshoot:littleproxy:0.4") {
+        dependency libraries.slf4j_api
+        dependency "org.jboss.netty:netty:3.2.4.Final"
+    }
+    compile "org.apache.sshd:sshd-core:0.6.0"
+}
+
+useTestFixtures(sourceSet: 'main')
+
+task prepareVersionsInfo {
+    ext.destDir = file("$buildDir/generated-resources/main")
+
+    doLast {
+        def url = "http://services.gradle.org/versions/all"
+        logger.info "Getting the released versions from: $url"
+
+        def json = new URL("http://services.gradle.org/versions/all").text
+        def destFile = new File(ext.destDir, "all-released-versions.json")
+        assert destDir.mkdirs() || destDir.exists()
+        destFile.text = json
+
+        logger.info "Saved released versions information in: $destFile"
+    }
+}
+
+sourceSets.main.output.dir prepareVersionsInfo.destDir, builtBy: prepareVersionsInfo

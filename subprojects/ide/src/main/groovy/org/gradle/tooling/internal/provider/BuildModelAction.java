@@ -18,31 +18,36 @@ package org.gradle.tooling.internal.provider;
 import org.gradle.BuildResult;
 import org.gradle.GradleLauncher;
 import org.gradle.initialization.GradleLauncherAction;
-import org.gradle.tooling.internal.protocol.BuildableProjectVersion1;
 import org.gradle.tooling.internal.protocol.ProjectVersion3;
-import org.gradle.tooling.internal.protocol.eclipse.EclipseProjectVersion3;
+
+import java.util.List;
+
+import static java.util.Arrays.asList;
 
 public class BuildModelAction implements GradleLauncherAction<ProjectVersion3> {
-    private final ModelBuilder builder;
+    private ModelBuildingAdapter modelBuildingAdapter;
 
     public BuildModelAction(Class<? extends ProjectVersion3> type) {
-        if (!type.isAssignableFrom(EclipseProjectVersion3.class)) {
-            throw new UnsupportedOperationException(String.format("Do not know how to build a model of type '%s'.", type.getSimpleName()));
+        List<? extends BuildsModel> modelBuilders = asList(
+                new EclipseModelBuilder(), new IdeaModelBuilder(),
+                new GradleProjectBuilder(), new BasicIdeaModelBuilder());
+
+        for (BuildsModel builder : modelBuilders) {
+            if (builder.canBuild(type)) {
+                modelBuildingAdapter = new ModelBuildingAdapter(builder);
+                return;
+            }
         }
 
-        boolean projectDependenciesOnly = !EclipseProjectVersion3.class.isAssignableFrom(type);
-        boolean includeTasks = BuildableProjectVersion1.class.isAssignableFrom(type);
-        builder = new ModelBuilder(includeTasks, projectDependenciesOnly);
+        throw new UnsupportedOperationException(String.format("I don't know how to build a model of type '%s'.", type.getSimpleName()));
     }
 
     public BuildResult run(GradleLauncher launcher) {
-        ModelBuildingAdapter adapter = new ModelBuildingAdapter(
-                new EclipsePluginApplier(), builder);
-        launcher.addListener(adapter);
+        launcher.addListener(modelBuildingAdapter);
         return launcher.getBuildAnalysis();
     }
 
     public ProjectVersion3 getResult() {
-        return builder.getProject();
+        return modelBuildingAdapter.getProject();
     }
 }

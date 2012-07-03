@@ -15,36 +15,69 @@
  */
 package org.gradle.api.internal.artifacts.configurations;
 
+import groovy.lang.Closure;
+import org.gradle.api.DomainObjectSet;
 import org.gradle.api.UnknownDomainObjectException;
-import org.gradle.api.artifacts.*;
-import org.gradle.api.internal.AutoCreateDomainObjectContainer;
-import org.gradle.api.internal.ClassGenerator;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.UnknownConfigurationException;
+import org.gradle.api.internal.AbstractNamedDomainObjectContainer;
 import org.gradle.api.internal.DomainObjectContext;
-import org.gradle.api.internal.artifacts.IvyService;
+import org.gradle.api.internal.Instantiator;
+import org.gradle.api.internal.artifacts.ArtifactDependencyResolver;
+import org.gradle.listener.ListenerManager;
+
+import java.util.Collection;
+import java.util.Set;
 
 /**
  * @author Hans Dockter
  */
-public class DefaultConfigurationContainer extends AutoCreateDomainObjectContainer<Configuration> 
-        implements ConfigurationContainer, ConfigurationsProvider {
+public class DefaultConfigurationContainer extends AbstractNamedDomainObjectContainer<Configuration> 
+        implements ConfigurationContainerInternal, ConfigurationsProvider {
     public static final String DETACHED_CONFIGURATION_DEFAULT_NAME = "detachedConfiguration";
     
-    private final IvyService ivyService;
-    private final ClassGenerator classGenerator;
+    private final ArtifactDependencyResolver dependencyResolver;
+    private final Instantiator instantiator;
     private final DomainObjectContext context;
+    private final ListenerManager listenerManager;
+    private final DependencyMetaDataProvider dependencyMetaDataProvider;
 
     private int detachedConfigurationDefaultNameCounter = 1;
 
-    public DefaultConfigurationContainer(IvyService ivyService, ClassGenerator classGenerator, DomainObjectContext context) {
-        super(Configuration.class, classGenerator);
-        this.ivyService = ivyService;
-        this.classGenerator = classGenerator;
+    public DefaultConfigurationContainer(ArtifactDependencyResolver dependencyResolver,
+                                         Instantiator instantiator, DomainObjectContext context, ListenerManager listenerManager,
+                                         DependencyMetaDataProvider dependencyMetaDataProvider) {
+        super(Configuration.class, instantiator, new Configuration.Namer());
+        this.dependencyResolver = dependencyResolver;
+        this.instantiator = instantiator;
         this.context = context;
+        this.listenerManager = listenerManager;
+        this.dependencyMetaDataProvider = dependencyMetaDataProvider;
     }
 
     @Override
-    protected Configuration create(String name) {
-        return classGenerator.newInstance(DefaultConfiguration.class, context.absoluteProjectPath(name), name, this, ivyService);
+    protected Configuration doCreate(String name) {
+        return instantiator.newInstance(DefaultConfiguration.class, context.absoluteProjectPath(name),
+                name, this, dependencyResolver, listenerManager,
+                dependencyMetaDataProvider, new DefaultResolutionStrategy());
+    }
+
+    public Set<Configuration> getAll() {
+        return this;
+    }
+
+    public Configuration add(String name) {
+        return create(name);
+    }
+
+    public Configuration add(String name, Closure closure) {
+        return create(name, closure);
+    }
+
+    @Override
+    public ConfigurationInternal getByName(String name) {
+        return (ConfigurationInternal) super.getByName(name);
     }
 
     @Override
@@ -57,19 +90,33 @@ public class DefaultConfigurationContainer extends AutoCreateDomainObjectContain
         return new UnknownConfigurationException(String.format("Configuration with name '%s' not found.", name));
     }
 
-    public IvyService getIvyService() {
-        return ivyService;
-    }
-
     public Configuration detachedConfiguration(Dependency... dependencies) {
         DetachedConfigurationsProvider detachedConfigurationsProvider = new DetachedConfigurationsProvider();
         String name = DETACHED_CONFIGURATION_DEFAULT_NAME + detachedConfigurationDefaultNameCounter++;
-        DefaultConfiguration detachedConfiguration = new DefaultConfiguration(name, name,
-                detachedConfigurationsProvider, ivyService);
+        DefaultConfiguration detachedConfiguration = new DefaultConfiguration(
+                name, name, detachedConfigurationsProvider, dependencyResolver,
+                listenerManager, dependencyMetaDataProvider, new DefaultResolutionStrategy());
+        DomainObjectSet<Dependency> detachedDependencies = detachedConfiguration.getDependencies();
         for (Dependency dependency : dependencies) {
-            detachedConfiguration.addDependency(dependency.copy());
+            detachedDependencies.add(dependency.copy());
         }
         detachedConfigurationsProvider.setTheOnlyConfiguration(detachedConfiguration);
         return detachedConfiguration;
+    }
+    
+    /**
+     * Build a formatted representation of all Configurations in this ConfigurationContainer.
+     * Configuration(s) being toStringed are likely derivations of DefaultConfiguration.
+     */
+    public String dump() {
+        StringBuilder reply = new StringBuilder();
+        
+        reply.append("Configuration of type: " + getTypeDisplayName());
+        Collection<Configuration> configs = getAll();
+        for (Configuration c : configs) {
+            reply.append("\n  " + c.toString());
+        }
+        
+        return reply.toString();
     }
 }

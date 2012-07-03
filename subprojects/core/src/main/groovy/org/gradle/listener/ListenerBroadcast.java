@@ -37,18 +37,18 @@ public class ListenerBroadcast<T> implements StoppableDispatch<MethodInvocation>
     private final StoppableDispatch<MethodInvocation> dispatch;
 
     public ListenerBroadcast(Class<T> type) {
-        this(type, new Transformer<StoppableDispatch<MethodInvocation>>() {
+        this(type, new Transformer<StoppableDispatch<MethodInvocation>, StoppableDispatch<MethodInvocation>>() {
             public StoppableDispatch<MethodInvocation> transform(StoppableDispatch<MethodInvocation> original) {
                 return original;
             }
         });
     }
 
-    protected ListenerBroadcast(Class<T> type, Transformer<StoppableDispatch<MethodInvocation>> transformer) {
+    protected ListenerBroadcast(Class<T> type, Transformer<StoppableDispatch<MethodInvocation>, StoppableDispatch<MethodInvocation>> transformer) {
         this.type = type;
         broadcast = new BroadcastDispatch<T>(type);
         dispatch = transformer.transform(broadcast);
-        source = new ProxyDispatchAdapter<T>(type, dispatch);
+        source = new ProxyDispatchAdapter<T>(dispatch, type);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,14 @@ package org.gradle.plugins.ide.eclipse.model
 
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.SourceSet
+import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.eclipse.model.internal.ClasspathFactory
+import org.gradle.plugins.ide.eclipse.model.internal.ExportedEntriesUpdater
+import org.gradle.plugins.ide.eclipse.model.internal.FileReferenceFactory
+import org.gradle.util.ConfigureUtil
 
 /**
- * DSL-friendly model of the eclipse classpath needed for .classpath generation
+ * Enables fine-tuning classpath details (.classpath file) of the Eclipse plugin
  * <p>
  * Example of use with a blend of all possible properties.
  * Bear in mind that usually you don't have configure eclipse classpath directly because Gradle configures it for free!
@@ -39,23 +43,21 @@ import org.gradle.plugins.ide.eclipse.model.internal.ClasspathFactory
  *   //if you want parts of paths in resulting file to be replaced by variables (files):
  *   pathVariables 'GRADLE_HOME': file('/best/software/gradle'), 'TOMCAT_HOME': file('../tomcat')
  *
- *
  *   classpath {
- *     //you can configure the sourceSets however Gradle simply uses current sourceSets
- *     //so it's probably best not to change it.
- *     //sourceSets =
- *
  *     //you can tweak the classpath of the eclipse project by adding extra configurations:
  *     plusConfigurations += configurations.provided
  *
  *     //you can also remove configurations from the classpath:
  *     minusConfigurations += configurations.someBoringConfig
  *
+ *     //if you don't want some classpath entries 'exported' in eclipse
+ *     noExportConfigurations += configurations.provided
+ *
  *     //if you want to append extra containers:
  *     containers 'someFriendlyContainer', 'andYetAnotherContainer'
  *
  *     //customizing the classes output directory:
- *     classesOutputDir = file('build-eclipse')
+ *     defaultOutputDir = file('build-eclipse')
  *
  *     //default settings for dependencies sources/javadoc download:
  *     downloadSources = true
@@ -64,7 +66,44 @@ import org.gradle.plugins.ide.eclipse.model.internal.ClasspathFactory
  * }
  * </pre>
  *
- * Author: Szczepan Faber, created at: 4/16/11
+ * For tackling edge cases users can perform advanced configuration on resulting xml file.
+ * It is also possible to affect the way eclipse plugin merges the existing configuration
+ * via beforeMerged and whenMerged closures.
+ * <p>
+ * beforeMerged and whenMerged closures receive {@link Classpath} object
+ * <p>
+ * Examples of advanced configuration:
+ *
+ * <pre autoTested=''>
+ * apply plugin: 'java'
+ * apply plugin: 'eclipse'
+ *
+ * eclipse {
+ *   classpath {
+ *     file {
+ *       //if you want to mess with the resulting xml in whatever way you fancy
+ *       withXml {
+ *         def node = it.asNode()
+ *         node.appendNode('xml', 'is what I love')
+ *       }
+ *
+ *       //closure executed after .classpath content is loaded from existing file
+ *       //but before gradle build information is merged
+ *       beforeMerged { classpath ->
+ *         //you can tinker with the {@link Classpath} here
+ *       }
+ *
+ *       //closure executed after .classpath content is loaded from existing file
+ *       //and after gradle build information is merged
+ *       whenMerged { classpath ->
+ *         //you can tinker with the {@link Classpath} here
+ *       }
+ *     }
+ *   }
+ * }
+ * </pre>
+ *
+ * @author Szczepan Faber, created at: 4/16/11
  */
 class EclipseClasspath {
 
@@ -89,14 +128,22 @@ class EclipseClasspath {
      */
     Collection<Configuration> minusConfigurations = []
 
-   /**
+    /**
+     * The included configurations (plusConfigurations) which files will not be exported.
+     * Only make sense if those configurations are also a part of {@link #plusConfigurations}
+     * <p>
+     * For example see docs for {@link EclipseClasspath}
+     */
+    Collection<Configuration> noExportConfigurations = []
+
+    /**
      * Containers to be added to the classpath
      * <p>
      * For example see docs for {@link EclipseClasspath}
      */
     Set<String> containers = new LinkedHashSet<String>()
 
-   /**
+    /**
      * Adds containers to the .classpath.
      * <p>
      * For example see docs for {@link EclipseClasspath}
@@ -109,11 +156,11 @@ class EclipseClasspath {
     }
 
     /**
-     * The default output directory for eclipse generated files, eg classes.
+     * The default output directory where eclipse puts compiled classes
      * <p>
      * For example see docs for {@link EclipseClasspath}
      */
-    File classesOutputDir
+    File defaultOutputDir
 
     /**
      * Whether to download and add sources associated with the dependency jars. Defaults to true.
@@ -130,38 +177,54 @@ class EclipseClasspath {
     boolean downloadJavadoc = false
 
     /**
+     * Enables advanced configuration like tinkering with the output xml
+     * or affecting the way existing .classpath content is merged with gradle build information
+     * <p>
+     * The object passed to whenMerged{} and beforeMerged{} closures is of type {@link Classpath}
+     * <p>
+     *
+     * For example see docs for {@link EclipseProject}
+     */
+    void file(Closure closure) {
+        ConfigureUtil.configure(closure, file)
+    }
+
+    /**
+     * See {@link #file(Closure)}
+     */
+    XmlFileContentMerger file
+
+    /** ****/
+
+    final org.gradle.api.Project project
+    Map<String, File> pathVariables = [:]
+    boolean projectDependenciesOnly = false
+
+    List<File> classFolders
+
+    EclipseClasspath(org.gradle.api.Project project) {
+        this.project = project
+    }
+
+    /**
      * Calculates, resolves & returns dependency entries of this classpath
      */
     public List<ClasspathEntry> resolveDependencies() {
-        return new ClasspathFactory().createEntries(this)
-    }
-
-    /******/
-
-    org.gradle.api.Project project
-
-    /**
-     * The path variables to be used for replacing absolute paths in classpath entries.
-     * <p>
-     * For example see docs for {@link EclipseModel}
-     */
-    Map<String, File> pathVariables = [:]
-
-    /**
-     * Modifies the content of plusConfigurations and minusConfigurations by filtering dependencies
-     *
-     * @param projectDependenciesOnly true - only project dependencies, false - no filter
-     */
-    public void setProjectDependenciesOnly(boolean projectDependenciesOnly) {
-        if (projectDependenciesOnly) {
-            onlyProject = { it instanceof org.gradle.api.artifacts.ProjectDependency }
-            plusConfigurations = plusConfigurations.collect { it.copyRecursive { dependency -> onlyProject(dependency) }}
-            minusConfigurations = minusConfigurations.collect { it.copyRecursive { dependency -> onlyProject(dependency) }}
-        }
+        def entries = new ClasspathFactory().createEntries(this)
+        new ExportedEntriesUpdater().updateExported(entries, this.noExportConfigurations*.name)
+        return entries
     }
 
     void mergeXmlClasspath(Classpath xmlClasspath) {
+        file.beforeMerged.execute(xmlClasspath)
         def entries = resolveDependencies()
         xmlClasspath.configure(entries)
+        file.whenMerged.execute(xmlClasspath)
+    }
+
+    FileReferenceFactory getFileReferenceFactory() {
+        def referenceFactory = new FileReferenceFactory()
+        pathVariables.each { name, dir -> referenceFactory.addPathVariable(name, dir) }
+        return referenceFactory
     }
 }

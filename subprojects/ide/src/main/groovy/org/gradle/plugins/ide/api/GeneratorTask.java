@@ -15,8 +15,7 @@
  */
 package org.gradle.plugins.ide.api;
 
-import groovy.lang.Closure;
-import org.gradle.api.Action;
+import org.gradle.api.GradleException;
 import org.gradle.api.internal.ConventionTask;
 import org.gradle.api.specs.Specs;
 import org.gradle.api.tasks.OutputFile;
@@ -58,10 +57,17 @@ public class GeneratorTask<T> extends ConventionTask {
         getOutputs().upToDateWhen(Specs.satisfyNone());
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     @TaskAction
     void generate() {
         if (getInputFile().exists()) {
-            domainObject = generator.read(getInputFile());
+            try {
+                domainObject = generator.read(getInputFile());
+            } catch (RuntimeException e) {
+                throw new GradleException(String.format("Cannot parse file '%s'.\n"
+                        + "       Perhaps this file was tinkered with? In that case try delete this file and then retry.",
+                        getInputFile()), e);
+            }
         } else {
             domainObject = generator.defaultInstance();
         }
@@ -108,58 +114,6 @@ public class GeneratorTask<T> extends ConventionTask {
      */
     public void setOutputFile(File outputFile) {
         this.outputFile = outputFile;
-    }
-
-    /**
-     * <p>Adds a closure to be called before the domain object is configured by this task. The domain object is passed
-     * as a parameter to the closure.</p>
-     *
-     * <p>The closure is executed after the domain object has been loaded from the input file. Using this method allows
-     * you to change the domain object in some way before the task configures it.</p>
-     *
-     * @param closure The closure to execute.
-     */
-    public void beforeConfigured(Closure closure) {
-        beforeConfigured.add(closure);
-    }
-
-    /**
-     * <p>Adds an action to be called before the domain object is configured by this task. The domain object is passed
-     * as a parameter to the action.</p>
-     *
-     * <p>The action is executed after the domain object has been loaded from the input file. Using this method allows
-     * you to change the domain object in some way before the task configures it.</p>
-     *
-     * @param action The action to execute.
-     */
-    public void beforeConfigured(Action<? super T> action) {
-        beforeConfigured.add(action);
-    }
-
-    /**
-     * <p>Adds a closure to be called after the domain object has been configured by this task. The domain object is
-     * passed as a parameter to the closure.</p>
-     *
-     * <p>The closure is executed just before the domain object is written to the output file. Using this method allows
-     * you to override the configuration applied by this task.</p>
-     *
-     * @param closure The closure to execute.
-     */
-    public void whenConfigured(Closure closure) {
-        afterConfigured.add(closure);
-    }
-
-    /**
-     * <p>Adds an action to be called after the domain object has been configured by this task. The domain object is
-     * passed as a parameter to the action.</p>
-     *
-     * <p>The action is executed just before the domain object is written to the output file. Using this method allows
-     * you to override the configuration applied by this task.</p>
-     *
-     * @param action The action to execute.
-     */
-    public void whenConfigured(Action<? super T> action) {
-        afterConfigured.add(action);
     }
 
 }

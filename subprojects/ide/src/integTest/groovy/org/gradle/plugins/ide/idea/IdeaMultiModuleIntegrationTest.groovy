@@ -16,9 +16,9 @@
 package org.gradle.plugins.ide.idea
 
 import org.gradle.integtests.fixtures.TestResources
+import org.gradle.plugins.ide.AbstractIdeIntegrationTest
 import org.junit.Rule
 import org.junit.Test
-import org.gradle.plugins.ide.AbstractIdeIntegrationTest
 
 /**
  * @author Szczepan Faber, @date 03.03.11
@@ -57,8 +57,10 @@ project(':shared:model') {
     dependencies {
         utilities project(':util')
     }
-    ideaModule {
-        scopes.TEST.plus.add(configurations.utilities)
+    idea {
+        module {
+            scopes.TEST.plus.add(configurations.utilities)
+        }
     }
 }
 """
@@ -113,8 +115,10 @@ project(':api') {
 }
 
 project(':shared:model') {
-    ideaModule {
-        moduleName = 'very-cool-model'
+    idea {
+        module {
+            name = 'very-cool-model'
+        }
     }
 }
 
@@ -122,15 +126,16 @@ project(':services:utilities') {
     dependencies {
         compile project(':util'), project(':contrib:services:util'), project(':shared:api'), project(':shared:model')
     }
-    ideaModule {
-        moduleName = 'util'
+    idea {
+        module {
+            name = 'util'
+        }
     }
 }
 """
 
         //when
         executer.usingBuildScript(buildFile).usingSettingsFile(settingsFile).withTasks("idea").run()
-//        println(getTestDir())
 
         //then
         assertIprContainsCorrectModules()
@@ -232,8 +237,8 @@ allprojects {
 }
 
 project(':contrib') {
-    ideaModule {
-        moduleName = 'cool-contrib'
+    idea.module {
+        name = 'cool-contrib'
     }
 }
 """

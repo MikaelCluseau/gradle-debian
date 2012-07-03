@@ -26,14 +26,18 @@ import org.junit.Test
 import static org.hamcrest.Matchers.containsString
 import static org.hamcrest.Matchers.equalTo
 import static org.junit.Assert.assertThat
+import org.gradle.util.PreconditionVerifier
+import org.gradle.util.Requires
+import org.gradle.util.TestPrecondition
 
 class DistributionIntegrationTest {
     @Rule public final GradleDistribution dist = new GradleDistribution()
     @Rule public final GradleDistributionExecuter executer = new GradleDistributionExecuter()
+    @Rule public final PreconditionVerifier preconditionVerifier = new PreconditionVerifier()
     private String version = GradleVersion.current().version
 
     @Test
-    public void binZipContents() {
+    void binZipContents() {
         TestFile binZip = dist.distributionsDir.file("gradle-$version-bin.zip")
         binZip.usingNativeTools().unzipTo(dist.testDir)
         TestFile contentsDir = dist.testDir.file("gradle-$version")
@@ -47,7 +51,7 @@ class DistributionIntegrationTest {
     }
 
     @Test
-    public void allZipContents() {
+    void allZipContents() {
         TestFile binZip = dist.distributionsDir.file("gradle-$version-all.zip")
         binZip.usingNativeTools().unzipTo(dist.testDir)
         TestFile contentsDir = dist.testDir.file("gradle-$version")
@@ -58,7 +62,7 @@ class DistributionIntegrationTest {
         contentsDir.file('src/org/gradle/api/Project.java').assertIsFile()
         contentsDir.file('src/org/gradle/initialization/defaultBuildSourceScript.txt').assertIsFile()
         contentsDir.file('src/org/gradle/gradleplugin/userinterface/swing/standalone/BlockingApplication.java').assertIsFile()
-        contentsDir.file('src/org/gradle/wrapper/Wrapper.java').assertIsFile()
+        contentsDir.file('src/org/gradle/wrapper/WrapperExecutor.java').assertIsFile()
 
         // Samples
         contentsDir.file('samples/java/quickstart/build.gradle').assertIsFile()
@@ -85,7 +89,7 @@ class DistributionIntegrationTest {
         contentsDir.file('docs/dsl/index.html').assertContents(containsString("<title>Gradle DSL Version ${version}</title>"))
     }
 
-    private def checkMinimalContents(TestFile contentsDir) {
+    private void checkMinimalContents(TestFile contentsDir) {
         // Check it can be executed
         executer.inDirectory(contentsDir).usingExecutable('bin/gradle').withTaskList().run()
 
@@ -97,12 +101,17 @@ class DistributionIntegrationTest {
         contentsDir.file('LICENSE').assertIsFile()
 
         // Libs
+        assertIsGradleJar(contentsDir.file("lib/gradle-cli-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/gradle-core-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/gradle-ui-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/gradle-launcher-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/gradle-tooling-api-${version}.jar"))
-        assertIsGradleJar(contentsDir.file("lib/gradle-wrapper-${version}.jar"))
+        def wrapperJar = contentsDir.file("lib/gradle-wrapper-${version}.jar")
+        assertIsGradleJar(wrapperJar)
+        assert wrapperJar.length() < 20 * 1024; // wrapper needs to be small. Let's check it's smaller than some arbitrary 'small' limit
 
+        // Plugins
+        assertIsGradleJar(contentsDir.file("lib/plugins/gradle-core-impl-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-plugins-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-ide-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-scala-${version}.jar"))
@@ -113,25 +122,32 @@ class DistributionIntegrationTest {
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-sonar-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-maven-${version}.jar"))
         assertIsGradleJar(contentsDir.file("lib/plugins/gradle-osgi-${version}.jar"))
+        assertIsGradleJar(contentsDir.file("lib/plugins/gradle-signing-${version}.jar"))
+        assertIsGradleJar(contentsDir.file("lib/plugins/gradle-cpp-${version}.jar"))
+        assertIsGradleJar(contentsDir.file("lib/plugins/gradle-ear-${version}.jar"))
 
         // Docs
         contentsDir.file('getting-started.html').assertIsFile()
+        
+        // Jars that must not be shipped
+        assert !contentsDir.file("lib/tools.jar").exists()
+        assert !contentsDir.file("lib/plugins/tools.jar").exists()
     }
 
-    private def assertIsGradleJar(TestFile jar) {
+    private void assertIsGradleJar(TestFile jar) {
         jar.assertIsFile()
         assertThat(jar.manifest.mainAttributes.getValue('Implementation-Version'), equalTo(version))
         assertThat(jar.manifest.mainAttributes.getValue('Implementation-Title'), equalTo('Gradle'))
     }
 
-    @Test
-    public void sourceZipContents() {
+    @Test @Requires(TestPrecondition.NOT_WINDOWS)
+    void sourceZipContents() {
         TestFile srcZip = dist.distributionsDir.file("gradle-$version-src.zip")
         srcZip.usingNativeTools().unzipTo(dist.testDir)
         TestFile contentsDir = dist.testDir.file("gradle-$version")
 
         // Build self using wrapper in source distribution
-        executer.inDirectory(contentsDir).usingExecutable('gradlew').withTasks('binZip').run()
+        executer.withDeprecationChecksDisabled().inDirectory(contentsDir).usingExecutable('gradlew').withTasks('binZip').run()
 
         File binZip = contentsDir.file('build/distributions').listFiles()[0]
         Expand unpack = new Expand()

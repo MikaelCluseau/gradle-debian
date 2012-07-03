@@ -20,24 +20,19 @@ import org.apache.commons.io.FileUtils;
 import org.gradle.StartParameter;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.initialization.ProjectDescriptor;
-import org.gradle.api.internal.ClassGenerator;
-import org.gradle.api.internal.DomainObjectContext;
-import org.gradle.api.internal.Factory;
 import org.gradle.api.internal.GradleInternal;
-import org.gradle.api.internal.artifacts.ConfigurationContainerFactory;
-import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
-import org.gradle.api.internal.artifacts.configurations.ResolverProvider;
-import org.gradle.api.internal.artifacts.dsl.DefaultRepositoryHandler;
-import org.gradle.groovy.scripts.ScriptSource;
+import org.gradle.api.internal.Instantiator;
 import org.gradle.groovy.scripts.StringScriptSource;
 import org.gradle.groovy.scripts.UriScriptSource;
+import org.gradle.internal.Factory;
+import org.gradle.testfixtures.internal.GlobalTestServices;
 import org.gradle.testfixtures.internal.TestTopLevelBuildServiceRegistry;
+import org.gradle.util.JUnit4GroovyMockery;
 import org.gradle.util.MultiParentClassLoader;
 import org.gradle.util.TemporaryFolder;
 import org.jmock.Expectations;
 import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,21 +49,17 @@ import static org.junit.Assert.*;
  */
 @RunWith(JMock.class)
 public class ProjectFactoryTest {
-    private final JUnit4Mockery context = new JUnit4Mockery() {{
-        setImposteriser(ClassImposteriser.INSTANCE);
-    }};
+    private final JUnit4Mockery context = new JUnit4GroovyMockery();
     private final MultiParentClassLoader buildScriptClassLoader = new MultiParentClassLoader(getClass().getClassLoader());
     @Rule
     public TemporaryFolder testDir = new TemporaryFolder();
     private final File rootDir = testDir.getDir();
     private final File projectDir = new File(rootDir, "project");
-    private ConfigurationContainerFactory configurationContainerFactory = context.mock(
-            ConfigurationContainerFactory.class);
     private Factory<RepositoryHandler> repositoryHandlerFactory = context.mock(Factory.class);
-    private DefaultRepositoryHandler repositoryHandler = context.mock(DefaultRepositoryHandler.class);
+    private RepositoryHandler repositoryHandler = context.mock(RepositoryHandler.class);
     private StartParameter startParameterStub = new StartParameter();
-    private ServiceRegistryFactory serviceRegistryFactory = new TestTopLevelBuildServiceRegistry(new GlobalServicesRegistry(), startParameterStub, rootDir);
-    private ClassGenerator classGeneratorMock = serviceRegistryFactory.get(ClassGenerator.class);
+    private ServiceRegistryFactory serviceRegistryFactory = new TestTopLevelBuildServiceRegistry(new GlobalTestServices(), startParameterStub, rootDir);
+    private Instantiator instantiatorMock = serviceRegistryFactory.get(Instantiator.class);
     private GradleInternal gradle = context.mock(GradleInternal.class);
 
     private ProjectFactory projectFactory;
@@ -86,8 +77,6 @@ public class ProjectFactoryTest {
             will(returnValue(gradleServices));
             allowing(gradle).getStartParameter();
             will(returnValue(startParameterStub));
-            allowing(configurationContainerFactory).createConfigurationContainer(with(any(ResolverProvider.class)),
-                    with(any(DependencyMetaDataProvider.class)), with(any(DomainObjectContext.class)));
             allowing(gradle).getProjectRegistry();
             will(returnValue(gradleServices.get(IProjectRegistry.class)));
             allowing(gradle).getScriptClassLoader();
@@ -97,7 +86,7 @@ public class ProjectFactoryTest {
             ignoring(gradle).getProjectEvaluationBroadcaster();
         }});
 
-        projectFactory = new ProjectFactory(null, classGeneratorMock);
+        projectFactory = new ProjectFactory(instantiatorMock);
     }
 
     @Test
@@ -173,9 +162,9 @@ public class ProjectFactoryTest {
 
     @Test
     public void testConstructsRootProjectWithEmbeddedBuildScript() {
-        ScriptSource expectedScriptSource = new StringScriptSource("script", "content");
 
-        ProjectFactory projectFactory = new ProjectFactory(expectedScriptSource, classGeneratorMock);
+
+        ProjectFactory projectFactory = new ProjectFactory(instantiatorMock);
 
         DefaultProject project = projectFactory.createProject(descriptor("somename"), null, gradle);
 
@@ -186,7 +175,7 @@ public class ProjectFactoryTest {
         assertSame(project, project.getRootProject());
         assertNotNull(project.getConvention());
         checkProjectResources(project);
-        assertSame(project.getBuildScriptSource(), expectedScriptSource);
+
     }
 
     private ProjectDescriptor descriptor(String name) {

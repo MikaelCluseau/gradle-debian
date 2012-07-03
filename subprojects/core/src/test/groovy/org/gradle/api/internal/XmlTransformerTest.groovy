@@ -15,10 +15,10 @@
  */
 package org.gradle.api.internal
 
-import spock.lang.Specification
-import org.gradle.api.artifacts.maven.XmlProvider
 import org.gradle.api.Action
+import org.gradle.api.XmlProvider
 import org.gradle.util.TextUtil
+import spock.lang.Specification
 
 class XmlTransformerTest extends Specification {
     final XmlTransformer transformer = new XmlTransformer()
@@ -178,6 +178,71 @@ class XmlTransformerTest extends Specification {
         looksLike "<root>\n\t<child>\n\t\t<grandchild/>\n\t</child>\n</root>\n", result
     }
 
+    def "can add DOCTYPE along with nodes"() {
+        transformer.addAction { it.asNode().appendNode('someChild') }
+        transformer.addAction {
+            def s = it.asString()
+            s.insert(s.indexOf("?>") + 2, '\n<!DOCTYPE application PUBLIC "-//Sun Microsystems, Inc.//DTD J2EE Application 1.3//EN" "http://java.sun.com/dtd/application_1_3.dtd">')
+        }
+
+        when:
+        def result = transformer.transform("<root></root>")
+
+        then:
+        looksLike "<!DOCTYPE application PUBLIC \"-//Sun Microsystems, Inc.//DTD J2EE Application 1.3//EN\" \"http://java.sun.com/dtd/application_1_3.dtd\">\n<root>\n  <someChild/>\n</root>\n", result
+    }
+
+    def "can specify DOCTYPE when using DomNode"() {
+        StringWriter writer = new StringWriter()
+        def node = new DomNode('root')
+        node.publicId = 'public-id'
+        node.systemId = 'system-id'
+
+        when:
+        transformer.transform(node, writer)
+
+        then:
+        looksLike '''<!DOCTYPE root PUBLIC "public-id" "system-id">
+<root/>
+''', writer.toString()
+    }
+
+    def "DOCTYPE is preserved when transformed as a Node"() {
+        StringWriter writer = new StringWriter()
+        def node = new DomNode('root')
+        node.publicId = 'public-id'
+        node.systemId = 'system-id'
+        transformer.addAction { it.asNode().appendNode('someChild') }
+
+        when:
+        transformer.transform(node, writer)
+
+        then:
+        looksLike '''<!DOCTYPE root PUBLIC "public-id" "system-id">
+<root>
+  <someChild/>
+</root>
+''', writer.toString()
+    }
+
+    def "DOCTYPE is preserved when transformed as a DOM element"() {
+        StringWriter writer = new StringWriter()
+        def node = new DomNode('root')
+        node.publicId = 'public-id'
+        node.systemId = getClass().getResource("xml-transformer-test.dtd")
+        transformer.addAction { it.asElement().appendChild(it.asElement().ownerDocument.createElement('someChild')) }
+
+        when:
+        transformer.transform(node, writer)
+
+        then:
+        looksLike """<!DOCTYPE root PUBLIC "public-id" "${node.getSystemId()}">
+<root>
+  <someChild/>
+</root>
+""", writer.toString()
+    }
+
     def "indentation correct when writing out DOM element (only) if indenting with spaces"() {
         transformer.indentation = expected
         transformer.addAction { XmlProvider provider ->
@@ -198,7 +263,11 @@ class XmlTransformerTest extends Specification {
     }
 
     private void looksLike(String expected, String actual) {
-        assert actual == TextUtil.toPlatformLineSeparators(addXmlDeclaration(expected))
+        assert removeTrailingWhitespace(actual) == removeTrailingWhitespace(TextUtil.toPlatformLineSeparators(addXmlDeclaration(expected)))
+    }
+
+    private String removeTrailingWhitespace(String value) {
+        return value.replaceFirst('(?s)\\s+$', "")
     }
 
     private String addXmlDeclaration(String value) {

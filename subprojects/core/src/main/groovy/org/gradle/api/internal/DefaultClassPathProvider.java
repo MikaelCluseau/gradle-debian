@@ -13,24 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.gradle.api.internal;
 
-import java.util.List;
-import java.util.regex.Pattern;
+import org.gradle.api.internal.classpath.Module;
+import org.gradle.api.internal.classpath.ModuleRegistry;
+import org.gradle.util.ClassPath;
+import org.gradle.util.DefaultClassPath;
 
-public class DefaultClassPathProvider extends AbstractClassPathProvider {
-    public DefaultClassPathProvider() {
-        List<Pattern> groovyPatterns = toPatterns("groovy-all");
+public class DefaultClassPathProvider implements ClassPathProvider {
+    private final ModuleRegistry moduleRegistry;
 
-        add("LOCAL_GROOVY", groovyPatterns);
-        List<Pattern> gradleApiPatterns = toPatterns("gradle-\\w+", "ivy", "slf4j", "ant");
-        gradleApiPatterns.addAll(groovyPatterns);
-        // Add the test fixture runtime, too
-        gradleApiPatterns.addAll(toPatterns("commons-io", "asm", "commons-lang", "commons-collections", "maven-ant-tasks"));
-        add("GRADLE_API", gradleApiPatterns);
-        add("GRADLE_CORE", toPatterns("gradle-core"));
-        add("ANT", toPatterns("ant", "ant-launcher"));
-        add("COMMONS_CLI", toPatterns("commons-cli"));
+    public DefaultClassPathProvider(ModuleRegistry moduleRegistry) {
+        this.moduleRegistry = moduleRegistry;
+    }
+
+    public ClassPath findClassPath(String name) {
+        if (name.equals("GRADLE_RUNTIME")) {
+            ClassPath classpath = new DefaultClassPath();
+            for (Module module : moduleRegistry.getModule("gradle-launcher").getAllRequiredModules()) {
+                classpath = classpath.plus(module.getClasspath());
+            }
+            return classpath;
+        }
+        if (name.equals("GRADLE_CORE")) {
+            return moduleRegistry.getModule("gradle-core").getImplementationClasspath();
+        }
+        if (name.equals("COMMONS_CLI")) {
+            return moduleRegistry.getExternalModule("commons-cli").getClasspath();
+        }
+        if (name.equals("ANT")) {
+            ClassPath classpath = new DefaultClassPath();
+            classpath = classpath.plus(moduleRegistry.getExternalModule("ant").getClasspath());
+            classpath = classpath.plus(moduleRegistry.getExternalModule("ant-launcher").getClasspath());
+            return classpath;
+        }
+        if (name.equals("GROOVY")) {
+            return moduleRegistry.getExternalModule("groovy-all").getClasspath();
+        }
+
+        return null;
     }
 }

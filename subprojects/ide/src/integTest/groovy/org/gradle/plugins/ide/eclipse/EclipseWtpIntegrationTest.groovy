@@ -16,6 +16,7 @@
 package org.gradle.plugins.ide.eclipse
 
 import org.junit.Test
+import spock.lang.Issue
 
 // TODO: run prepareWebProject() only once per class for performance reasons (not as simply as it seems)
 class EclipseWtpIntegrationTest extends AbstractEclipseIntegrationTest {
@@ -73,17 +74,40 @@ class EclipseWtpIntegrationTest extends AbstractEclipseIntegrationTest {
     void allProjectDependenciesOfWebProjectAreAddedAsRuntimeDependencies() {
         prepareWebProject()
 
-        def projectModules = parseComponentFile(project: "web")
+        def projectModules = parseComponentFile(project: "web", print: true)
 
 		assert getDeployName(projectModules) == "web"
 		assert getHandleFilenames(projectModules) == ["java1", "java2", "groovy", "myartifact-1.0.jar", "myartifactdep-1.0.jar"] as Set
 		assert getDependencyTypes(projectModules) == ["uses"] * 5 as Set
     }
 
+    @Test
+    @Issue("GRADLE-1415")
+    void canUseSelfResolvingFiles() {
+        def buildFile = """
+apply plugin: "war"
+apply plugin: "eclipse"
+
+dependencies {
+    compile fileTree(dir: "libs", includes: ["*.jar"])
+}
+        """
+
+        def libsDir = file("libs")
+        libsDir.mkdir()
+        libsDir.createFile("foo.jar")
+
+        // when
+        runEclipseTask(buildFile)
+
+        // then
+        libEntriesInClasspathFileHaveFilenames("foo.jar")
+    }
+
     private prepareWebProject() {
         def repoDir = file("repo")
-        publishArtifact(repoDir, "mygroup", "myartifact", "myartifactdep")
-        publishArtifact(repoDir, "mygroup", "myartifactdep")
+        maven(repoDir).module("mygroup", "myartifact").dependsOn("myartifactdep").publish()
+        maven(repoDir).module("mygroup", "myartifactdep").publish()
 
         def settingsFile = file("settings.gradle")
         settingsFile << """
@@ -98,11 +122,11 @@ include("groovy")
         webBuildFile.parentFile.file("src/main/webapp").createDir()
 
         webBuildFile << """
-apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 apply plugin: "war"
 
 repositories {
-    mavenRepo(name: "repo", urls: "${repoDir.toURI()}")
+    maven { url "${repoDir.toURI()}" }
 }
 
 dependencies {
@@ -116,11 +140,11 @@ dependencies {
         createJavaSourceDirs(java1BuildFile)
 
         java1BuildFile << """
-apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 apply plugin: "java"
 
 repositories {
-    mavenRepo(name: "repo", urls: "${repoDir.toURI()}")
+    maven { url "${repoDir.toURI()}" }
 }
 
 dependencies {
@@ -133,11 +157,11 @@ dependencies {
         createJavaSourceDirs(java2BuildFile)
 
         java2BuildFile << """
-apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 apply plugin: "java"
 
 repositories {
-    mavenRepo(name: "repo", urls: "${repoDir.toURI()}")
+    maven { url "${repoDir.toURI()}" }
 }
 
 dependencies {
@@ -150,7 +174,7 @@ dependencies {
         groovyBuildFile.parentFile.file("src/main/groovy").createDir()
 
         groovyBuildFile << """
-apply plugin: "eclipse"
+apply plugin: "eclipse-wtp"
 apply plugin: "groovy"
         """
 

@@ -17,31 +17,31 @@
 package org.gradle.api.internal.project;
 
 import org.gradle.api.AntBuilder;
-import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.dsl.ArtifactHandler;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.initialization.dsl.ScriptHandler;
 import org.gradle.api.internal.*;
-import org.gradle.api.internal.artifacts.ConfigurationContainerFactory;
+import org.gradle.api.internal.artifacts.ArtifactPublicationServices;
+import org.gradle.api.internal.artifacts.DependencyManagementServices;
+import org.gradle.api.internal.artifacts.DependencyResolutionServices;
+import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal;
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
-import org.gradle.api.internal.artifacts.dsl.DefaultArtifactHandler;
-import org.gradle.api.internal.artifacts.dsl.PublishArtifactFactory;
-import org.gradle.api.internal.artifacts.dsl.SharedConventionRepositoryHandlerFactory;
-import org.gradle.api.internal.artifacts.dsl.dependencies.DefaultDependencyHandler;
 import org.gradle.api.internal.artifacts.dsl.dependencies.DependencyFactory;
+import org.gradle.api.internal.artifacts.dsl.dependencies.ProjectFinder;
 import org.gradle.api.internal.file.*;
 import org.gradle.api.internal.initialization.DefaultScriptHandler;
 import org.gradle.api.internal.initialization.ScriptClassLoaderProvider;
-import org.gradle.api.internal.plugins.DefaultConvention;
 import org.gradle.api.internal.plugins.DefaultProjectsPluginContainer;
 import org.gradle.api.internal.plugins.PluginRegistry;
 import org.gradle.api.internal.project.taskfactory.ITaskFactory;
 import org.gradle.api.internal.tasks.DefaultTaskContainerFactory;
 import org.gradle.api.internal.tasks.TaskContainerInternal;
 import org.gradle.api.logging.LoggingManager;
-import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.PluginContainer;
+import org.gradle.internal.Factory;
+import org.gradle.internal.nativeplatform.filesystem.FileSystem;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.util.JUnit4GroovyMockery;
 import org.jmock.Expectations;
@@ -60,17 +60,19 @@ import static org.junit.Assert.assertThat;
 public class ProjectInternalServiceRegistryTest {
     private final JUnit4Mockery context = new JUnit4GroovyMockery();
     private final ProjectInternal project = context.mock(ProjectInternal.class);
-    private final ConfigurationContainer configurationContainer = context.mock(ConfigurationContainer.class);
+    private final ConfigurationContainerInternal configurationContainer = context.mock(ConfigurationContainerInternal.class);
     private final GradleInternal gradle = context.mock(GradleInternal.class);
-    private final ConfigurationContainerFactory configurationContainerFactory = context.mock(
-            ConfigurationContainerFactory.class);
-    private final Factory<RepositoryHandler> repositoryHandlerFactory = context.mock(Factory.class);
+    private final DependencyManagementServices dependencyManagementServices = context.mock(DependencyManagementServices.class);
     private final ITaskFactory taskFactory = context.mock(ITaskFactory.class);
-    private final PublishArtifactFactory publishArtifactFactory = context.mock(PublishArtifactFactory.class);
     private final DependencyFactory dependencyFactory = context.mock(DependencyFactory.class);
     private final ServiceRegistry parent = context.mock(ServiceRegistry.class);
     private final ProjectInternalServiceRegistry registry = new ProjectInternalServiceRegistry(parent, project);
     private final PluginRegistry pluginRegistry = context.mock(PluginRegistry.class);
+    private final DependencyResolutionServices dependencyResolutionServices = context.mock(DependencyResolutionServices.class);
+    private final RepositoryHandler repositoryHandler = context.mock(RepositoryHandler.class);
+    private final Factory publishServicesFactory = context.mock(Factory.class);
+    private final DependencyHandler dependencyHandler = context.mock(DependencyHandler.class);
+    private final ArtifactHandler artifactHandler = context.mock(ArtifactHandler.class);
 
     @Before
     public void setUp() {
@@ -78,22 +80,20 @@ public class ProjectInternalServiceRegistryTest {
             allowing(project).getGradle();
             will(returnValue(gradle));
             allowing(project).getProjectDir();
-            will(returnValue(new File("project-dir")));
+            will(returnValue(new File("project-dir").getAbsoluteFile()));
             allowing(project).getBuildScriptSource();
             allowing(parent).get(ITaskFactory.class);
             will(returnValue(taskFactory));
-            allowing(parent).getFactory(RepositoryHandler.class);
-            will(returnValue(repositoryHandlerFactory));
-            allowing(parent).get(ConfigurationContainerFactory.class);
-            will(returnValue(configurationContainerFactory));
-            allowing(parent).get(PublishArtifactFactory.class);
-            will(returnValue(publishArtifactFactory));
             allowing(parent).get(DependencyFactory.class);
             will(returnValue(dependencyFactory));
             allowing(parent).get(PluginRegistry.class);
             will(returnValue(pluginRegistry));
-            allowing(parent).get(ClassGenerator.class);
-            will(returnValue(new AsmBackedClassGenerator()));
+            allowing(parent).get(DependencyManagementServices.class);
+            will(returnValue(dependencyManagementServices));
+            allowing(parent).get(Instantiator.class);
+            will(returnValue(new DirectInstantiator()));
+            allowing(parent).get(FileSystem.class);
+            will(returnValue(context.mock(FileSystem.class)));
         }});
     }
 
@@ -101,12 +101,6 @@ public class ProjectInternalServiceRegistryTest {
     public void createsARegistryForATask() {
         ServiceRegistryFactory taskRegistry = registry.createFor(context.mock(TaskInternal.class));
         assertThat(taskRegistry, instanceOf(TaskInternalServiceRegistry.class));
-    }
-
-    @Test
-    public void providesAConvention() {
-        assertThat(registry.get(Convention.class), instanceOf(DefaultConvention.class));
-        assertThat(registry.get(Convention.class), sameInstance(registry.get(Convention.class)));
     }
 
     @Test
@@ -126,23 +120,42 @@ public class ProjectInternalServiceRegistryTest {
     }
 
     @Test
-    public void providesARepositoryHandlerFactory() {
-        assertThat(registry.getFactory(RepositoryHandler.class), instanceOf(SharedConventionRepositoryHandlerFactory.class));
+    public void providesAnArtifactPublicationServicesFactory() {
+        expectDependencyResolutionServicesCreated();
+
+        assertThat(registry.getFactory(ArtifactPublicationServices.class), sameInstance(publishServicesFactory));
+        assertThat(registry.getFactory(ArtifactPublicationServices.class), sameInstance(registry.getFactory(ArtifactPublicationServices.class)));
+    }
+
+    @Test
+    public void providesARepositoryHandler() {
+        expectDependencyResolutionServicesCreated();
+
+        assertThat(registry.get(RepositoryHandler.class), sameInstance(repositoryHandler));
+        assertThat(registry.get(RepositoryHandler.class), sameInstance(registry.get(RepositoryHandler.class)));
+    }
+
+    @Test
+    public void providesAConfigurationContainer() {
+        expectDependencyResolutionServicesCreated();
+
+        assertThat(registry.get(ConfigurationContainerInternal.class), sameInstance(configurationContainer));
+        assertThat(registry.get(ConfigurationContainerInternal.class), sameInstance(registry.get(ConfigurationContainerInternal.class)));
     }
 
     @Test
     public void providesAnArtifactHandler() {
-        expectConfigurationHandlerCreated();
+        expectDependencyResolutionServicesCreated();
 
-        assertThat(registry.get(ArtifactHandler.class), instanceOf(DefaultArtifactHandler.class));
+        assertThat(registry.get(ArtifactHandler.class), sameInstance(artifactHandler));
         assertThat(registry.get(ArtifactHandler.class), sameInstance(registry.get(ArtifactHandler.class)));
     }
 
     @Test
     public void providesADependencyHandler() {
-        expectConfigurationHandlerCreated();
+        expectDependencyResolutionServicesCreated();
 
-        assertThat(registry.get(DependencyHandler.class), instanceOf(DefaultDependencyHandler.class));
+        assertThat(registry.get(DependencyHandler.class), sameInstance(dependencyHandler));
         assertThat(registry.get(DependencyHandler.class), sameInstance(registry.get(DependencyHandler.class)));
     }
 
@@ -164,7 +177,7 @@ public class ProjectInternalServiceRegistryTest {
 
     @Test
     public void providesAFileResolver() {
-        assertThat(registry.get(FileResolver.class), instanceOf(BaseDirConverter.class));
+        assertThat(registry.get(FileResolver.class), instanceOf(BaseDirFileResolver.class));
         assertThat(registry.get(FileResolver.class), sameInstance(registry.get(FileResolver.class)));
     }
 
@@ -201,37 +214,45 @@ public class ProjectInternalServiceRegistryTest {
     }
 
     private void expectScriptClassLoaderProviderCreated() {
-        expectConfigurationHandlerCreated();
-        
         context.checking(new Expectations() {{
+            one(dependencyManagementServices).create(with(notNullValue(FileResolver.class)),
+                    with(notNullValue(DependencyMetaDataProvider.class)),
+                    with(notNullValue(ProjectFinder.class)),
+                    with(notNullValue(DomainObjectContext.class)));
+            will(returnValue(dependencyResolutionServices));
+
+            ignoring(dependencyResolutionServices);
+
             allowing(project).getParent();
             will(returnValue(null));
 
             allowing(gradle).getScriptClassLoader();
             will(returnValue(null));
-
-            ignoring(configurationContainer);
         }});
     }
 
-    private void expectConfigurationHandlerCreated() {
-        context.checking(new Expectations() {{
-            RepositoryHandler repositoryHandler = context.mock(TestRepositoryHandler.class);
+    private void expectDependencyResolutionServicesCreated() {
+        context.checking(new Expectations(){{
+            one(dependencyManagementServices).create(with(notNullValue(FileResolver.class)),
+                    with(notNullValue(DependencyMetaDataProvider.class)),
+                    with(notNullValue(ProjectFinder.class)),
+                    with(notNullValue(DomainObjectContext.class)));
+            will(returnValue(dependencyResolutionServices));
 
-            allowing(project).getRepositories();
+            allowing(dependencyResolutionServices).getResolveRepositoryHandler();
             will(returnValue(repositoryHandler));
 
-            allowing(repositoryHandlerFactory).create();
-            will(returnValue(repositoryHandler));
+            allowing(dependencyResolutionServices).getPublishServicesFactory();
+            will(returnValue(publishServicesFactory));
 
-            ignoring(repositoryHandler);
-
-            one(configurationContainerFactory).createConfigurationContainer(with(sameInstance(repositoryHandler)), with(
-                    notNullValue(DependencyMetaDataProvider.class)), with(sameInstance(project)));
+            allowing(dependencyResolutionServices).getConfigurationContainer();
             will(returnValue(configurationContainer));
-        }});
-    }
 
-    private interface TestRepositoryHandler extends RepositoryHandler, IConventionAware {
+            allowing(dependencyResolutionServices).getDependencyHandler();
+            will(returnValue(dependencyHandler));
+
+            allowing(dependencyResolutionServices).getArtifactHandler();
+            will(returnValue(artifactHandler));
+        }});
     }
 }

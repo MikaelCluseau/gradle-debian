@@ -17,6 +17,7 @@ package org.gradle.plugins.ide.idea.model
 
 import org.gradle.api.internal.XmlTransformer
 import org.gradle.plugins.ide.internal.generator.XmlPersistableConfigurationObject
+import org.gradle.util.DeprecationLogger
 
 /**
  * Represents the customizable elements of an iml (via XML hooks everything of the iml is customizable).
@@ -68,7 +69,17 @@ class Module extends XmlPersistableConfigurationObject {
      */
     Set<Dependency> dependencies = [] as LinkedHashSet
 
-    String javaVersion
+    String jdkName
+
+    String getJavaVersion() {
+        DeprecationLogger.nagUserOfReplacedMethod("javaVersion", "jdkName")
+        jdkName
+    }
+
+    void setJavaVersion(String jdkName) {
+        DeprecationLogger.nagUserOfReplacedMethod("javaVersion", "jdkName")
+        this.jdkName = jdkName
+    }
 
     private final PathFactory pathFactory
 
@@ -91,7 +102,7 @@ class Module extends XmlPersistableConfigurationObject {
 
     private readJdkFromXml() {
         def jdk = findOrderEntries().find { it.@type == 'jdk' }
-        javaVersion = jdk ? jdk.@jdkName : INHERITED
+        jdkName = jdk ? jdk.@jdkName : INHERITED
     }
 
     private readSourceAndExcludeFolderFromXml() {
@@ -141,7 +152,8 @@ class Module extends XmlPersistableConfigurationObject {
         }
     }
 
-    protected def configure(Path contentPath, Set sourceFolders, Set testSourceFolders, Set excludeFolders, Boolean inheritOutputDirs, Path outputDir, Path testOutputDir, Set dependencies, String javaVersion) {
+    protected def configure(Path contentPath, Set sourceFolders, Set testSourceFolders, Set excludeFolders,
+                            Boolean inheritOutputDirs, Path outputDir, Path testOutputDir, Set dependencies, String jdkName) {
         this.contentPath = contentPath
         this.sourceFolders.addAll(sourceFolders)
         this.testSourceFolders.addAll(testSourceFolders)
@@ -156,8 +168,10 @@ class Module extends XmlPersistableConfigurationObject {
             this.testOutputDir = testOutputDir
         }
         this.dependencies = dependencies; // overwrite rather than append dependencies
-        if (javaVersion) {
-            this.javaVersion = javaVersion
+        if (jdkName) {
+            this.jdkName = jdkName
+        } else {
+            this.jdkName = Module.INHERITED
         }
     }
 
@@ -174,9 +188,9 @@ class Module extends XmlPersistableConfigurationObject {
     }
 
     private addJdkToXml() {
-        assert javaVersion != null
+        assert jdkName != null
         Node moduleJdk = findOrderEntries().find { it.@type == 'jdk' }
-        if (javaVersion != INHERITED) {
+        if (jdkName != INHERITED) {
             Node inheritedJdk = findOrderEntries().find { it.@type == "inheritedJdk" }
             if (inheritedJdk) {
                 inheritedJdk.parent().remove(inheritedJdk)
@@ -184,7 +198,7 @@ class Module extends XmlPersistableConfigurationObject {
             if (moduleJdk) {
                 findNewModuleRootManager().remove(moduleJdk)
             }
-            findNewModuleRootManager().appendNode("orderEntry", [type: "jdk", jdkName: javaVersion, jdkType: "JavaSDK"])
+            findNewModuleRootManager().appendNode("orderEntry", [type: "jdk", jdkName: jdkName, jdkType: "JavaSDK"])
         } else if (!(findOrderEntries().find { it.@type == "inheritedJdk" })) {
             if (moduleJdk) {
                 findNewModuleRootManager().remove(moduleJdk)

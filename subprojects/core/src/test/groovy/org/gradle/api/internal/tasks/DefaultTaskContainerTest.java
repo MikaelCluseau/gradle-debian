@@ -16,23 +16,28 @@
 package org.gradle.api.internal.tasks;
 
 import groovy.lang.Closure;
-import org.gradle.api.*;
-import org.gradle.api.internal.ClassGenerator;
-import org.gradle.api.internal.project.taskfactory.ITaskFactory;
-import org.gradle.api.internal.project.ProjectInternal;
+import org.gradle.api.InvalidUserDataException;
+import org.gradle.api.Rule;
+import org.gradle.api.Task;
+import org.gradle.api.UnknownTaskException;
+import org.gradle.api.internal.Instantiator;
 import org.gradle.api.internal.TaskInternal;
-import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.internal.project.ProjectInternal;
+import org.gradle.api.internal.project.taskfactory.ITaskFactory;
 import org.gradle.util.GUtil;
 import org.gradle.util.HelperUtil;
-import static org.hamcrest.Matchers.*;
 import org.jmock.Expectations;
 import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
-import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Map;
+
+import static java.util.Collections.singletonMap;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(JMock.class)
 public class DefaultTaskContainerTest {
@@ -40,11 +45,11 @@ public class DefaultTaskContainerTest {
     private final ITaskFactory taskFactory = context.mock(ITaskFactory.class);
     private final ProjectInternal project = context.mock(ProjectInternal.class, "<project>");
     private int taskCount;
-    private final DefaultTaskContainer container = new DefaultTaskContainer(project, context.mock(ClassGenerator.class), taskFactory);
+    private final DefaultTaskContainer container = new DefaultTaskContainer(project, context.mock(Instantiator.class), taskFactory);
 
     @Test
     public void addsTaskWithMap() {
-        final Map<String, ?> options = GUtil.map("option", "value");
+        final Map<String, ?> options = singletonMap("option", "value");
         final Task task = task("task");
 
         context.checking(new Expectations(){{
@@ -57,7 +62,7 @@ public class DefaultTaskContainerTest {
 
     @Test
     public void addsTaskWithName() {
-        final Map<String, ?> options = GUtil.map(Task.TASK_NAME, "task");
+        final Map<String, ?> options = singletonMap(Task.TASK_NAME, "task");
         final Task task = task("task");
 
         context.checking(new Expectations(){{
@@ -82,7 +87,7 @@ public class DefaultTaskContainerTest {
     @Test
     public void addsTaskWithNameAndConfigureClosure() {
         final Closure action = HelperUtil.toClosure("{ description = 'description' }");
-        final Map<String, ?> options = GUtil.map(Task.TASK_NAME, "task");
+        final Map<String, ?> options = singletonMap(Task.TASK_NAME, "task");
         final Task task = task("task");
 
         context.checking(new Expectations(){{
@@ -96,7 +101,7 @@ public class DefaultTaskContainerTest {
 
     @Test
     public void replacesTaskWithName() {
-        final Map<String, ?> options = GUtil.map(Task.TASK_NAME, "task");
+        final Map<String, ?> options = singletonMap(Task.TASK_NAME, "task");
         final Task task = task("task");
 
         context.checking(new Expectations(){{
@@ -122,7 +127,7 @@ public class DefaultTaskContainerTest {
     @Test
     public void doesNotFireRuleWhenAddingTask() {
         Rule rule = context.mock(Rule.class);
-        final Map<String, ?> options = GUtil.map(Task.TASK_NAME, "task");
+        final Map<String, ?> options = singletonMap(Task.TASK_NAME, "task");
         final Task task = task("task");
 
         container.addRule(rule);
@@ -140,7 +145,7 @@ public class DefaultTaskContainerTest {
         final Task task = addTask("task");
 
         context.checking(new Expectations() {{
-            one(taskFactory).createTask(project, GUtil.map(Task.TASK_NAME, "task"));
+            one(taskFactory).createTask(project, singletonMap(Task.TASK_NAME, "task"));
             will(returnValue(task("task")));
         }});
 
@@ -160,7 +165,7 @@ public class DefaultTaskContainerTest {
 
         final Task newTask = task("task");
         context.checking(new Expectations() {{
-            one(taskFactory).createTask(project, GUtil.map(Task.TASK_NAME, "task"));
+            one(taskFactory).createTask(project, singletonMap(Task.TASK_NAME, "task"));
             will(returnValue(newTask));
         }});
         
@@ -259,8 +264,8 @@ public class DefaultTaskContainerTest {
     
     private void expectTaskLookupInOtherProject(final String projectPath, final String taskName, final Task task) {
         context.checking(new Expectations() {{
-            Project otherProject = context.mock(Project.class);
-            TaskContainer otherTaskContainer = context.mock(TaskContainer.class);
+            ProjectInternal otherProject = context.mock(ProjectInternal.class);
+            TaskContainerInternal otherTaskContainer = context.mock(TaskContainerInternal.class);
 
             allowing(project).findProject(projectPath);
             will(returnValue(otherProject));
@@ -284,7 +289,7 @@ public class DefaultTaskContainerTest {
 
     private Task addTask(String name) {
         final Task task = task(name);
-        final Map<String, ?> options = GUtil.map(Task.TASK_NAME, name);
+        final Map<String, ?> options = singletonMap(Task.TASK_NAME, name);
         context.checking(new Expectations() {{
             one(taskFactory).createTask(project, options);
             will(returnValue(task));

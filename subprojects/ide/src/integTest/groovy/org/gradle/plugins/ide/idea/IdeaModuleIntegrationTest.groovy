@@ -20,6 +20,7 @@ import org.gradle.integtests.fixtures.TestResources
 import org.gradle.plugins.ide.AbstractIdeIntegrationTest
 import org.junit.Rule
 import org.junit.Test
+import spock.lang.Issue
 
 class IdeaModuleIntegrationTest extends AbstractIdeIntegrationTest {
     @Rule
@@ -50,6 +51,8 @@ configurations {
 }
 
 idea {
+    pathVariables CUSTOM_VARIABLE: file('customModuleContentRoot').parentFile
+
     module {
         name = 'foo'
         contentRoot = file('customModuleContentRoot')
@@ -66,8 +69,7 @@ idea {
         outputDir = file('muchBetterOutputDir')
         testOutputDir = file('muchBetterTestOutputDir')
 
-        javaVersion = '1.6'
-        variables = [CUSTOM_VARIABLE: file('customModuleContentRoot').parentFile]
+        jdkName = '1.6'
 
         iml {
             generateTo = file('customImlFolder')
@@ -99,8 +101,7 @@ idea {
     }
 
     @Test
-    void plusMinusConfigurationsAreCorrectlyApplied() {
-        file('foo.jar', 'bar.jar')
+    void plusMinusConfigurationsWorkFineForSelfResolvingFileDependencies() {
         //when
         runTask 'idea', '''
 apply plugin: "java"
@@ -110,17 +111,19 @@ configurations {
   bar
   foo
   foo.extendsFrom(bar)
+  baz
 }
 
 dependencies {
   bar files('bar.jar')
-  foo files('foo.jar')
+  foo files('foo.jar', 'foo2.jar', 'foo3.jar')
+  baz files('foo3.jar')
 }
 
 idea {
     module {
         scopes.COMPILE.plus += configurations.foo
-        scopes.COMPILE.minus += configurations.bar
+        scopes.COMPILE.minus += [configurations.bar, configurations.baz]
     }
 }
 '''
@@ -128,7 +131,10 @@ idea {
 
         //then
         assert content.contains('foo.jar')
+        assert content.contains('foo2.jar')
+
         assert !content.contains('bar.jar')
+        assert !content.contains('foo3.jar')
     }
 
     @Test
@@ -158,7 +164,7 @@ idea {
         excludeDirs = [project.file('folderThatIsExcludedNow')] as Set
         iml {
             beforeMerged { it.excludeFolders.clear() }
-            whenMerged   { it.javaVersion = '1.33'   }
+            whenMerged   { it.jdkName = '1.33'   }
         }
     }
 }
@@ -168,5 +174,118 @@ idea {
         assert iml.contains('folderThatIsExcludedNow')
         assert !iml.contains('folderThatWasExcludedEarlier')
         assert iml.contains('1.33')
+    }
+
+    @Issue("GRADLE-1504")
+    @Test
+    void shouldNotPutSourceSetsOutputDirOnClasspath() {
+        testFile('build/generated/main/foo.resource').createFile()
+        testFile('build/ws/test/service.xml').createFile()
+
+        //when
+        runTask 'idea', '''
+apply plugin: "java"
+apply plugin: "idea"
+
+sourceSets.main.output.dir "$buildDir/generated/main"
+sourceSets.test.output.dir "$buildDir/ws/test"
+'''
+        def iml = parseFile(print: true, 'root.iml')
+
+        //then
+        assert iml.component.orderEntry.@scope.collect { it.text() == ['RUNTIME', 'TEST'] }
+
+        def classesDirs = iml.component.orderEntry.library.CLASSES.root.@url.collect { it.text() }
+        assert classesDirs.any { it.contains ('generated/main') }
+        assert classesDirs.any { it.contains ('ws/test') }
+    }
+
+    @Test
+    void theBuiltByTaskBeExecuted() {
+        //when
+        def result = runIdeaTask('''
+apply plugin: "java"
+apply plugin: "idea"
+
+sourceSets.main.output.dir "$buildDir/generated/main", builtBy: 'generateForMain'
+sourceSets.test.output.dir "$buildDir/generated/test", builtBy: 'generateForTest'
+
+task generateForMain << {}
+task generateForTest << {}
+''')
+        //then
+        result.assertTasksExecuted(':generateForMain', ':generateForTest', ':ideaModule', ':ideaProject', ':ideaWorkspace', ':idea')
+    }
+
+    @Test
+    void enablesTogglingJavadocAndSourcesOff() {
+        //given
+        def repoDir = file("repo")
+        def module = maven(repoDir).module("coolGroup", "niceArtifact")
+        module.artifact(classifier: 'sources')
+        module.artifact(classifier: 'javadoc')
+        module.publish()
+
+        //when
+        runIdeaTask """
+apply plugin: 'java'
+apply plugin: 'idea'
+
+repositories {
+    maven { url "${repoDir.toURI()}" }
+}
+
+dependencies {
+    compile 'coolGroup:niceArtifact:1.0'
+}
+
+idea.module {
+    downloadSources = false
+    downloadJavadoc = false
+}
+"""
+        def content = getFile([:], 'root.iml').text
+
+        //then
+        assert !content.contains('niceArtifact-1.0-sources.jar')
+        assert !content.contains('niceArtifact-1.0-javadoc.jar')
+    }
+
+    @Test
+    void doesNotBreakWhenSomeDependenciesCannotBeResolved() {
+        //given
+        def repoDir = file("repo")
+        maven(repoDir).module("groupOne", "artifactTwo").publish()
+
+        file("settings.gradle") << "include 'someApiProject', 'impl'\n"
+        file('someDependency.jar').createFile()
+
+        //when
+        runIdeaTask """
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'idea'
+}
+
+project(':impl') {
+    repositories {
+        maven { url "${repoDir.toURI()}" }
+    }
+
+    dependencies {
+        compile 'groupOne:artifactTwo:1.0'
+        compile project(':someApiProject')
+        compile 'i.dont:Exist:1.0'
+        compile files('someDependency.jar')
+    }
+}
+"""
+        def content = getFile([print : true], 'impl/impl.iml').text
+
+        //then
+        assert content.count("someDependency.jar") == 1
+        assert content.count("artifactTwo-1.0.jar") == 1
+        assert content.count("someApiProject") == 1
+        assert content.count("unresolved dependency - i.dont#Exist;1.0") == 1
     }
 }

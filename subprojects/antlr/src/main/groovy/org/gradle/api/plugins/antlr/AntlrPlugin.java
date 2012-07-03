@@ -16,35 +16,31 @@
 
 package org.gradle.api.plugins.antlr;
 
-import java.io.File;
-
 import org.gradle.api.Action;
 import org.gradle.api.Plugin;
-import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.internal.DynamicObjectAware;
-import org.gradle.api.internal.IConventionAware;
+import org.gradle.api.internal.plugins.DslObject;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.internal.tasks.DefaultSourceSet;
-import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.JavaPlugin;
-
-import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME;
-
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.plugins.antlr.internal.AntlrSourceVirtualDirectoryImpl;
-import org.gradle.api.tasks.ConventionValue;
 import org.gradle.api.tasks.SourceSet;
+
+import java.io.File;
+import java.util.concurrent.Callable;
+
+import static org.gradle.api.plugins.JavaPlugin.COMPILE_CONFIGURATION_NAME;
 
 /**
  * A plugin for adding Antlr support to {@link JavaPlugin java projects}.
  *
  * @author Steve Ebersole
  */
-public class AntlrPlugin implements Plugin<Project> {
+public class AntlrPlugin implements Plugin<ProjectInternal> {
     public static final String ANTLR_CONFIGURATION_NAME = "antlr";
 
-    public void apply(final Project project) {
+    public void apply(final ProjectInternal project) {
         project.getPlugins().apply(JavaPlugin.class);
 
         // set up a configuration named 'antlr' for the user to specify the antlr libs to use in case
@@ -53,16 +49,14 @@ public class AntlrPlugin implements Plugin<Project> {
                 .setTransitive(false).setDescription("The Antlr libraries to be used for this project.");
         project.getConfigurations().getByName(COMPILE_CONFIGURATION_NAME).extendsFrom(antlrConfiguration);
 
-        final ProjectInternal projectInternal = (ProjectInternal) project;
         project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets().all(
                 new Action<SourceSet>() {
                     public void execute(SourceSet sourceSet) {
                         // for each source set we will:
                         // 1) Add a new 'antlr' virtual directory mapping
                         final AntlrSourceVirtualDirectoryImpl antlrDirectoryDelegate
-                                = new AntlrSourceVirtualDirectoryImpl(((DefaultSourceSet) sourceSet).getDisplayName(),
-                                projectInternal.getFileResolver());
-                        ((DynamicObjectAware) sourceSet).getConvention().getPlugins().put(
+                                = new AntlrSourceVirtualDirectoryImpl(((DefaultSourceSet) sourceSet).getDisplayName(), project.getFileResolver());
+                        new DslObject(sourceSet).getConvention().getPlugins().put(
                                 AntlrSourceVirtualDirectory.NAME, antlrDirectoryDelegate);
                         final String srcDir = String.format("src/%s/antlr", sourceSet.getName());
                         antlrDirectoryDelegate.getAntlr().srcDir(srcDir);
@@ -76,15 +70,11 @@ public class AntlrPlugin implements Plugin<Project> {
                                 sourceSet.getName()));
 
                         // 3) set up convention mapping for default sources (allows user to not have to specify)
-                        antlrTask.conventionMapping("defaultSource", new ConventionValue() {
-                            public Object getValue(Convention convention, IConventionAware conventionAwareObject) {
-                                return antlrDirectoryDelegate.getAntlr();
-                            }
-                        });
+                        antlrTask.setSource(antlrDirectoryDelegate.getAntlr());
 
                         // 4) set up convention mapping for handling the 'antlr' dependency configuration
-                        antlrTask.getConventionMapping().map("antlrClasspath", new ConventionValue() {
-                            public Object getValue(Convention convention, IConventionAware conventionAwareObject) {
+                        antlrTask.getConventionMapping().map("antlrClasspath", new Callable<Object>() {
+                            public Object call() throws Exception {
                                 return project.getConfigurations().getByName(ANTLR_CONFIGURATION_NAME).copy()
                                         .setTransitive(true);
                             }
