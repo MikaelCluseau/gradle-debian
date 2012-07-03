@@ -17,7 +17,8 @@ usr/share/java/jansi.jar                         usr/share/gradle/lib/jansi.jar
 usr/share/java/jaxen.jar                         usr/share/gradle/lib/jaxen.jar
 usr/share/java/jcl-over-slf4j.jar                usr/share/gradle/lib/jcl-over-slf4j.jar
 usr/share/java/jna.jar                           usr/share/gradle/lib/jna.jar
-usr/share/java/jna-posix.jar                     usr/share/gradle/lib/jna-posix.jar
+usr/share/java/jnr-posix.jar                     usr/share/gradle/lib/jnr-posix.jar
+usr/share/java/jnr-posix.jar                     usr/share/gradle/lib/jna-posix.jar
 usr/share/java/joptsimple.jar                    usr/share/gradle/lib/joptsimple.jar
 usr/share/java/jsch.jar                          usr/share/gradle/lib/jsch.jar
 usr/share/java/jul-to-slf4j.jar                  usr/share/gradle/lib/jul-to-slf4j.jar

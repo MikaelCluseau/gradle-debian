@@ -1,3 +1,9 @@
+gradle (1.0~m3-2) UNRELEASED; urgency=low
+
+  * Replace dependencies on jna-posix library with jnr-posix. (Closes: #628662).
+
+ -- Miguel Landaeta <miguel@miguel.cc>  Thu, 02 Jun 2011 19:42:57 -0430
+
 gradle (1.0~m3-1) unstable; urgency=low
 
   * New upstream release.

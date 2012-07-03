@@ -9,3 +9,4 @@
 13_fix_javadocs_links.diff
 21_docs.diff
 22_checkstyle.diff
+23_replace_jna-posix_with_jnr-posix.diff
