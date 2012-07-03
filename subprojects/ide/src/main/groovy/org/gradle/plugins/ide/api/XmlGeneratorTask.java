@@ -15,9 +15,6 @@
  */
 package org.gradle.plugins.ide.api;
 
-import groovy.lang.Closure;
-import org.gradle.api.Action;
-import org.gradle.api.artifacts.maven.XmlProvider;
 import org.gradle.api.internal.XmlTransformer;
 import org.gradle.plugins.ide.internal.generator.generator.PersistableConfigurationObject;
 import org.gradle.plugins.ide.internal.generator.generator.PersistableConfigurationObjectGenerator;
@@ -50,25 +47,4 @@ public abstract class XmlGeneratorTask<T extends PersistableConfigurationObject>
 
     protected abstract T create();
 
-    /**
-     * Adds a closure to be called when the XML document has been created. The XML is passed to the closure as a
-     * parameter in form of a {@link org.gradle.api.artifacts.maven.XmlProvider}. The closure can modify the XML before
-     * it is written to the output file.
-     *
-     * @param closure The closure to execute when the XML has been created.
-     */
-    public void withXml(Closure closure) {
-        xmlTransformer.addAction(closure);
-    }
-
-    /**
-     * Adds an action to be called when the XML document has been created. The XML is passed to the action as a
-     * parameter in form of a {@link org.gradle.api.artifacts.maven.XmlProvider}. The action can modify the XML before
-     * it is written to the output file.
-     *
-     * @param action The action to execute when the IPR XML has been created.
-     */
-    public void withXml(Action<? super XmlProvider> action) {
-        xmlTransformer.addAction(action);
-    }
 }

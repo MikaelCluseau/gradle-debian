@@ -15,6 +15,8 @@
  */
 package org.gradle.plugins.ide.eclipse.model
 
+import org.gradle.plugins.ide.eclipse.model.internal.FileReferenceFactory
+import org.gradle.util.Matchers
 import spock.lang.Specification
 
 /**
@@ -22,20 +24,28 @@ import spock.lang.Specification
  */
 
 class LibraryTest extends Specification {
-    final static String XML_TEXT = '''
+    final static String XML_TEXT_TEMPLATE = '''
                     <classpathentry exported="true" kind="lib" path="/ant.jar" sourcepath="/ant-src.jar">
                         <attributes>
                             <attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="mynative"/>
-                            <attribute name="javadoc_location" value="jar:file:/ant-javadoc.jar!/path"/>
+                            <attribute name="javadoc_location" value="jar:%FILE_URI%!/"/>
                         </attributes>
                         <accessrules>
                             <accessrule kind="nonaccessible" pattern="secret**"/>
                         </accessrules>
                     </classpathentry>'''
+    final fileReferenceFactory = new FileReferenceFactory()
+
+    String platformXml;
+
+    def setup(){
+        //xml differs on windows and mac due to required absolute paths for javadoc uri
+        platformXml = XML_TEXT_TEMPLATE.replace("%FILE_URI%", new File("ant-javadoc.jar").toURI().toString());
+    }
 
     def canReadFromXml() {
         when:
-        Library library = new Library(new XmlParser().parseText(XML_TEXT))
+        Library library = new Library(new XmlParser().parseText(platformXml), fileReferenceFactory)
 
         then:
         library == createLibrary()
@@ -48,19 +58,27 @@ class LibraryTest extends Specification {
         createLibrary().appendNode(rootNode)
 
         then:
-        new Library(rootNode.classpathentry[0]) == createLibrary()
+        new Library(rootNode.classpathentry[0], fileReferenceFactory) == createLibrary()
     }
 
     def equality() {
         Library library = createLibrary()
-        library.javadocPath += 'x'
+        Library same = createLibrary()
+        Library differentPath = createLibrary()
+        differentPath.path = '/other'
 
         expect:
-        library != createLibrary()
+        library Matchers.strictlyEqual(same)
+        library != differentPath
     }
 
     private Library createLibrary() {
-        return new Library('/ant.jar', true, 'mynative', [new AccessRule('nonaccessible', 'secret**')] as Set,
-                "/ant-src.jar", "jar:file:/ant-javadoc.jar!/path")
+        Library library = new Library(fileReferenceFactory.fromPath('/ant.jar'))
+        library.exported = true
+        library.nativeLibraryLocation = 'mynative'
+        library.accessRules += [new AccessRule('nonaccessible', 'secret**')]
+        library.sourcePath = fileReferenceFactory.fromPath("/ant-src.jar")
+        library.javadocPath = fileReferenceFactory.fromJarURI("jar:${new File("ant-javadoc.jar").toURI()}!/");
+        return library
     }
 }

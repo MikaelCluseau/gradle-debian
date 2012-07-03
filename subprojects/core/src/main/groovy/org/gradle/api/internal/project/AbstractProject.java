@@ -20,7 +20,6 @@ import groovy.lang.Closure;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
 import org.gradle.api.*;
-import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Module;
 import org.gradle.api.artifacts.dsl.ArtifactHandler;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
@@ -31,24 +30,27 @@ import org.gradle.api.file.CopySpec;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.initialization.dsl.ScriptHandler;
 import org.gradle.api.internal.*;
+import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal;
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
 import org.gradle.api.internal.file.FileOperations;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.initialization.ScriptClassLoaderProvider;
 import org.gradle.api.internal.plugins.DefaultObjectConfigurationAction;
 import org.gradle.api.internal.tasks.TaskContainerInternal;
-import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.plugins.Convention;
+import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.PluginContainer;
+import org.gradle.api.resources.ResourceHandler;
 import org.gradle.api.tasks.Directory;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.configuration.ProjectEvaluator;
 import org.gradle.configuration.ScriptPlugin;
 import org.gradle.configuration.ScriptPluginFactory;
 import org.gradle.groovy.scripts.ScriptSource;
+import org.gradle.internal.Factory;
 import org.gradle.listener.ListenerBroadcast;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.logging.StandardOutputCapture;
@@ -62,8 +64,9 @@ import java.io.File;
 import java.net.URI;
 import java.util.*;
 
-import static java.util.Collections.*;
-import static org.gradle.util.GUtil.*;
+import static java.util.Collections.singletonMap;
+import static org.gradle.util.GUtil.addMaps;
+import static org.gradle.util.GUtil.isTrue;
 
 /**
  * @author Hans Dockter
@@ -102,6 +105,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     private FileResolver fileResolver;
     private FileOperations fileOperations;
+    private ProcessOperations processOperations;
 
     private Factory<AntBuilder> antBuilderFactory;
 
@@ -121,11 +125,9 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     private DependencyHandler dependencyHandler;
 
-    private ConfigurationContainer configurationContainer;
+    private ConfigurationContainerInternal configurationContainer;
 
     private ArtifactHandler artifactHandler;
-
-    private Factory<RepositoryHandler> repositoryHandlerFactory;
 
     private RepositoryHandler repositoryHandler;
 
@@ -137,7 +139,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     private LoggingManagerInternal loggingManager;
 
-    private DynamicObjectHelper dynamicObjectHelper;
+    private ExtensibleDynamicObject extensibleDynamicObject;
 
     private String description;
 
@@ -173,10 +175,10 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         taskContainer = services.newInstance(TaskContainerInternal.class);
         implicitTasksContainer = services.newInstance(TaskContainerInternal.class);
         fileOperations = services.get(FileOperations.class);
-        repositoryHandlerFactory = services.getFactory(RepositoryHandler.class);
+        processOperations = services.get(ProcessOperations.class);
         projectEvaluator = services.get(ProjectEvaluator.class);
-        repositoryHandler = repositoryHandlerFactory.create();
-        configurationContainer = services.get(ConfigurationContainer.class);
+        repositoryHandler = services.get(RepositoryHandler.class);
+        configurationContainer = services.get(ConfigurationContainerInternal.class);
         pluginContainer = services.get(PluginContainer.class);
         artifactHandler = services.get(ArtifactHandler.class);
         dependencyHandler = services.get(DependencyHandler.class);
@@ -185,18 +187,13 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         projectRegistry = services.get(IProjectRegistry.class);
         loggingManager = services.get(LoggingManagerInternal.class);
 
-        dynamicObjectHelper = new DynamicObjectHelper(this);
-        dynamicObjectHelper.setConvention(services.get(Convention.class));
+        extensibleDynamicObject = new ExtensibleDynamicObject(this, services.get(Instantiator.class));
         if (parent != null) {
-            dynamicObjectHelper.setParent(parent.getInheritedScope());
+            extensibleDynamicObject.setParent(parent.getInheritedScope());
         }
-        dynamicObjectHelper.addObject(taskContainer.getAsDynamicObject(), DynamicObjectHelper.Location.AfterConvention);
+        extensibleDynamicObject.addObject(taskContainer.getTasksAsDynamicObject(), ExtensibleDynamicObject.Location.AfterConvention);
 
         evaluationListener.add(gradle.getProjectEvaluationBroadcaster());
-    }
-
-    public RepositoryHandler createRepositoryHandler() {
-        return repositoryHandlerFactory.create();
     }
 
     public ProjectInternal getRootProject() {
@@ -243,8 +240,8 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public void setScript(Script buildScript) {
-        dynamicObjectHelper.addObject(new BeanDynamicObject(buildScript).withNoProperties(),
-                DynamicObjectHelper.Location.BeforeConvention);
+        extensibleDynamicObject.addObject(new BeanDynamicObject(buildScript).withNoProperties(),
+                ExtensibleDynamicObject.Location.BeforeConvention);
     }
 
     public ScriptSource getBuildScriptSource() {
@@ -264,11 +261,11 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public DynamicObject getAsDynamicObject() {
-        return dynamicObjectHelper;
+        return extensibleDynamicObject;
     }
 
     public DynamicObject getInheritedScope() {
-        return dynamicObjectHelper.getInheritable();
+        return extensibleDynamicObject.getInheritable();
     }
 
     public String getName() {
@@ -328,9 +325,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return dependsOnProjects;
     }
 
-    public Map<String, Object> getAdditionalProperties() {
-        return dynamicObjectHelper.getAdditionalProperties();
-    }
+
 
     public ProjectStateInternal getState() {
         return state;
@@ -360,33 +355,18 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return repositoryHandler;
     }
 
-    public Factory<RepositoryHandler> getRepositoryHandlerFactory() {
-        return repositoryHandlerFactory;
-    }
-
-    public ConfigurationContainer getConfigurations() {
+    public ConfigurationContainerInternal getConfigurations() {
         return configurationContainer;
     }
 
-    public void setConfigurationContainer(ConfigurationContainer configurationContainer) {
+    public void setConfigurationContainer(ConfigurationContainerInternal configurationContainer) {
         this.configurationContainer = configurationContainer;
     }
 
-    public String getBuildDirName() {
-        return buildDir.toString();
-    }
 
-    public void setBuildDirName(String buildDirName) {
-        DeprecationLogger.nagUser("Project.setBuildDirName()", "setBuildDir()");
-        this.buildDir = buildDirName;
-    }
 
     public Convention getConvention() {
-        return dynamicObjectHelper.getConvention();
-    }
-
-    public void setConvention(Convention convention) {
-        dynamicObjectHelper.setConvention(convention);
+        return extensibleDynamicObject.getConvention();
     }
 
     public String getPath() {
@@ -414,11 +394,6 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         }
     }
 
-    public String absolutePath(String path) {
-        DeprecationLogger.nagUser("Project.absolutePath()", "Project.absoluteProjectPath()");
-        return absoluteProjectPath(path);
-    }
-
     public String absoluteProjectPath(String path) {
         return this.path.absolutePath(path);
     }
@@ -427,15 +402,15 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return this.path.relativePath(path);
     }
 
-    public Project project(String path) {
-        Project project = findProject(path);
+    public ProjectInternal project(String path) {
+        ProjectInternal project = findProject(path);
         if (project == null) {
             throw new UnknownProjectException(String.format("Project with path '%s' could not be found in %s.", path, this));
         }
         return project;
     }
 
-    public Project findProject(String path) {
+    public ProjectInternal findProject(String path) {
         if (!isTrue(path)) {
             throw new InvalidUserDataException("A path must be specified!");
         }
@@ -489,18 +464,6 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return this;
     }
 
-    public Project usePlugin(String pluginId) {
-        warnUsePluginDeprecated();
-        pluginContainer.apply(pluginId);
-        return this;
-    }
-
-    public Project usePlugin(Class<? extends Plugin> pluginClass) {
-        warnUsePluginDeprecated();
-        pluginContainer.apply(pluginClass);
-        return this;
-    }
-
     public TaskContainerInternal getTasks() {
         return taskContainer;
     }
@@ -522,22 +485,6 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         }
     }
 
-    public Task createTask(String name) {
-        return createTask(new HashMap<String, Object>(), name, (Action) null);
-    }
-
-    public Task createTask(Map<String, ?> args, String name) {
-        return createTask(args, name, (Action) null);
-    }
-
-    public Task createTask(String name, Action<? super Task> action) {
-        return createTask(new HashMap<String, Object>(), name, action);
-    }
-
-    public Task createTask(String name, Closure action) {
-        return createTask(new HashMap<String, Object>(), name, action);
-    }
-
     public Task createTask(Map args, String name, Closure action) {
         warnCreateTaskDeprecated();
         Map<String, Object> allArgs = new HashMap<String, Object>(args);
@@ -557,11 +504,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     private void warnCreateTaskDeprecated() {
-        DeprecationLogger.nagUser("Project.createTask()", "task()");
-    }
-
-    private void warnUsePluginDeprecated() {
-        DeprecationLogger.nagUser("Project.usePlugin()", "apply()");
+        DeprecationLogger.nagUserOfReplacedMethod("Project.createTask()", "task()");
     }
 
     public void addChildProject(ProjectInternal childProject) {
@@ -580,8 +523,14 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         buildDir = path;
     }
 
-    public void dependsOn(String path) {
-        dependsOn(path, true);
+    public void dependsOn(final String path) {
+        DeprecationLogger.nagUserOfDiscontinuedMethod("Project.dependsOn(String path)");
+        DeprecationLogger.whileDisabled(new Factory<Void>() {
+            public Void create() {
+                dependsOn(path, true);
+                return null;
+            }
+        });
     }
 
     public void dependsOn(String path, boolean evaluateDependsOnProject) {
@@ -594,11 +543,22 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         }
     }
 
+    public void evaluationDependsOnChildren() {
+        for (Project project : childProjects.values()) {
+            DefaultProject defaultProjectToEvaluate = (DefaultProject) project;
+            evaluationDependsOn(defaultProjectToEvaluate);
+        }
+    }
+
     public Project evaluationDependsOn(String path) {
         if (!isTrue(path)) {
             throw new InvalidUserDataException("You must specify a project!");
         }
         DefaultProject projectToEvaluate = (DefaultProject) project(path);
+        return evaluationDependsOn(projectToEvaluate);
+    }
+
+    private Project evaluationDependsOn(DefaultProject projectToEvaluate) {
         if (projectToEvaluate.getState().getExecuting()) {
             throw new CircularReferenceException(String.format("Circular referencing during evaluation for %s.",
                     projectToEvaluate));
@@ -607,20 +567,38 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public Project childrenDependOnMe() {
-        for (Project project : childProjects.values()) {
-            project.dependsOn(getPath(), false);
-        }
+        DeprecationLogger.nagUserOfDiscontinuedMethod("Project.childrenDependOnMe()");
+        DeprecationLogger.whileDisabled(new Factory<Void>() {
+            public Void create() {
+                for (Project project : childProjects.values()) {
+                    project.dependsOn(getPath(), false);
+                }
+                return null;
+            }
+        });
+
         return this;
     }
 
     public Project dependsOnChildren() {
-        return dependsOnChildren(false);
+        DeprecationLogger.nagUserOfDiscontinuedMethod("Project.dependsOnChildren()");
+        return DeprecationLogger.whileDisabled(new Factory<Project>() {
+            public Project create() {
+               return dependsOnChildren(false);
+            }
+        });
     }
 
-    public Project dependsOnChildren(boolean evaluateDependsOnProject) {
-        for (Project project : childProjects.values()) {
-            dependsOn(project.getPath(), evaluateDependsOnProject);
-        }
+    public Project dependsOnChildren(final boolean evaluateDependsOnProject) {
+        DeprecationLogger.nagUserOfDiscontinuedMethod("Project.dependsOnChildren(boolean)");
+        DeprecationLogger.whileDisabled(new Factory<Void>() {
+            public Void create() {
+                for (Project project : childProjects.values()) {
+                    dependsOn(project.getPath(), evaluateDependsOnProject);
+                }
+                return null;
+            }
+        });
         return this;
     }
 
@@ -636,7 +614,7 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         final Map<Project, Set<Task>> foundTargets = new TreeMap<Project, Set<Task>>();
         Action<Project> action = new Action<Project>() {
             public void execute(Project project) {
-                foundTargets.put(project, new TreeSet<Task>(project.getTasks().getAll()));
+                foundTargets.put(project, new TreeSet<Task>(project.getTasks()));
             }
         };
         if (recursive) {
@@ -692,11 +670,16 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return fileOperations.fileTree(baseDir);
     }
 
+    public ConfigurableFileTree fileTree(Object baseDir, Closure closure) {
+        return fileOperations.fileTree(baseDir, closure);
+    }
+
     public ConfigurableFileTree fileTree(Map<String, ?> args) {
         return fileOperations.fileTree(args);
     }
 
     public ConfigurableFileTree fileTree(Closure closure) {
+        DeprecationLogger.nagUserWith("fileTree(Closure) is a deprecated method. Use fileTree((Object){ baseDir }) to have the closure used as the file tree base directory");
         return fileOperations.fileTree(closure);
     }
 
@@ -706,6 +689,10 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
 
     public FileTree tarTree(Object tarPath) {
         return fileOperations.tarTree(tarPath);
+    }
+
+    public ResourceHandler getResources() {
+        return fileOperations.getResources();
     }
 
     public String relativePath(Object path) {
@@ -720,7 +707,12 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return fileOperations.delete(paths);
     }
 
+    /**
+     * @deprecated Use the {@link #mkdir(Object)} instead.
+     */
+    @Deprecated
     public Directory dir(String path) {
+        DeprecationLogger.nagUserOfReplacedMethod("AbstractProject.dir()", "mkdir()");
         String[] pathElements = path.split("/");
         String name = "";
         Directory dirTask = null;
@@ -790,30 +782,24 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
         return loggingManager;
     }
 
-    public void disableStandardOutputCapture() {
-        DeprecationLogger.nagUser("Project.disableStandardOutputCapture()");
-        loggingManager.disableStandardOutputCapture();
-    }
-
-    public void captureStandardOutput(LogLevel level) {
-        DeprecationLogger.nagUser("Project.captureStandardOutput()", "getLogging().captureStandardOutput()");
-        loggingManager.captureStandardOutput(level);
-    }
-
     public Object property(String propertyName) throws MissingPropertyException {
-        return dynamicObjectHelper.getProperty(propertyName);
+        return extensibleDynamicObject.getProperty(propertyName);
     }
 
     public void setProperty(String name, Object value) {
-        dynamicObjectHelper.setProperty(name, value);
+        extensibleDynamicObject.setProperty(name, value);
     }
 
     public boolean hasProperty(String propertyName) {
-        return dynamicObjectHelper.hasProperty(propertyName);
+        return extensibleDynamicObject.hasProperty(propertyName);
     }
 
     public Map<String, ?> getProperties() {
-        return dynamicObjectHelper.getProperties();
+        return DeprecationLogger.whileDisabled(new Factory<Map<String, ?>>() {
+            public Map<String, ?> create() {
+                return extensibleDynamicObject.getProperties();
+            }
+        });
     }
 
     public WorkResult copy(Closure closure) {
@@ -825,11 +811,11 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public ExecResult javaexec(Closure closure) {
-        return fileOperations.javaexec(closure);
+        return processOperations.javaexec(closure);
     }
 
     public ExecResult exec(Closure closure) {
-        return fileOperations.exec(closure);
+        return processOperations.exec(closure);
     }
 
     public ServiceRegistryFactory getServices() {
@@ -941,17 +927,21 @@ public abstract class AbstractProject implements ProjectInternal, DynamicObjectA
     }
 
     public <T> NamedDomainObjectContainer<T> container(Class<T> type) {
-        ClassGenerator classGenerator = getServices().get(ClassGenerator.class);
-        return classGenerator.newInstance(DefaultAutoCreateDomainObjectContainer.class, type, classGenerator);
+        Instantiator instantiator = getServices().get(Instantiator.class);
+        return instantiator.newInstance(FactoryNamedDomainObjectContainer.class, type, instantiator, new DynamicPropertyNamer());
     }
 
     public <T> NamedDomainObjectContainer<T> container(Class<T> type, NamedDomainObjectFactory<T> factory) {
-        ClassGenerator classGenerator = getServices().get(ClassGenerator.class);
-        return classGenerator.newInstance(DefaultAutoCreateDomainObjectContainer.class, type, classGenerator, factory);
+        Instantiator instantiator = getServices().get(Instantiator.class);
+        return instantiator.newInstance(FactoryNamedDomainObjectContainer.class, type, instantiator, new DynamicPropertyNamer(), factory);
     }
 
     public <T> NamedDomainObjectContainer<T> container(Class<T> type, Closure factoryClosure) {
-        ClassGenerator classGenerator = getServices().get(ClassGenerator.class);
-        return classGenerator.newInstance(DefaultAutoCreateDomainObjectContainer.class, type, classGenerator, factoryClosure);
+        Instantiator instantiator = getServices().get(Instantiator.class);
+        return instantiator.newInstance(FactoryNamedDomainObjectContainer.class, type, instantiator, new DynamicPropertyNamer(), factoryClosure);
+    }
+
+    public ExtensionContainer getExtensions() {
+        return getConvention();
     }
 }

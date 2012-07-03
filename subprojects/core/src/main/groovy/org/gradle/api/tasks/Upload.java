@@ -21,6 +21,9 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.ConventionTask;
+import org.gradle.api.internal.artifacts.ArtifactPublicationServices;
+import org.gradle.api.internal.artifacts.ArtifactPublisher;
+import org.gradle.api.internal.artifacts.configurations.ConfigurationInternal;
 import org.gradle.util.ConfigureUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,14 +49,18 @@ public class Upload extends ConventionTask {
      */
     private RepositoryHandler repositories;
 
+    private ArtifactPublisher artifactPublisher;
+
     public Upload() {
-        repositories = getProject().createRepositoryHandler();
+        ArtifactPublicationServices publicationServices = getServices().getFactory(ArtifactPublicationServices.class).create();
+        repositories = publicationServices.getRepositoryHandler();
+        artifactPublisher = publicationServices.getArtifactPublisher();
     }
 
     @TaskAction
     protected void upload() {
-        logger.info("Publishing configurations: " + configuration);
-        configuration.publish(repositories.getResolvers(), isUploadDescriptor() ? getDescriptorDestination() : null);
+        logger.info("Publishing configuration: " + configuration);
+        artifactPublisher.publish((ConfigurationInternal) configuration, isUploadDescriptor() ? getDescriptorDestination() : null);
     }
 
     /**
@@ -85,10 +92,6 @@ public class Upload extends ConventionTask {
         return repositories;
     }
 
-    public void setRepositories(RepositoryHandler repositories) {
-        this.repositories = repositories;
-    }
-
     /**
      * Returns the configuration to upload.
      */
@@ -115,6 +118,14 @@ public class Upload extends ConventionTask {
     @InputFiles
     public FileCollection getArtifacts() {
         Configuration configuration = getConfiguration();
-        return configuration == null ? null : configuration.getAllArtifactFiles();
+        return configuration == null ? null : configuration.getAllArtifacts().getFiles();
+    }
+
+    void setRepositories(RepositoryHandler repositories) {
+        this.repositories = repositories;
+    }
+
+    void setArtifactPublisher(ArtifactPublisher artifactPublisher) {
+        this.artifactPublisher = artifactPublisher;
     }
 }

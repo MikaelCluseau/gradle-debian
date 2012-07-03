@@ -21,7 +21,7 @@ import org.gradle.gradleplugin.foundation.settings.DOM4JSettingsNode;
 import org.gradle.gradleplugin.userinterface.AlternateUIInteraction;
 import org.gradle.gradleplugin.userinterface.swing.common.PreferencesAssistant;
 import org.gradle.gradleplugin.userinterface.swing.generic.SinglePaneUIInstance;
-import org.gradle.util.UncheckedException;
+import org.gradle.internal.UncheckedException;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -86,7 +86,7 @@ public class Application implements AlternateUIInteraction {
         try {   //try and make it look like a native app
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            throw UncheckedException.asUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         }
 
         this.doesSupportEditingFiles = determineIfSupportsEditingFiles();
@@ -259,13 +259,9 @@ public class Application implements AlternateUIInteraction {
     }
 
     /**
-     * <!===== getFileNameExtension ===========================================> Returns the file extension preserving its case.
-     *
-     * <!      Name       Description>
-     *
+     * Returns the file extension preserving its case.
      * @param fileName the file name
-     * @return its extension.
-     * @author mhunsicker <!=======================================================================>
+     * @return the extension.
      */
     public static String getFileNameExtension(String fileName) {
         String result = fileName;
@@ -358,7 +354,7 @@ public class Application implements AlternateUIInteraction {
          * @param file the file in question
          * @return true to overwrite it, false not to.
          */
-        public boolean confirmOverwritingExisingFile(File file) {
+        public boolean confirmOverwritingExistingFile(File file) {
             return true;   //It's most likely going to exist. Always overwrite it.
         }
 

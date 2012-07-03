@@ -16,11 +16,10 @@
 
 package org.gradle.initialization;
 
-import org.gradle.api.internal.SettingsInternal;
-import org.gradle.api.internal.GradleInternal;
-import org.gradle.api.initialization.ProjectDescriptor;
 import org.gradle.StartParameter;
-import org.gradle.groovy.scripts.StringScriptSource;
+import org.gradle.api.initialization.ProjectDescriptor;
+import org.gradle.api.internal.GradleInternal;
+import org.gradle.api.internal.SettingsInternal;
 
 import java.io.File;
 import java.net.URLClassLoader;
@@ -41,15 +40,22 @@ public class SettingsHandler {
         this.buildSourceBuilder = buildSourceBuilder;
     }
 
-    public SettingsInternal findAndLoadSettings(GradleInternal gradle, IGradlePropertiesLoader gradlePropertiesLoader) {
+    public SettingsInternal findAndLoadSettings(GradleInternal gradle) {
         StartParameter startParameter = gradle.getStartParameter();
-        SettingsInternal settings = findSettingsAndLoadIfAppropriate(gradle, startParameter, gradlePropertiesLoader);
-        if (!startParameter.getDefaultProjectSelector().containsProject(settings.getProjectRegistry())) {
+        SettingsInternal settings = findSettingsAndLoadIfAppropriate(gradle, startParameter);
+
+        File explicitProjectDir = startParameter.getProjectDir();
+        File explicitBuildFile = startParameter.getBuildFile();
+        ProjectSpec spec = explicitBuildFile != null
+                ? new BuildFileProjectSpec(explicitBuildFile)
+                : explicitProjectDir == null ? new DefaultProjectSpec(startParameter.getCurrentDir()) : new ProjectDirectoryProjectSpec(explicitProjectDir);
+
+        if (!spec.containsProject(settings.getProjectRegistry())) {
             // The settings we found did not include the desired default project. Try again with an empty settings file.
 
             StartParameter noSearchParameter = startParameter.newInstance();
-            noSearchParameter.setSettingsScriptSource(new StringScriptSource("empty settings file", ""));
-            settings = findSettingsAndLoadIfAppropriate(gradle, noSearchParameter, gradlePropertiesLoader);
+            noSearchParameter.useEmptySettings();
+            settings = findSettingsAndLoadIfAppropriate(gradle, noSearchParameter);
             if (settings == null) // not using an assert to make sure it is not disabled
             {
                 throw new InternalError("Empty settings file does not contain expected project.");
@@ -69,12 +75,11 @@ public class SettingsHandler {
 
     /**
      * Finds the settings.gradle for the given startParameter, and loads it if contains the project selected by the
-     * startParameter, or if the startParameter explicity specifies a settings script.  If the settings file is not
+     * startParameter, or if the startParameter explicitly specifies a settings script.  If the settings file is not
      * loaded (executed), then a null is returned.
      */
     private SettingsInternal findSettingsAndLoadIfAppropriate(GradleInternal gradle,
-                                                              StartParameter startParameter,
-                                                              IGradlePropertiesLoader gradlePropertiesLoader) {
+                                                              StartParameter startParameter) {
         SettingsLocation settingsLocation = findSettings(startParameter);
 
         // We found the desired settings file, now build the associated buildSrc before loading settings.  This allows
@@ -84,7 +89,7 @@ public class SettingsHandler {
                 BaseSettings.DEFAULT_BUILD_SRC_DIR));
         URLClassLoader buildSourceClassLoader = buildSourceBuilder.buildAndCreateClassLoader(buildSrcStartParameter);
 
-        return loadSettings(gradle, settingsLocation, buildSourceClassLoader, startParameter, gradlePropertiesLoader);
+        return loadSettings(gradle, settingsLocation, buildSourceClassLoader, startParameter);
     }
 
     private SettingsLocation findSettings(StartParameter startParameter) {
@@ -92,10 +97,8 @@ public class SettingsHandler {
     }
 
     private SettingsInternal loadSettings(GradleInternal gradle, SettingsLocation settingsLocation,
-                                          URLClassLoader buildSourceClassLoader, StartParameter startParameter,
-                                          IGradlePropertiesLoader gradlePropertiesLoader) {
-        return settingsProcessor.process(gradle, settingsLocation, buildSourceClassLoader, startParameter,
-                gradlePropertiesLoader);
+                                          URLClassLoader buildSourceClassLoader, StartParameter startParameter) {
+        return settingsProcessor.process(gradle, settingsLocation, buildSourceClassLoader, startParameter);
     }
 }
 

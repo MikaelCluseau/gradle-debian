@@ -17,7 +17,7 @@
 package org.gradle.api.internal.project;
 
 import org.gradle.api.ProjectState;
-import org.gradle.util.UncheckedException;
+import org.gradle.internal.UncheckedException;
 
 public class ProjectStateInternal implements ProjectState {
     private boolean executing;
@@ -54,6 +54,24 @@ public class ProjectStateInternal implements ProjectState {
         if (failure == null) {
             return;
         }
-        throw UncheckedException.asUncheckedException(failure);
+        throw UncheckedException.throwAsUncheckedException(failure);
+    }
+    
+    public String toString() {
+        String state;
+        
+        if (getExecuting()) {
+            state = "EXECUTING";
+        } else if (getExecuted()) {
+            if (failure == null) {
+                state = "EXECUTED";
+            } else {
+                state = String.format("FAILED (%s)", failure.getMessage());
+            }
+        } else {
+            state = "NOT EXECUTED";
+        }
+        
+        return String.format("project state '%s'", state);
     }
 }

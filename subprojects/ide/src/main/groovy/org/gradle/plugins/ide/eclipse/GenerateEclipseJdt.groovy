@@ -15,54 +15,37 @@
  */
 package org.gradle.plugins.ide.eclipse
 
-import org.gradle.api.JavaVersion
-import org.gradle.plugins.ide.api.GeneratorTask
+import org.gradle.api.internal.Instantiator
+import org.gradle.plugins.ide.api.PropertiesFileContentMerger
+import org.gradle.plugins.ide.api.PropertiesGeneratorTask
 import org.gradle.plugins.ide.eclipse.model.EclipseJdt
 import org.gradle.plugins.ide.eclipse.model.Jdt
-import org.gradle.plugins.ide.internal.generator.generator.PersistableConfigurationObjectGenerator
 
 /**
- * Generates the Eclipse JDT configuration file.
+ * Generates the Eclipse JDT configuration file. If you want to fine tune the eclipse configuration
+ * <p>
+ * At this moment nearly all configuration is done via {@link EclipseJdt}.
  */
-class GenerateEclipseJdt extends GeneratorTask<Jdt> {
+class GenerateEclipseJdt extends PropertiesGeneratorTask<Jdt> {
 
     /**
      * Eclipse project model that contains information needed for this task
      */
     EclipseJdt jdt
 
-    /**
-     * The source Java language level.
-     */
-    JavaVersion getSourceCompatibility() {
-        jdt.sourceCompatibility
-    }
-
-    void setSourceCompatibility(Object sourceCompatibility) {
-        jdt.sourceCompatibility = sourceCompatibility
-    }
-
-    /**
-     * The target JVM to generate {@code .class} files for.
-     */
-    JavaVersion getTargetCompatibility() {
-        jdt.targetCompatibility
-    }
-
-    void setTargetCompatibility(Object targetCompatibility) {
-        jdt.targetCompatibility = targetCompatibility
-    }
-
     GenerateEclipseJdt() {
-        generator = new PersistableConfigurationObjectGenerator<Jdt>() {
-            Jdt create() {
-                return new Jdt()
-            }
-
-            void configure(Jdt jdt) {
-                jdt.sourceCompatibility = getJdt().sourceCompatibility
-                jdt.targetCompatibility = getJdt().targetCompatibility
-            }
-        }
+        jdt = services.get(Instantiator).newInstance(EclipseJdt, new PropertiesFileContentMerger(getTransformer()))
+    }
+    
+    protected Jdt create() {
+        return new Jdt(getTransformer())
+    }
+    
+    protected void configure(Jdt jdtContent) {
+        def jdtModel = getJdt()
+        jdtModel.file.beforeMerged.execute(jdtContent)
+        jdtContent.sourceCompatibility = jdtModel.sourceCompatibility
+        jdtContent.targetCompatibility = jdtModel.targetCompatibility
+        jdtModel.file.whenMerged.execute(jdtContent)
     }
 }

@@ -15,16 +15,9 @@
  */
 package org.gradle.testfixtures.internal;
 
-import org.gradle.api.internal.ClassPathRegistry;
-import org.gradle.api.internal.DefaultClassPathRegistry;
-import org.gradle.api.internal.Factory;
-import org.gradle.api.internal.project.DefaultIsolatedAntBuilder;
-import org.gradle.api.internal.project.DefaultServiceRegistry;
-import org.gradle.api.internal.project.IsolatedAntBuilder;
-import org.gradle.cache.AutoCloseCacheFactory;
-import org.gradle.cache.CacheFactory;
-import org.gradle.initialization.ClassLoaderFactory;
-import org.gradle.initialization.DefaultClassLoaderFactory;
+import org.gradle.internal.Factory;
+import org.gradle.internal.service.DefaultServiceRegistry;
+import org.gradle.api.internal.project.GlobalServicesRegistry;
 import org.gradle.listener.DefaultListenerManager;
 import org.gradle.listener.ListenerManager;
 import org.gradle.logging.LoggingManagerInternal;
@@ -36,41 +29,28 @@ import org.gradle.logging.internal.OutputEventListener;
 import org.gradle.logging.internal.ProgressListener;
 import org.gradle.util.TrueTimeProvider;
 
-public class GlobalTestServices extends DefaultServiceRegistry {
-    protected ListenerManager createListenerManager() {
-        return new DefaultListenerManager();
+public class GlobalTestServices extends GlobalServicesRegistry {
+    public GlobalTestServices() {
+        super(new TestLoggingServices());
     }
 
-    protected ClassPathRegistry createClassPathRegistry() {
-        return new DefaultClassPathRegistry();
-    }
+    private static class TestLoggingServices extends DefaultServiceRegistry {
+        final ListenerManager listenerManager = new DefaultListenerManager();
 
-    protected ClassLoaderFactory createClassLoaderFactory() {
-        return new DefaultClassLoaderFactory(get(ClassPathRegistry.class));
-    }
+        protected ProgressLoggerFactory createProgressLoggerFactory() {
+            return new DefaultProgressLoggerFactory(listenerManager.getBroadcaster(ProgressListener.class), new TrueTimeProvider());
+        }
 
-    protected CacheFactory createCacheFactory() {
-        return new AutoCloseCacheFactory(new InMemoryCacheFactory());
-    }
+        protected Factory<LoggingManagerInternal> createLoggingManagerFactory() {
+            return new Factory<LoggingManagerInternal>() {
+                public LoggingManagerInternal create() {
+                    return new NoOpLoggingManager();
+                }
+            };
+        }
 
-    protected ProgressLoggerFactory createProgressLoggerFactory() {
-        return new DefaultProgressLoggerFactory(get(ListenerManager.class).getBroadcaster(ProgressListener.class), new TrueTimeProvider());
+        protected StyledTextOutputFactory createStyledTextOutputFactory() {
+            return new DefaultStyledTextOutputFactory(listenerManager.getBroadcaster(OutputEventListener.class), new TrueTimeProvider());
+        }
     }
-
-    protected Factory<LoggingManagerInternal> createLoggingManagerFactory() {
-        return new Factory<LoggingManagerInternal>() {
-            public LoggingManagerInternal create() {
-                return new NoOpLoggingManager();
-            }
-        };
-    }
-
-    protected StyledTextOutputFactory createStyledTextOutputFactory() {
-        return new DefaultStyledTextOutputFactory(get(ListenerManager.class).getBroadcaster(OutputEventListener.class), new TrueTimeProvider());
-    }
-
-    protected IsolatedAntBuilder createIsolatedAntBuilder() {
-        return new DefaultIsolatedAntBuilder(get(ClassPathRegistry.class));
-    }
-
 }

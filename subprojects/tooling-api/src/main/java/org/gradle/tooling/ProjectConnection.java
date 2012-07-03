@@ -15,16 +15,37 @@
  */
 package org.gradle.tooling;
 
-import org.gradle.tooling.model.Project;
+import org.gradle.tooling.model.Model;
 
 /**
- * Represents a long-lived connection to a Gradle project.
+ * Represents a long-lived connection to a Gradle project. You obtain an instance of a {@code ProjectConnection} by using {@link org.gradle.tooling.GradleConnector#connect()}.
  *
- * <h2>Thread safety</h2>
+ * <pre autoTested=''>
+ * ProjectConnection connection = GradleConnector.newConnector()
+ *    .forProjectDirectory(new File("someFolder"))
+ *    .connect();
  *
- * <p>All implementations of {@code GradleConnection} are thread-safe, and may be shared by any number of threads.</p>
+ * try {
+ *    //obtain some information from the build
+ *    BuildEnvironment environment = connection.model(BuildEnvironment.class)
+ *      .get();
  *
- * <p>All notifications from a given {@code GradleConnection} instance are delivered by a single thread at a time. Note, however, that the delivery thread may change over time.</p>
+ *    //run some tasks
+ *    connection.newBuild()
+ *      .forTasks("tasks")
+ *      .setStandardOutput(System.out)
+ *      .run();
+ *
+ * } finally {
+ *    connection.close();
+ * }
+ * </pre>
+ *
+ * <h3>Thread safety information</h3>
+ *
+ * <p>All implementations of {@code ProjectConnection} are thread-safe, and may be shared by any number of threads.</p>
+ *
+ * <p>All notifications from a given {@code ProjectConnection} instance are delivered by a single thread at a time. Note, however, that the delivery thread may change over time.</p>
  */
 public interface ProjectConnection {
     /**
@@ -36,11 +57,14 @@ public interface ProjectConnection {
      * @param <T> The model type.
      * @return The model.
      * @throws UnsupportedVersionException When the target Gradle version does not support the given model.
+     * @throws UnknownModelException When you are building a model unknown to the Tooling API,
+     *  for example you attempt to build a model of a type does not come from the Tooling API.
      * @throws BuildException On some failure executing the Gradle build, in order to build the model.
      * @throws GradleConnectionException On some other failure using the connection.
      * @throws IllegalStateException When this connection has been closed or is closing.
      */
-    <T extends Project> T getModel(Class<T> viewType) throws GradleConnectionException;
+    <T extends Model> T getModel(Class<T> viewType) throws UnsupportedVersionException,
+            UnknownModelException, BuildException, GradleConnectionException, IllegalStateException;
 
     /**
      * Fetches a snapshot of the model for this project asynchronously. This method return immediately, and the result of the operation is passed to the supplied result handler.
@@ -49,8 +73,10 @@ public interface ProjectConnection {
      * @param handler The handler to pass the result to.
      * @param <T> The model type.
      * @throws IllegalStateException When this connection has been closed or is closing.
+     * @throws UnknownModelException When you are building a model unknown to the Tooling API,
+     *  for example you attempt to build a model of a type does not come from the Tooling API.
      */
-    <T extends Project> void getModel(Class<T> viewType, ResultHandler<? super T> handler) throws IllegalStateException;
+    <T extends Model> void getModel(Class<T> viewType, ResultHandler<? super T> handler) throws IllegalStateException, UnknownModelException;
 
     /**
      * Creates a launcher which can be used to execute a build.
@@ -65,8 +91,10 @@ public interface ProjectConnection {
      * @param modelType The model type
      * @param <T> The model type.
      * @return The builder.
+     * @throws UnknownModelException When you are building a model unknown to the Tooling API,
+     *  for example you attempt to build a model of a type does not come from the Tooling API.
      */
-    <T extends Project> ModelBuilder<T> model(Class<T> modelType);
+    <T extends Model> ModelBuilder<T> model(Class<T> modelType) throws UnknownModelException;
 
     /**
      * Closes this connection. Blocks until any pending operations are complete. Once this method has returned, no more notifications will be delivered by any threads.

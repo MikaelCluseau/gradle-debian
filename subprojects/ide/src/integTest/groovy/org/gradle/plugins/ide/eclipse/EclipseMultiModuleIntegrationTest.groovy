@@ -67,8 +67,8 @@ project(':api') {
 }
 
 project(':shared:model') {
-    eclipseProject {
-        projectName = 'very-cool-model'
+    eclipse {
+        project.name = 'very-cool-model'
     }
 }
 
@@ -76,15 +76,14 @@ project(':services:utilities') {
     dependencies {
         compile project(':util'), project(':contrib:services:util'), project(':shared:api'), project(':shared:model')
     }
-    eclipseProject {
-        projectName = 'util'
+    eclipse {
+        project.name = 'util'
     }
 }
 """
 
         //when
         executer.usingBuildScript(buildFile).usingSettingsFile(settingsFile).withTasks("eclipse").run()
-//        println(getTestDir())
 
         //then
         assertApiProjectContainsCorrectDependencies()
@@ -123,8 +122,10 @@ allprojects {
 }
 
 subprojects {
-    eclipseProject {
-        projectName = rootProject.name + project.path.replace(':', '-')
+    eclipse {
+        project {
+            name = rootProject.name + path.replace(':', '-')
+        }
     }
 }
 

@@ -19,13 +19,16 @@ import groovy.lang.Closure;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.PathValidation;
 import org.gradle.api.file.*;
+import org.gradle.api.internal.ProcessOperations;
 import org.gradle.api.internal.file.archive.TarFileTree;
 import org.gradle.api.internal.file.archive.ZipFileTree;
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileTree;
 import org.gradle.api.internal.file.collections.FileTreeAdapter;
 import org.gradle.api.internal.file.copy.*;
+import org.gradle.api.internal.resources.DefaultResourceHandler;
 import org.gradle.api.internal.tasks.TaskResolver;
+import org.gradle.api.resources.ReadableResource;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.process.ExecResult;
 import org.gradle.process.internal.DefaultExecAction;
@@ -41,17 +44,19 @@ import java.util.Map;
 
 import static org.gradle.util.ConfigureUtil.configure;
 
-public class DefaultFileOperations implements FileOperations {
+public class DefaultFileOperations implements FileOperations, ProcessOperations {
     private final FileResolver fileResolver;
     private final TaskResolver taskResolver;
     private final TemporaryFileProvider temporaryFileProvider;
     private DeleteAction deleteAction;
+    private final DefaultResourceHandler resourceHandler;
 
     public DefaultFileOperations(FileResolver fileResolver, TaskResolver taskResolver, TemporaryFileProvider temporaryFileProvider) {
         this.fileResolver = fileResolver;
         this.taskResolver = taskResolver;
         this.temporaryFileProvider = temporaryFileProvider;
         this.deleteAction = new DeleteActionImpl(fileResolver);
+        this.resourceHandler = new DefaultResourceHandler(fileResolver);
     }
 
     public File file(Object path) {
@@ -78,11 +83,16 @@ public class DefaultFileOperations implements FileOperations {
         return new DefaultConfigurableFileTree(baseDir, fileResolver, taskResolver);
     }
 
+    public ConfigurableFileTree fileTree(Object baseDir, Closure closure) {
+        return ConfigureUtil.configure(closure, fileTree(baseDir));
+    }
+
     public ConfigurableFileTree fileTree(Map<String, ?> args) {
         return new DefaultConfigurableFileTree(args, fileResolver, taskResolver);
     }
 
     public ConfigurableFileTree fileTree(Closure closure) {
+        // This method is deprecated, but the deprecation warning is added on public classes that delegate to this. 
         return configure(closure, new DefaultConfigurableFileTree(Collections.emptyMap(), fileResolver, taskResolver));
     }
 
@@ -91,7 +101,10 @@ public class DefaultFileOperations implements FileOperations {
     }
 
     public FileTree tarTree(Object tarPath) {
-        return new FileTreeAdapter(new TarFileTree(file(tarPath), getExpandDir()));
+        ReadableResource res = getResources().maybeCompressed(tarPath);
+
+        TarFileTree tarTree = new TarFileTree(res, getExpandDir());
+        return new FileTreeAdapter(tarTree);
     }
 
     private File getExpandDir() {
@@ -145,5 +158,9 @@ public class DefaultFileOperations implements FileOperations {
     public ExecResult exec(Closure cl) {
         ExecAction execAction = ConfigureUtil.configure(cl, new DefaultExecAction(fileResolver));
         return execAction.execute();
+    }
+
+    public DefaultResourceHandler getResources() {
+        return resourceHandler;
     }
 }

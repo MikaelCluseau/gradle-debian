@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,17 +18,18 @@ package org.gradle.plugins.ide.idea;
 
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
-import org.gradle.api.internal.ClassGenerator
+import org.gradle.api.internal.Instantiator
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.plugins.ide.api.XmlFileContentMerger
 import org.gradle.plugins.ide.idea.internal.IdeaNameDeduper
 import org.gradle.plugins.ide.internal.IdePlugin
 import org.gradle.plugins.ide.idea.model.*
 
 /**
- * @author Hans Dockter
- *
- * Adds an IdeaModule task. When applied to a root project, also adds an IdeaProject task.
+ * Adds a GenerateIdeaModule task. When applied to a root project, also adds a GenerateIdeaProject task.
  * For projects that have the Java plugin applied, the tasks receive additional Java-specific configuration.
+ *
+ *  @author Hans Dockter
  */
 class IdeaPlugin extends IdePlugin {
 
@@ -42,33 +43,43 @@ class IdeaPlugin extends IdePlugin {
         lifecycleTask.description = 'Generates IDEA project files (IML, IPR, IWS)'
         cleanTask.description = 'Cleans IDEA project files (IML, IPR)'
 
-        model = new IdeaModel()
-        project.convention.plugins.idea = model
+        model= project.extensions.create("idea", IdeaModel)
 
         configureIdeaWorkspace(project)
         configureIdeaProject(project)
         configureIdeaModule(project)
         configureForJavaPlugin(project)
 
-        project.gradle.projectsEvaluated {
-            //TODO SF: is it possible to do deduplication on the fly? - same applies for eclipse
-            new IdeaNameDeduper().configure(project)
+        hookDeduplicationToTheRoot(project)
+    }
+
+    void hookDeduplicationToTheRoot(Project project) {
+        if (isRoot(project)) {
+            project.gradle.projectsEvaluated {
+                makeSureModuleNamesAreUnique()
+            }
         }
+    }
+
+    public void makeSureModuleNamesAreUnique() {
+        new IdeaNameDeduper().configureRoot(project.rootProject)
     }
 
     private configureIdeaWorkspace(Project project) {
         if (isRoot(project)) {
             def task = project.task('ideaWorkspace', description: 'Generates an IDEA workspace file (IWS)', type: GenerateIdeaWorkspace) {
+                workspace = new IdeaWorkspace(iws: new XmlFileContentMerger(xmlTransformer))
+                model.workspace = workspace
                 outputFile = new File(project.projectDir, project.name + ".iws")
             }
-            addWorker(task)
+            addWorker(task, false)
         }
     }
 
     private configureIdeaModule(Project project) {
         def task = project.task('ideaModule', description: 'Generates IDEA module files (IML)', type: GenerateIdeaModule) {
-            def iml = new IdeaModuleIml(xmlTransformer: xmlTransformer, generateTo: project.projectDir)
-            module = services.get(ClassGenerator).newInstance(IdeaModule, [project: project, iml: iml])
+            def iml = new IdeaModuleIml(xmlTransformer, project.projectDir)
+            module = services.get(Instantiator).newInstance(IdeaModule, project, iml)
 
             model.module = module
 
@@ -81,7 +92,7 @@ class IdeaPlugin extends IdePlugin {
             module.conventionMapping.pathFactory = {
                 PathFactory factory = new PathFactory()
                 factory.addPathVariable('MODULE_DIR', outputFile.parentFile)
-                module.variables.each { key, value ->
+                module.pathVariables.each { key, value ->
                     factory.addPathVariable(key, value)
                 }
                 factory
@@ -94,15 +105,19 @@ class IdeaPlugin extends IdePlugin {
     private configureIdeaProject(Project project) {
         if (isRoot(project)) {
             def task = project.task('ideaProject', description: 'Generates IDEA project file (IPR)', type: GenerateIdeaProject) {
-                def ipr = new IdeaProjectIpr(xmlTransformer: xmlTransformer)
-                ideaProject = services.get(ClassGenerator).newInstance(IdeaProject, [ipr: ipr])
+                def ipr = new XmlFileContentMerger(xmlTransformer)
+                ideaProject = services.get(Instantiator).newInstance(IdeaProject, ipr)
 
                 model.project = ideaProject
 
                 ideaProject.outputFile = new File(project.projectDir, project.name + ".ipr")
-                ideaProject.javaVersion = JavaVersion.VERSION_1_6.toString()
+                ideaProject.conventionMapping.jdkName = { JavaVersion.VERSION_1_6.toString() }
+                ideaProject.conventionMapping.languageLevel = { new IdeaLanguageLevel(JavaVersion.VERSION_1_6) }
                 ideaProject.wildcards = ['!?*.java', '!?*.groovy'] as Set
-                ideaProject.subprojects = project.rootProject.allprojects
+                ideaProject.conventionMapping.modules = {
+                    project.rootProject.allprojects.findAll { it.plugins.hasPlugin(IdeaPlugin) }.collect { it.idea.module }
+                }
+
                 ideaProject.conventionMapping.pathFactory = {
                     new PathFactory().addPathVariable('PROJECT_DIR', outputFile.parentFile)
                 }
@@ -120,8 +135,9 @@ class IdeaPlugin extends IdePlugin {
 
     private configureIdeaProjectForJava(Project project) {
         if (isRoot(project)) {
-            project.ideaProject {
-                javaVersion = project.sourceCompatibility
+            project.idea.project.conventionMapping.jdkName   = { project.sourceCompatibility.toString() }
+            project.idea.project.conventionMapping.languageLevel = {
+                new IdeaLanguageLevel(project.sourceCompatibility)
             }
         }
     }
@@ -137,6 +153,13 @@ class IdeaPlugin extends IdePlugin {
                     RUNTIME: [plus: [configurations.runtime], minus: [configurations.compile]],
                     TEST: [plus: [configurations.testRuntime], minus: [configurations.runtime]]
             ]
+            module.conventionMapping.singleEntryLibraries = { [
+                    RUNTIME: project.sourceSets.main.output.dirs,
+                    TEST: project.sourceSets.test.output.dirs
+            ] }
+            dependsOn {
+                project.sourceSets.main.output.dirs + project.sourceSets.test.output.dirs
+            }
         }
     }
 

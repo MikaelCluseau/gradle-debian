@@ -16,41 +16,55 @@
 package org.gradle.api.internal.tasks;
 
 import groovy.lang.Closure;
-import org.gradle.api.*;
-import org.gradle.api.internal.ClassGenerator;
-import org.gradle.api.internal.DefaultNamedDomainObjectContainer;
+import org.gradle.api.Action;
+import org.gradle.api.Task;
+import org.gradle.api.UnknownDomainObjectException;
+import org.gradle.api.UnknownTaskException;
+import org.gradle.api.internal.DefaultNamedDomainObjectSet;
+import org.gradle.api.internal.Instantiator;
+import org.gradle.api.internal.collections.CollectionEventRegister;
+import org.gradle.api.internal.collections.CollectionFilter;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.specs.Specs;
 import org.gradle.api.tasks.TaskCollection;
-import org.gradle.util.DeprecationLogger;
 
-public class DefaultTaskCollection<T extends Task> extends DefaultNamedDomainObjectContainer<T> implements TaskCollection<T> {
+import java.util.Set;
+
+public class DefaultTaskCollection<T extends Task> extends DefaultNamedDomainObjectSet<T> implements TaskCollection<T> {
     protected final ProjectInternal project;
 
-    public DefaultTaskCollection(Class<T> type, ClassGenerator classGenerator, ProjectInternal project) {
-        super(type, classGenerator);
+    public DefaultTaskCollection(Class<T> type, Instantiator instantiator, ProjectInternal project) {
+        super(type, instantiator, new Task.Namer());
         this.project = project;
     }
 
-    public DefaultTaskCollection(Class<T> type, ClassGenerator classGenerator, ProjectInternal project, NamedObjectStore<T> store) {
-        super(type, classGenerator, store);
+    protected DefaultTaskCollection(Class<? extends T> type, Set<T> store, CollectionEventRegister<T> eventRegister, Instantiator instantiator, ProjectInternal project) {
+        super(type, store, eventRegister, instantiator, new Task.Namer());
         this.project = project;
     }
 
-    @Override
-    public TaskCollection<T> matching(Spec<? super T> spec) {
-        return getClassGenerator().newInstance(DefaultTaskCollection.class, getType(), getClassGenerator(), project, storeWithSpec(spec));
+    public DefaultTaskCollection(DefaultTaskCollection<? super T> collection, CollectionFilter<T> filter, Instantiator instantiator, ProjectInternal project) {
+        this(filter.getType(), collection.filteredStore(filter), collection.filteredEvents(filter), instantiator, project);
     }
 
-    @Override
-    public TaskCollection<T> matching(Closure spec) {
-        return matching(Specs.convertClosureToSpec(spec));
+    protected <S extends T> DefaultTaskCollection<S> filtered(CollectionFilter<S> filter) {
+        return getInstantiator().newInstance(DefaultTaskCollection.class, this, filter, getInstantiator(), project);
     }
 
     @Override
     public <S extends T> TaskCollection<S> withType(Class<S> type) {
-        return getClassGenerator().newInstance(DefaultTaskCollection.class, type, getClassGenerator(), project, storeWithType(type));
+        return filtered(createFilter(type));
+    }
+
+    @Override
+    public TaskCollection<T> matching(Spec<? super T> spec) {
+        return filtered(createFilter(spec));
+    }
+
+    @Override
+    public TaskCollection<T> matching(Closure spec) {
+        return matching(Specs.<T>convertClosureToSpec(spec));
     }
 
     public Action<? super T> whenTaskAdded(Action<? super T> action) {
@@ -59,16 +73,6 @@ public class DefaultTaskCollection<T extends Task> extends DefaultNamedDomainObj
 
     public void whenTaskAdded(Closure closure) {
         whenObjectAdded(closure);
-    }
-
-    public void allTasks(Action<? super T> action) {
-        DeprecationLogger.nagUser("TaskCollection.allTasks()", "all()");
-        all(action);
-    }
-
-    public void allTasks(Closure action) {
-        DeprecationLogger.nagUser("TaskCollection.allTasks()", "all()");
-        all(action);
     }
 
     @Override

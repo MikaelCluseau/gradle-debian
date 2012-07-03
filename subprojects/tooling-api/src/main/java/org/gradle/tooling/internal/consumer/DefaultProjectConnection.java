@@ -16,23 +16,14 @@
 package org.gradle.tooling.internal.consumer;
 
 import org.gradle.tooling.*;
-import org.gradle.tooling.internal.protocol.BuildableProjectVersion1;
-import org.gradle.tooling.internal.protocol.HierarchicalProjectVersion1;
-import org.gradle.tooling.internal.protocol.ProjectVersion3;
-import org.gradle.tooling.internal.protocol.eclipse.EclipseProjectVersion3;
-import org.gradle.tooling.internal.protocol.eclipse.HierarchicalEclipseProjectVersion1;
-import org.gradle.tooling.model.BuildableProject;
-import org.gradle.tooling.model.HierarchicalProject;
-import org.gradle.tooling.model.Project;
-import org.gradle.tooling.model.eclipse.EclipseProject;
-import org.gradle.tooling.model.eclipse.HierarchicalEclipseProject;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.gradle.tooling.internal.consumer.async.AsyncConnection;
+import org.gradle.tooling.internal.consumer.protocoladapter.ProtocolToModelAdapter;
+import org.gradle.tooling.internal.consumer.versioning.ModelMapping;
+import org.gradle.tooling.model.Model;
 
 class DefaultProjectConnection implements ProjectConnection {
     private final AsyncConnection connection;
-    private final Map<Class<? extends Project>, Class<? extends ProjectVersion3>> modelTypeMap = new HashMap<Class<? extends Project>, Class<? extends ProjectVersion3>>();
+    private final ModelMapping modelMapping = new ModelMapping();
     private ProtocolToModelAdapter adapter;
     private final ConnectionParameters parameters;
 
@@ -40,22 +31,17 @@ class DefaultProjectConnection implements ProjectConnection {
         this.connection = connection;
         this.parameters = parameters;
         this.adapter = adapter;
-        modelTypeMap.put(Project.class, ProjectVersion3.class);
-        modelTypeMap.put(BuildableProject.class, BuildableProjectVersion1.class);
-        modelTypeMap.put(HierarchicalProject.class, HierarchicalProjectVersion1.class);
-        modelTypeMap.put(HierarchicalEclipseProject.class, HierarchicalEclipseProjectVersion1.class);
-        modelTypeMap.put(EclipseProject.class, EclipseProjectVersion3.class);
     }
 
     public void close() {
         connection.stop();
     }
 
-    public <T extends Project> T getModel(Class<T> viewType) {
+    public <T extends Model> T getModel(Class<T> viewType) {
         return model(viewType).get();
     }
 
-    public <T extends Project> void getModel(final Class<T> viewType, final ResultHandler<? super T> handler) {
+    public <T extends Model> void getModel(final Class<T> viewType, final ResultHandler<? super T> handler) {
         model(viewType).get(handler);
     }
 
@@ -63,16 +49,19 @@ class DefaultProjectConnection implements ProjectConnection {
         return new DefaultBuildLauncher(connection, parameters);
     }
 
-    public <T extends Project> ModelBuilder<T> model(Class<T> modelType) {
-        return new DefaultModelBuilder<T>(modelType, mapToProtocol(modelType), connection, adapter, parameters);
+    public <T extends Model> ModelBuilder<T> model(Class<T> modelType) {
+        return new DefaultModelBuilder<T, Class>(modelType, mapToProtocol(modelType), connection, adapter, parameters);
     }
 
-    private Class<? extends ProjectVersion3> mapToProtocol(Class<? extends Project> viewType) {
-        Class<? extends ProjectVersion3> protocolViewType = modelTypeMap.get(viewType);
+    private Class mapToProtocol(Class<? extends Model> viewType) {
+        Class protocolViewType = modelMapping.getInternalType(viewType);
         if (protocolViewType == null) {
-            throw new UnsupportedVersionException(String.format("Model of type '%s' is not supported.", viewType.getSimpleName()));
+            throw new UnknownModelException(
+                    "Unknown model: '" + viewType.getSimpleName() + "'.\n"
+                        + "Most likely you are trying to acquire a model for a class that is not a valid Tooling API model class.\n"
+                        + "Review the documentation on the version of Tooling API you use to find out what models can be build."
+            );
         }
         return protocolViewType;
     }
-
 }

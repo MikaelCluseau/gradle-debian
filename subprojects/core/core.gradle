@@ -14,114 +14,84 @@
  * limitations under the License.
  */
 
-import java.text.DateFormat
-import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
-
-apply plugin: 'groovy'
-apply from: "$rootDir/gradle/integTest.gradle"
+import org.gradle.build.GenerateReleasesXml
 
 configurations {
-    testFixtures
-    testFixturesRuntime {
-        extendsFrom testFixtures, testRuntime
-    }
-    integTestFixtures {
-        extendsFrom testFixtures
-    }
-    integTestFixturesRuntime {
-        extendsFrom integTestFixtures, integTestRuntime
-    }
+    reports
 }
 
 dependencies {
-    groovy libraries.groovy_depends
-
-    compile "commons-httpclient:commons-httpclient:3.0@jar", "commons-codec:commons-codec:1.2@jar", libraries.jcl_to_slf4j
-
-    compile libraries.ivy, "com.jcraft:jsch:0.1.42@jar", 'com.jcraft:jzlib:1.0.7@jar'
+    groovy libraries.groovy
 
     publishCompile libraries.slf4j_api
+    publishCompile project(":baseServices")
 
-    compile libraries.ant,
-            libraries.logback_classic,
-            libraries.logback_core,
-            libraries.jul_to_slf4j,
-            libraries.commons_io,
-            libraries.commons_lang,
-            "commons-codec:commons-codec:1.2@jar",
-            libraries.guava,
-            "commons-collections:commons-collections:3.2.1@jar",
-            "slide:webdavlib:2.0@jar",
-            libraries.asm_all,
-            'org.fusesource.jansi:jansi:1.2.1',
-            'org.jruby.ext.posix:jna-posix:1.0.3'
+    compile libraries.asm
+    compile libraries.ant
+    compile libraries.commons_collections
+    compile libraries.commons_io
+    compile libraries.commons_lang
+    compile libraries.ivy
+    compile libraries.logback_core
+    compile libraries.logback_classic
+    compile libraries.guava
+    compile libraries.jcip
+    compile libraries.jul_to_slf4j
 
-    runtime 'net.java.dev.jna:jna:3.2.2'
+    compile project(":cli")
+    compile project(":native")
 
-    runtime libraries.log4j_to_slf4j, libraries.jcl_to_slf4j
+    runtime libraries.log4j_to_slf4j
+    runtime libraries.jcl_to_slf4j
 
-    // tried with scope 'runtime' but this gives a cyclic task dependency
-    testRuntime project(":coreImpl")
+    testCompile libraries.log4j_to_slf4j
+    testCompile libraries.jcl_to_slf4j
 
-    testCompile libraries.xmlunit
+    testRuntime "xerces:xercesImpl:2.9.1"
 
-    compile libraries.ant_launcher
+    testFixturesCompile project(":internalTesting")
+    testFixturesRuntime project(':coreImpl')
 
-    integTestCompile libraries.jetty_depends
+    integTestCompile project(":internalIntegTesting")
 
-    testFixtures sourceSets.test.classes, sourceSets.main.classes
-    integTestFixtures sourceSets.integTest.classes
+    reports 'css3-pie:css3-pie:1.0beta3'
 }
-
-task versionProperties(type: WriteVersionProperties) {
-    propertiesFile = new File(sourceSets.main.classesDir, GradleVersion.FILE_NAME)
-}
-
-classes.dependsOn(versionProperties)
-
-task ideVersionProperties(type: WriteVersionProperties) {
-    propertiesFile = new File(ideDir, "resources/test/$GradleVersion.FILE_NAME")
-}
-
-ide.dependsOn ideVersionProperties
-
-ideaModule {
-    dependsOn ideVersionProperties
-    scopes.COMPILE.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(new File(ideDir, "resources/test/")))))
-}
-
-eclipseClasspath {
-    dependsOn ideVersionProperties
-    plusConfigurations.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files(new File(ideDir, "resources/test/")))))
-}
-
-[compileGroovy, compileTestGroovy]*.groovyOptions*.fork(memoryInitialSize: '128M', memoryMaximumSize: '1G')
 
 test {
     jvmArgs '-Xms128m', '-Xmx512m', '-XX:MaxPermSize=128m', '-XX:+HeapDumpOnOutOfMemoryError'
 }
 
-class WriteVersionProperties extends DefaultTask {
-    @Input
-    String getVersion() { return project.version.toString() }
+[compileGroovy, compileTestGroovy]*.groovyOptions*.fork(memoryInitialSize: '128M', memoryMaximumSize: '1G')
 
-    @Input
-    Date getBuildTime() { return project.version.buildTime }
+task releasesResource(type: GenerateReleasesXml) {
+    destFile = new File(generatedResourcesDir, "org/gradle/releases.xml")
+}
+sourceSets.main.output.dir generatedResourcesDir, builtBy: releasesResource
 
+task reportResources(type: Copy) {
+    from configurations.reports
+    into "$generatedResourcesDir/org/gradle/reporting"
+}
+sourceSets.main.output.dir generatedResourcesDir, builtBy: reportResources
+
+task pluginsManifest(type: PluginsManifest)
+sourceSets.main.output.dir generatedResourcesDir, builtBy: pluginsManifest
+
+class PluginsManifest extends DefaultTask {
     @OutputFile
-    File propertiesFile
+    File getPropertiesFile() {
+        return new File(project.generatedResourcesDir, "gradle-plugins.properties")
+    }
+
+    @Input
+    Properties getPluginProperties() {
+        def properties = new Properties()
+        properties.plugins = project.pluginProjects().collect { it.archivesBaseName }.join(',')
+        return properties
+    }
 
     @TaskAction
-    def void generate() {
-        logger.info('Write version properties to: {}', propertiesFile)
-        Properties versionProperties = new Properties()
-        versionProperties.putAll([
-                (GradleVersion.VERSION): version,
-                (GradleVersion.BUILD_TIME): DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL).format(buildTime)
-        ])
-        propertiesFile.withOutputStream {
-            versionProperties.store(it, '')
-        }
-
+    def generate() {
+        propertiesFile.withOutputStream { pluginProperties.save(it, 'plugin definitions') }
     }
 }

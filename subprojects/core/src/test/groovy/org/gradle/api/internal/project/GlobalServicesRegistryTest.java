@@ -16,25 +16,35 @@
 
 package org.gradle.api.internal.project;
 
-import org.gradle.api.internal.ClassPathRegistry;
-import org.gradle.api.internal.DefaultClassPathProvider;
-import org.gradle.api.internal.DefaultClassPathRegistry;
-import org.gradle.api.internal.GradleDistributionLocator;
-import org.gradle.cache.AutoCloseCacheFactory;
-import org.gradle.cache.CacheFactory;
-import org.gradle.initialization.ClassLoaderFactory;
-import org.gradle.initialization.CommandLineConverter;
-import org.gradle.initialization.DefaultClassLoaderFactory;
+import org.gradle.api.internal.*;
+import org.gradle.api.internal.classpath.DefaultModuleRegistry;
+import org.gradle.api.internal.classpath.DefaultPluginModuleRegistry;
+import org.gradle.api.internal.classpath.ModuleRegistry;
+import org.gradle.api.internal.classpath.PluginModuleRegistry;
+import org.gradle.cache.internal.CacheFactory;
+import org.gradle.cache.internal.DefaultCacheFactory;
+import org.gradle.cache.internal.DefaultFileLockManager;
+import org.gradle.cache.internal.FileLockManager;
+import org.gradle.initialization.ClassLoaderRegistry;
+import org.gradle.cli.CommandLineConverter;
+import org.gradle.initialization.DefaultClassLoaderRegistry;
 import org.gradle.initialization.DefaultCommandLineConverter;
+import org.gradle.internal.nativeplatform.*;
+import org.gradle.internal.nativeplatform.filesystem.FileSystem;
 import org.gradle.listener.DefaultListenerManager;
 import org.gradle.listener.ListenerManager;
-import org.gradle.logging.*;
+import org.gradle.logging.LoggingManagerInternal;
+import org.gradle.logging.ProgressLoggerFactory;
 import org.gradle.logging.internal.DefaultLoggingManagerFactory;
 import org.gradle.logging.internal.DefaultProgressLoggerFactory;
+import org.gradle.messaging.remote.MessagingServer;
+import org.gradle.util.ClassLoaderFactory;
+import org.gradle.util.DefaultClassLoaderFactory;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 public class GlobalServicesRegistryTest {
     private final GlobalServicesRegistry registry = new GlobalServicesRegistry();
@@ -46,8 +56,18 @@ public class GlobalServicesRegistryTest {
     }
 
     @Test
-    public void providesACacheFactory() {
-        assertThat(registry.get(CacheFactory.class), instanceOf(AutoCloseCacheFactory.class));
+    public void providesACacheFactoryFactory() {
+        assertThat(registry.getFactory(CacheFactory.class), instanceOf(DefaultCacheFactory.class));
+    }
+
+    @Test
+    public void providesAModuleRegistry() {
+        assertThat(registry.get(ModuleRegistry.class), instanceOf(DefaultModuleRegistry.class));
+    }
+
+    @Test
+    public void providesAPluginModuleRegistry() {
+        assertThat(registry.get(PluginModuleRegistry.class), instanceOf(DefaultPluginModuleRegistry.class));
     }
 
     @Test
@@ -56,8 +76,8 @@ public class GlobalServicesRegistryTest {
     }
 
     @Test
-    public void providesAClassLoaderFactory() {
-        assertThat(registry.get(ClassLoaderFactory.class), instanceOf(DefaultClassLoaderFactory.class));
+    public void providesAClassLoaderRegistry() {
+        assertThat(registry.get(ClassLoaderRegistry.class), instanceOf(DefaultClassLoaderRegistry.class));
     }
 
     @Test
@@ -77,11 +97,41 @@ public class GlobalServicesRegistryTest {
     
     @Test
     public void providesAGradleDistributionLocator() {
-        assertThat(registry.get(GradleDistributionLocator.class), instanceOf(DefaultClassPathProvider.class));
+        assertThat(registry.get(GradleDistributionLocator.class), instanceOf(DefaultModuleRegistry.class));
     }
     
     @Test
-    public void providesAnIsolatedAntBuilder() {
-        assertThat(registry.get(IsolatedAntBuilder.class), instanceOf(DefaultIsolatedAntBuilder.class));
+    public void providesAClassLoaderFactory() {
+        assertThat(registry.get(ClassLoaderFactory.class), instanceOf(DefaultClassLoaderFactory.class));
+    }
+
+    @Test
+    public void providesAMessagingServer() {
+        assertThat(registry.get(MessagingServer.class), instanceOf(MessagingServer.class));
+    }
+
+    @Test
+    public void providesAClassGenerator() {
+        assertThat(registry.get(ClassGenerator.class), instanceOf(AsmBackedClassGenerator.class));
+    }
+    
+    @Test
+    public void providesAnInstantiator() {
+        assertThat(registry.get(Instantiator.class), instanceOf(ClassGeneratorBackedInstantiator.class));
+    }
+
+    @Test
+    public void providesAFileLockManager() {
+        assertThat(registry.get(FileLockManager.class), instanceOf(DefaultFileLockManager.class));
+    }
+
+    @Test
+    public void providesAProcessEnvironment() {
+        assertThat(registry.get(ProcessEnvironment.class), notNullValue());
+    }
+
+    @Test
+    public void providesAFileSystem() {
+        assertThat(registry.get(FileSystem.class), notNullValue());
     }
 }

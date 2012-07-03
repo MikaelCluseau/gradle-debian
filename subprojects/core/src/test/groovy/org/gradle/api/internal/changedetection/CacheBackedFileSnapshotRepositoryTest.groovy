@@ -15,16 +15,18 @@
  */
 package org.gradle.api.internal.changedetection
 
-import spock.lang.Specification
-import org.gradle.cache.CacheRepository
-import org.gradle.cache.CacheBuilder
-import org.gradle.cache.PersistentCache
 import org.gradle.cache.PersistentIndexedCache
+import spock.lang.Specification
 
 class CacheBackedFileSnapshotRepositoryTest extends Specification {
-    final CacheRepository cacheRepository = Mock()
+    final TaskArtifactStateCacheAccess cacheAccess = Mock()
     final PersistentIndexedCache<Object, Object> indexedCache = Mock()
-    final FileSnapshotRepository repository = new CacheBackedFileSnapshotRepository(cacheRepository)
+    FileSnapshotRepository repository
+
+    def setup() {
+        1 * cacheAccess.createCache("fileSnapshots", Object, Object) >> indexedCache
+        repository = new CacheBackedFileSnapshotRepository(cacheAccess)
+    }
 
     def "assigns an id when a snapshot is added"() {
         FileCollectionSnapshot snapshot = Mock()
@@ -34,9 +36,6 @@ class CacheBackedFileSnapshotRepositoryTest extends Specification {
 
         then:
         id == 4
-        interaction {
-            expectCacheOpened()
-        }
         1 * indexedCache.get("nextId") >> (4 as Long)
         1 * indexedCache.put("nextId", 5)
         1 * indexedCache.put(4, snapshot)
@@ -51,9 +50,6 @@ class CacheBackedFileSnapshotRepositoryTest extends Specification {
 
         then:
         result == snapshot
-        interaction {
-            expectCacheOpened()
-        }
         1 * indexedCache.get(4) >> snapshot
         0 * _._
     }
@@ -63,18 +59,7 @@ class CacheBackedFileSnapshotRepositoryTest extends Specification {
         repository.remove(4)
 
         then:
-        interaction {
-            expectCacheOpened()
-        }
         1 * indexedCache.remove(4)
         0 * _._
-    }
-
-    def expectCacheOpened() {
-        CacheBuilder builder = Mock()
-        PersistentCache cache = Mock()
-        1 * cacheRepository.cache("fileSnapshots") >> builder
-        1 * builder.open() >> cache
-        1 * cache.openIndexedCache() >> indexedCache
     }
 }

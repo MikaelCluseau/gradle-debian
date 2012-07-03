@@ -16,12 +16,16 @@
 package org.gradle.plugins.ide.eclipse.model
 
 /**
+ * SourceFolder.path contains only project relative path.
+ *
  * @author Hans Dockter
  */
 class SourceFolder extends AbstractClasspathEntry {
     String output
-    List includes
-    List excludes
+    List<String> includes
+    List<String> excludes
+    //optional
+    File dir
 
     SourceFolder(Node node) {
         super(node)
@@ -30,16 +34,27 @@ class SourceFolder extends AbstractClasspathEntry {
         this.excludes = node.@excluding?.split('\\|') ?: []
     }
 
-    SourceFolder(String path, String nativeLibraryLocation, Set accessRules, String output,
-                     List includes, List excludes) {
-        super(path, false, nativeLibraryLocation, accessRules)
+    SourceFolder(String projectRelativePath, String output) {
+        super(projectRelativePath)
         this.output = normalizePath(output);
-        this.includes = includes ?: [];
-        this.excludes = excludes ?: [];
+        this.includes = []
+        this.excludes = []
     }
 
     String getKind() {
         'src'
+    }
+
+    String getName() {
+        dir.name
+    }
+
+    String getAbsolutePath() {
+        dir.absolutePath
+    }
+
+    void trimPath() {
+        path = name
     }
 
     void appendNode(Node node) {
@@ -80,6 +95,7 @@ class SourceFolder extends AbstractClasspathEntry {
     public String toString() {
         return "SourceFolder{" +
                 "path='" + path + '\'' +
+                ", dir='" + dir + '\'' +
                 ", nativeLibraryLocation='" + nativeLibraryLocation + '\'' +
                 ", exported=" + exported +
                 ", accessRules=" + accessRules +

@@ -17,8 +17,8 @@
 package org.gradle.api.internal.project;
 
 import org.gradle.api.initialization.ProjectDescriptor;
-import org.gradle.api.internal.ClassGenerator;
 import org.gradle.api.internal.GradleInternal;
+import org.gradle.api.internal.Instantiator;
 import org.gradle.groovy.scripts.ScriptSource;
 import org.gradle.groovy.scripts.StringScriptSource;
 import org.gradle.groovy.scripts.UriScriptSource;
@@ -29,26 +29,22 @@ import java.io.File;
  * @author Hans Dockter
  */
 public class ProjectFactory implements IProjectFactory {
-    private ScriptSource embeddedScript;
-    private final ClassGenerator classGenerator;
+    private final Instantiator instantiator;
 
-    public ProjectFactory(ScriptSource embeddedScript, ClassGenerator classGenerator) {
-        this.embeddedScript = embeddedScript;
-        this.classGenerator = classGenerator;
+    public ProjectFactory(Instantiator instantiator) {
+        this.instantiator = instantiator;
     }
 
     public DefaultProject createProject(ProjectDescriptor projectDescriptor, ProjectInternal parent, GradleInternal gradle) {
         File buildFile = projectDescriptor.getBuildFile();
         ScriptSource source;
-        if (embeddedScript != null) {
-            source = embeddedScript;
-        } else if (!buildFile.exists()) {
+        if (!buildFile.exists()) {
             source = new StringScriptSource("empty build file", "");
         } else {
             source = new UriScriptSource("build file", buildFile);
         }
 
-        DefaultProject project = classGenerator.newInstance(DefaultProject.class,
+        DefaultProject project = instantiator.newInstance(DefaultProject.class,
                 projectDescriptor.getName(),
                 parent,
                 projectDescriptor.getProjectDir(),

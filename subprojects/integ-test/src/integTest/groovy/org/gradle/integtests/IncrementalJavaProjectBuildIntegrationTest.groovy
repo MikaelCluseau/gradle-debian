@@ -31,17 +31,20 @@ class IncrementalJavaProjectBuildIntegrationTest {
         distribution.testFile('src/main/resources/org/gradle/resource.txt').createFile()
 
         executer.withTasks('classes').run()
-        distribution.testFile('build/classes/main').assertHasDescendants('org/gradle/resource.txt')
+        distribution.testFile('build/resources/main').assertHasDescendants('org/gradle/resource.txt')
 
         distribution.testFile('src/main/resources/org/gradle/resource.txt').assertIsFile().delete()
         distribution.testFile('src/main/resources/org/gradle/resource2.txt').createFile()
 
         executer.withTasks('classes').run()
-        distribution.testFile('build/classes/main').assertHasDescendants('org/gradle/resource2.txt')
+        distribution.testFile('build/resources/main').assertHasDescendants('org/gradle/resource2.txt')
     }
 
     @Test
     public void doesNotRebuildJarIfSourceHasNotChanged() {
+        // Use own home dir so we don't blast the shared one when we run with -C rebuild
+        distribution.requireOwnUserHomeDir()
+
         distribution.testFile("src/main/java/BuildClass.java") << 'public class BuildClass { }'
         distribution.testFile("build.gradle") << "apply plugin: 'java'"
         distribution.testFile("settings.gradle") << "rootProject.name = 'project'"
@@ -56,7 +59,7 @@ class IncrementalJavaProjectBuildIntegrationTest {
 
         jar.assertHasNotChangedSince(snapshot);
 
-        executer.withArguments("-Crebuild").withTasks("jar").run();
+        executer.withArguments("--rerun-tasks").withTasks("jar").run();
 
         jar.assertHasChangedSince(snapshot);
         snapshot = jar.snapshot();

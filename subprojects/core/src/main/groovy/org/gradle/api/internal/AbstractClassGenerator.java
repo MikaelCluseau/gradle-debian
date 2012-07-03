@@ -16,22 +16,23 @@
 
 package org.gradle.api.internal;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import groovy.lang.*;
+import org.gradle.api.Action;
 import org.gradle.api.GradleException;
-import org.gradle.util.ReflectionUtil;
+import org.gradle.api.plugins.ExtensionAware;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AbstractClassGenerator implements ClassGenerator {
     private static final Map<Class, Map<Class, Class>> GENERATED_CLASSES = new HashMap<Class, Map<Class, Class>>();
 
     public <T> T newInstance(Class<T> type, Object... parameters) {
-        return type.cast(ReflectionUtil.newInstance(generate(type), parameters));
+        Instantiator instantiator = new DirectInstantiator();
+        return instantiator.newInstance(generate(type), parameters);
     }
 
     public <T> Class<? extends T> generate(Class<T> type) {
@@ -64,6 +65,9 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
             builder.startClass(isConventionAware, isDynamicAware);
 
             if (isDynamicAware && !DynamicObjectAware.class.isAssignableFrom(type)) {
+                if (ExtensionAware.class.isAssignableFrom(type)) {
+                    throw new UnsupportedOperationException("A type that implements ExtensionAware must currently also implement DynamicObjectAware.");
+                }
                 builder.mixInDynamicAware();
             }
             if (isDynamicAware && !GroovyObject.class.isAssignableFrom(type)) {
@@ -83,7 +87,10 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
                 }
             }
 
-            Collection<String> skipProperties = Arrays.asList("metaClass", "conventionMapping", "convention", "asDynamicObject");
+            Collection<String> skipProperties = Arrays.asList("metaClass", "conventionMapping", "convention", "asDynamicObject", "extensions");
+
+            Set<MetaBeanProperty> settableProperties = new HashSet<MetaBeanProperty>();
+            Set<MetaBeanProperty> conventionProperties = new HashSet<MetaBeanProperty>();
 
             MetaClass metaClass = GroovySystem.getMetaClassRegistry().getMetaClass(type);
             for (MetaProperty property : metaClass.getProperties()) {
@@ -92,31 +99,81 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
                 }
                 if (property instanceof MetaBeanProperty) {
                     MetaBeanProperty metaBeanProperty = (MetaBeanProperty) property;
+
+                    boolean needsConventionMapping = true;
                     MetaMethod getter = metaBeanProperty.getGetter();
                     if (getter == null) {
-                        continue;
+                        needsConventionMapping = false;
+                    } else {
+                        if (Modifier.isFinal(getter.getModifiers()) || Modifier.isPrivate(getter.getModifiers())) {
+                            needsConventionMapping = false;
+                        } else {
+                            Class declaringClass = getter.getDeclaringClass().getTheClass();
+                            if (declaringClass.isAssignableFrom(noMappingClass)) {
+                                needsConventionMapping = false;
+                            }
+                        }
                     }
-                    if (Modifier.isFinal(getter.getModifiers()) || Modifier.isPrivate(getter.getModifiers())) {
-                        continue;
+
+                    if (needsConventionMapping) {
+                        conventionProperties.add(metaBeanProperty);
+                        builder.addGetter(metaBeanProperty);
                     }
-                    if (getter.getReturnType().isPrimitive()) {
-                        continue;
-                    }
-                    Class declaringClass = getter.getDeclaringClass().getTheClass();
-                    if (declaringClass.isAssignableFrom(noMappingClass)) {
-                        continue;
-                    }
-                    builder.addGetter(metaBeanProperty);
 
                     MetaMethod setter = metaBeanProperty.getSetter();
-                    if (setter == null) {
-                        continue;
-                    }
-                    if (Modifier.isFinal(setter.getModifiers()) || Modifier.isPrivate(setter.getModifiers())) {
+                    if (setter == null || Modifier.isPrivate(setter.getModifiers())) {
                         continue;
                     }
 
-                    builder.addSetter(metaBeanProperty);
+                    if (needsConventionMapping && !Modifier.isFinal(setter.getModifiers())) {
+                        builder.addSetter(metaBeanProperty);
+                    }
+
+                    if (Iterable.class.isAssignableFrom(property.getType())) {
+                        continue;
+                    }
+
+                    settableProperties.add(metaBeanProperty);
+                }
+            }
+
+            Multimap<String, MetaMethod> methods = HashMultimap.create();
+            Set<MetaMethod> actionMethods = new HashSet<MetaMethod>();
+
+            for (MetaMethod method : metaClass.getMethods()) {
+                if (method.isPrivate()) {
+                    continue;
+                }
+                if (method.getParameterTypes().length != 1) {
+                    continue;
+                }
+                methods.put(method.getName(), method);
+                if (method.getParameterTypes()[0].getTheClass().equals(Action.class)) {
+                    actionMethods.add(method);
+                }
+            }
+
+            for (MetaMethod method : actionMethods) {
+                boolean hasClosure = false;
+                for (MetaMethod otherMethod : methods.get(method.getName())) {
+                    if (otherMethod.getParameterTypes()[0].getTheClass().equals(Closure.class)) {
+                        hasClosure = true;
+                        break;
+                    }
+                }
+                if (!hasClosure) {
+                    builder.addActionMethod(method);
+                }
+            }
+
+            for (MetaBeanProperty property : settableProperties) {
+                Collection<MetaMethod> methodsForProperty = methods.get(property.getName());
+                if (methodsForProperty.isEmpty()) {
+                    builder.addSetMethod(property);
+                } else if (conventionProperties.contains(property)) {
+                    for (MetaMethod method : methodsForProperty) {
+                        builder.overrideSetMethod(property, method);
+                    }
                 }
             }
 
@@ -132,6 +189,7 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
         }
 
         cache.put(type, subclass);
+        cache.put(subclass, subclass);
         return subclass;
     }
 
@@ -154,6 +212,12 @@ public abstract class AbstractClassGenerator implements ClassGenerator {
 
         void addSetter(MetaBeanProperty property) throws Exception;
 
+        void overrideSetMethod(MetaBeanProperty property, MetaMethod metaMethod) throws Exception;
+
+        void addSetMethod(MetaBeanProperty property) throws Exception;
+
         Class<? extends T> generate() throws Exception;
+
+        void addActionMethod(MetaMethod method) throws Exception;
     }
 }

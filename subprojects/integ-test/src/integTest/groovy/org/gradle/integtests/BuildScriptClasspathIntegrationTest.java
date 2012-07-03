@@ -15,18 +15,35 @@
  */
 package org.gradle.integtests;
 
+import org.gradle.integtests.fixtures.AbstractIntegrationTest;
 import org.gradle.integtests.fixtures.ArtifactBuilder;
 import org.gradle.integtests.fixtures.ExecutionFailure;
-import org.gradle.integtests.fixtures.internal.AbstractIntegrationTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 public class BuildScriptClasspathIntegrationTest extends AbstractIntegrationTest {
     @Test
     public void providesADefaultBuildForBuildSrcProject() {
         testFile("buildSrc/src/main/java/BuildClass.java").writelns("public class BuildClass { }");
+        testFile("build.gradle").writelns("new BuildClass()");
+        inTestDirectory().withTaskList().run();
+    }
+
+    @Test
+    public void canExtendTheDefaultBuildForBuildSrcProject() {
+        ArtifactBuilder builder = artifactBuilder();
+        builder.sourceFile("org/gradle/test/DepClass.java").writelns(
+                "package org.gradle.test;",
+                "public class DepClass { }"
+        );
+        builder.buildJar(testFile("repo/test-1.3.jar"));
+
+        testFile("buildSrc/build.gradle").writelns(
+                "repositories { flatDir { dirs '../repo' } }",
+                "dependencies { compile name: 'test', version: '1.3' }");
+        testFile("buildSrc/src/main/java/BuildClass.java").writelns("public class BuildClass extends org.gradle.test.DepClass { }");
         testFile("build.gradle").writelns("new BuildClass()");
         inTestDirectory().withTaskList().run();
     }
@@ -48,6 +65,20 @@ public class BuildScriptClasspathIntegrationTest extends AbstractIntegrationTest
 
         ExecutionFailure failure = inTestDirectory().withTasks("test").runWithFailure();
         failure.assertHasCause("broken");
+    }
+
+    @Test
+    public void gradleImplementationClassesDoNotLeakOntoBuildScriptClassPathWhenUsingBuildSrc() {
+        testFile("buildSrc/src/main/java/BuildClass.java").writelns("public class BuildClass { }");
+
+        testFile("build.gradle").writelns(
+                "try {",
+                "    buildscript.classLoader.loadClass('com.google.common.collect.Multimap')",
+                "    assert false: 'should break'",
+                "} catch(ClassNotFoundException e) { /* expected */ }",
+                "gradle.class.classLoader.loadClass('com.google.common.collect.Multimap')");
+
+        inTestDirectory().withTaskList().run();
     }
 
     @Test
@@ -78,7 +109,7 @@ public class BuildScriptClasspathIntegrationTest extends AbstractIntegrationTest
                 "import org.gradle.test2.*",
                 "buildscript {",
                 "  repositories {",
-                "    flatDir dirs: file('repo')",
+                "    flatDir { dirs 'repo' }",
                 "  }",
                 "  dependencies {",
                 "    classpath name: 'test', version: '1.+'",
@@ -91,10 +122,10 @@ public class BuildScriptClasspathIntegrationTest extends AbstractIntegrationTest
                 "  new ImportedClass()",
                 "  new OnDemandImportedClass()",
                 "}",
-                "a = new ImportedClass()",
-                "b = OnDemandImportedClass",
-                "c = someValue",
-                "d = anotherValue",
+                "ext.a = new ImportedClass()",
+                "ext.b = OnDemandImportedClass",
+                "ext.c = someValue",
+                "ext.d = anotherValue",
                 "class TestClass extends ImportedClass { }",
                 "def aMethod() { return new OnDemandImportedClass() }"
         );
@@ -154,7 +185,7 @@ public class BuildScriptClasspathIntegrationTest extends AbstractIntegrationTest
         testFile("build.gradle").writelns(
                 "assert gradle.scriptClassLoader == buildscript.classLoader.parent",
                 "buildscript {",
-                "    repositories { flatDir(dirs: file('repo')) }",
+                "    repositories { flatDir { dirs 'repo' }}",
                 "    dependencies { classpath name: 'test', version: '1.3' }",
                 "}"
         );

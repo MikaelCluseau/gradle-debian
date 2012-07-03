@@ -45,7 +45,7 @@ class JavaPluginConventionTest {
     public final TemporaryFolder tmpDir = new TemporaryFolder()
 
     @Before public void setUp() {
-        project.convention.plugins.reportingBase = new ReportingBasePluginConvention(project)
+        project.plugins.apply(ReportingBasePlugin)
         convention = new JavaPluginConvention(project)
     }
 
@@ -56,18 +56,22 @@ class JavaPluginConventionTest {
         assertEquals('docs', convention.docsDirName)
         assertEquals('test-results', convention.testResultsDirName)
         assertEquals('tests', convention.testReportDirName)
-        assertEquals(JavaVersion.VERSION_1_5, convention.sourceCompatibility)
-        assertEquals(JavaVersion.VERSION_1_5, convention.targetCompatibility)
+    }
+
+    @Test public void sourceCompatibilityDefaultsToCurentJvmVersion() {
+        JavaVersion currentJvmVersion = JavaVersion.toVersion(System.properties["java.version"]);
+        assertEquals(currentJvmVersion, convention.sourceCompatibility)
+        assertEquals(currentJvmVersion, convention.targetCompatibility)
     }
 
     @Test public void canConfigureSourceSets() {
         File dir = new File('classes-dir')
         convention.sourceSets {
             main {
-                classesDir = dir
+                output.classesDir = dir
             }
         }
-        assertThat(convention.sourceSets.main.classesDir, equalTo(project.file(dir)))
+        assertThat(convention.sourceSets.main.output.classesDir, equalTo(project.file(dir)))
     }
     
     @Test public void testDefaultDirs() {
@@ -75,7 +79,7 @@ class JavaPluginConventionTest {
     }
 
     @Test public void testDynamicDirs() {
-        project.buildDirName = 'mybuild'
+        project.buildDir = project.file('mybuild')
         checkDirs()
     }
 

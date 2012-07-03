@@ -20,7 +20,9 @@ import org.gradle.plugins.ide.idea.model.IdeaProject
 import org.gradle.plugins.ide.idea.model.Project
 
 /**
- * Generates an IDEA project file.
+ * Generates an IDEA project file for root project *only*. If you want to fine tune the idea configuration
+ * <p>
+ * At this moment nearly all configuration is done via {@link IdeaProject}.
  *
  * @author Hans Dockter
  */
@@ -38,40 +40,6 @@ public class GenerateIdeaProject extends XmlGeneratorTask<Project> {
     @Override Project create() {
         def project = new Project(xmlTransformer, ideaProject.pathFactory)
         return project
-    }
-
-    /**
-     * The subprojects that should be mapped to modules in the ipr file. The subprojects will only be mapped if the Idea plugin has been
-     * applied to them.
-     */
-    Set<org.gradle.api.Project> getSubprojects() {
-        ideaProject.subprojects
-    }
-
-    void setSubprojects(Set<org.gradle.api.Project> subprojects) {
-        ideaProject.subprojects = subprojects
-    }
-
-    /**
-     * The java version used for defining the project sdk.
-     */
-    String getJavaVersion() {
-        ideaProject.javaVersion
-    }
-
-    void setJavaVersion(String javaVersion) {
-        ideaProject.javaVersion = javaVersion
-    }
-
-    /**
-     * The wildcard resource patterns.
-     */
-    Set getWildcards() {
-        ideaProject.wildcards
-    }
-
-    void setWildcards(Set wildcards) {
-        ideaProject.wildcards = wildcards
     }
 
     /**

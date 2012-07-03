@@ -18,31 +18,20 @@ package org.gradle.api;
 import groovy.lang.Closure;
 import org.gradle.api.specs.Spec;
 
-import java.util.Set;
+import java.util.Collection;
 
 /**
- * <p>A {@code DomainObjectCollection} represents a read-only set of domain objects of type {@code T}.</p>
+ * <p>A {@code DomainObjectCollection} is a specialised {@link Collection} that adds the ability to modification notifications and live filtered sub collections.</p>
  *
- * <p>You can use the methods of this interface to query the elements of the collection. You can also add actions
- * which are executed as elements are added to this collection.</p>
+ * <p>The filtered collections returned by the filtering methods, such as {@link #matching(Closure)}, return collections that are <em>live</em>. That is, they reflect 
+ * changes made to the source collection that they were created from. This is true for filtered collections made from filtered collections etc.</p>
+ * <p>
+ * You can also add actions which are executed as elements are added to the collection. Actions added to filtered collections will be fired if an addition/removal
+ * occurs for the source collection that matches the filter.</p>
  *
  * @param <T> The type of domain objects in this collection.
  */
-public interface DomainObjectCollection<T> extends Iterable<T> {
-    /**
-     * Returns the objects in this collection.
-     *
-     * @return The objects. Returns an empty set if this collection is empty.
-     */
-    Set<T> getAll();
-
-    /**
-     * Returns the objects in this collection which meet the given specification.
-     *
-     * @param spec The specification to use.
-     * @return The matching objects. Returns an empty set if there are no such objects in this collection.
-     */
-    Set<T> findAll(Spec<? super T> spec);
+public interface DomainObjectCollection<T> extends Collection<T> {
 
     /**
      * Returns a collection containing the objects in this collection of the given type.  The returned collection is
@@ -50,7 +39,7 @@ public interface DomainObjectCollection<T> extends Iterable<T> {
      * collection.
      *
      * @param type The type of objects to find.
-     * @return The matching objects. Returns an empty set if there are no such objects in this collection.
+     * @return The matching objects. Returns an empty collection if there are no such objects in this collection.
      */
     <S extends T> DomainObjectCollection<S> withType(Class<S> type);
 
@@ -60,7 +49,7 @@ public interface DomainObjectCollection<T> extends Iterable<T> {
      *
      * @param type The type of objects to find.
      * @param configureAction The action to execute for each object in the resulting collection.
-     * @return The matching objects. Returns an empty set if there are no such objects in this collection.
+     * @return The matching objects. Returns an empty collection if there are no such objects in this collection.
      */
     <S extends T> DomainObjectCollection<S> withType(Class<S> type, Action<? super S> configureAction);
 
@@ -70,7 +59,7 @@ public interface DomainObjectCollection<T> extends Iterable<T> {
      *
      * @param type The type of objects to find.
      * @param configureClosure The closure to execute for each object in the resulting collection.
-     * @return The matching objects. Returns an empty set if there are no such objects in this collection.
+     * @return The matching objects. Returns an empty collection if there are no such objects in this collection.
      */
     <S extends T> DomainObjectCollection<S> withType(Class<S> type, Closure configureClosure);
 
@@ -121,24 +110,12 @@ public interface DomainObjectCollection<T> extends Iterable<T> {
     Action<? super T> whenObjectRemoved(Action<? super T> action);
 
     /**
-     * Executes the given action against all objects in this collection, and any objects subsequently added to this
-     * collection.
-     *
-     * @param action The action to be executed
-     * @deprecated Use {@link #all(Action)} instead.
-     */
-    @Deprecated
-    void allObjects(Action<? super T> action);
-
-    /**
-     * Executes the given closure against all objects in this collection, and any objects subsequently added to this
-     * collection.
+     * Adds a closure to be called when an object is removed from this collection. The removed object is passed to the
+     * closure as the parameter.
      *
      * @param action The closure to be called
-     * @deprecated Use {@link #all(groovy.lang.Closure)} instead.
      */
-    @Deprecated
-    void allObjects(Closure action);
+    void whenObjectRemoved(Closure action);
 
     /**
      * Executes the given action against all objects in this collection, and any objects subsequently added to this
@@ -149,10 +126,20 @@ public interface DomainObjectCollection<T> extends Iterable<T> {
     void all(Action<? super T> action);
 
     /**
-     * Executes the given closure against all objects in this collection, and any objects subsequently added to this
-     * collection. The object is passed to the closure as the closure delegate. Alternatively, it is also passed as a parameter.
+     * Executes the given closure against all objects in this collection, and any objects subsequently added to this collection. The object is passed to the closure as the closure
+     * delegate. Alternatively, it is also passed as a parameter.
      *
      * @param action The action to be executed
      */
     void all(Closure action);
+
+    // note: this is here to override the default Groovy Collection.findAll { } method.
+    /**
+     * Returns a collection which contains the objects in this collection which meet the given closure specification.
+     *
+     * @param spec The specification to use. The closure gets a collection element as an argument.
+     * @return The collection of matching objects. Returns an empty collection if there are no such objects in this
+     *         collection.
+     */
+    public Collection<T> findAll(Closure spec);
 }

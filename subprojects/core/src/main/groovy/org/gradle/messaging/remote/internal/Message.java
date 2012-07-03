@@ -16,8 +16,8 @@
 
 package org.gradle.messaging.remote.internal;
 
+import org.gradle.internal.UncheckedException;
 import org.gradle.util.ClassLoaderObjectInputStream;
-import org.gradle.util.UncheckedException;
 
 import java.io.*;
 import java.lang.reflect.Constructor;
@@ -104,13 +104,13 @@ public abstract class Message implements Serializable {
                     } catch (NoSuchMethodException e1) {
                         // Ignore
                     } catch (Throwable t) {
-                        throw UncheckedException.asUncheckedException(t);
+                        throw UncheckedException.throwAsUncheckedException(t);
                     }
                 }
             }
 
             if (throwable == null) {
-                throwable = new PlaceholderException(String.format("%s: %s", type, message), causeThrowable);
+                throwable = new PlaceholderException(type, message, causeThrowable);
                 throwable.setStackTrace(stackTrace);
             }
 

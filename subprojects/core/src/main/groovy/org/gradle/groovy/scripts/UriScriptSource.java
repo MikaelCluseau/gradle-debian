@@ -18,7 +18,7 @@ package org.gradle.groovy.scripts;
 import org.apache.commons.lang.StringUtils;
 import org.gradle.api.internal.resource.Resource;
 import org.gradle.api.internal.resource.UriResource;
-import org.gradle.util.HashUtil;
+import org.gradle.util.hash.HashUtil;
 
 import java.io.File;
 import java.net.URI;
@@ -45,7 +45,7 @@ public class UriScriptSource implements ScriptSource {
     public String getClassName() {
         if (className == null) {
             URI sourceUri = resource.getURI();
-            String name = StringUtils.substringBeforeLast(StringUtils.substringAfterLast(sourceUri.getPath(), "/"), ".");
+            String name = StringUtils.substringBeforeLast(StringUtils.substringAfterLast(sourceUri.toString(), "/"), ".");
             StringBuilder className = new StringBuilder(name.length());
             for (int i = 0; i < name.length(); i++) {
                 char ch = name.charAt(i);
@@ -61,7 +61,7 @@ public class UriScriptSource implements ScriptSource {
             className.setLength(Math.min(className.length(), 30));
             className.append('_');
             String path = sourceUri.toString();
-            className.append(HashUtil.createHash(path));
+            className.append(HashUtil.createCompactMD5(path));
 
             this.className = className.toString();
         }

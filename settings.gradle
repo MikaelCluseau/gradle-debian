@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+include 'baseServices'
 include 'core'
 include 'coreImpl'
 include 'wrapper'
+include 'cli'
 include 'launcher'
 include 'plugins'
 include 'scala'
@@ -32,6 +34,14 @@ include 'toolingApi'
 include 'docs'
 include 'integTest'
 include 'sonar'
+include 'signing'
+include 'cpp'
+include 'ear'
+include 'native'
+include 'internalTesting'
+include 'internalIntegTesting'
+include 'website'
+include 'performance'
 
 rootProject.name = 'gradle'
 rootProject.children.each {project ->

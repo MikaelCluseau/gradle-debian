@@ -15,6 +15,7 @@
  */
 package org.gradle.plugins.ide.idea.model
 
+import org.gradle.api.JavaVersion
 import org.gradle.api.internal.XmlTransformer
 import spock.lang.Specification
 
@@ -42,7 +43,7 @@ class ModuleTest extends Specification {
         module.load(customModuleReader)
 
         then:
-        module.javaVersion == "1.6"
+        module.jdkName == "1.6"
         module.sourceFolders == customSourceFolders
         module.testSourceFolders == customTestSourceFolders
         module.excludeFolders == customExcludeFolders
@@ -57,7 +58,7 @@ class ModuleTest extends Specification {
         def constructorExcludeFolders = [path('c')] as Set
         def constructorInheritOutputDirs = false
         def constructorOutputDir = path('someOut')
-        def constructorJavaVersion = '1.6'
+        def constructorJavaVersion = JavaVersion.VERSION_1_6.toString()
         def constructorTestOutputDir = path('someTestOut')
         def constructorModuleDependencies = [
                 customDependencies[0],
@@ -74,8 +75,17 @@ class ModuleTest extends Specification {
         module.excludeFolders == customExcludeFolders + constructorExcludeFolders
         module.outputDir == constructorOutputDir
         module.testOutputDir == constructorTestOutputDir
-        module.javaVersion == constructorJavaVersion
+        module.jdkName == constructorJavaVersion.toString()
         module.dependencies == constructorModuleDependencies
+    }
+
+    def "configures default java version"() {
+        when:
+        module.configure(null, [] as Set, [] as Set, [] as Set,
+                true, null, null, [] as Set, null)
+
+        then:
+        module.jdkName == Module.INHERITED
     }
 
     def loadDefaults() {
@@ -83,7 +93,7 @@ class ModuleTest extends Specification {
         module.loadDefaults()
 
         then:
-        module.javaVersion == Module.INHERITED
+        module.jdkName == Module.INHERITED
         module.inheritOutputDirs
         module.sourceFolders == [] as Set
         module.dependencies.size() == 0

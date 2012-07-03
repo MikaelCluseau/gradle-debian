@@ -1,5 +1,5 @@
 /*
- * Copyright 2008 the original author or authors.
+ * Copyright 2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,48 @@
 package org.gradle.api.artifacts;
 
 import groovy.lang.Closure;
-import org.apache.ivy.plugins.resolver.DependencyResolver;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.TaskDependency;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * <p>A {@code Configuration} represents a group of artifacts and their dependencies.</p>
+ * A {@code Configuration} represents a group of artifacts and their dependencies.
+ * Find more information about declaring dependencies to a configuration
+ * or about managing configurations in docs for {@link ConfigurationContainer}
+ * <p>
+ * Configuration is an instance of a {@link FileCollection}
+ * that contains all dependencies (see also {@link #getAllDependencies()}) but not artifacts.
+ * If you want to refer to the artifacts declared in this configuration
+ * please use {@link #getArtifacts()} or {@link #getAllArtifacts()}.
+ * Read more about declaring artifacts in the configuration in docs for {@link org.gradle.api.artifacts.dsl.ArtifactHandler}
+ * <p>
  */
 public interface Configuration extends FileCollection {
+
+    /**
+     * Returns the resolution strategy used by this configuration.
+     * The resolution strategy provides extra details on how to resolve this configuration.
+     * See docs for {@link ResolutionStrategy} for more info and examples.
+     *
+     * @return resolution strategy
+     * @since 1.0-milestone-6
+     */
+    ResolutionStrategy getResolutionStrategy();
+
+    /**
+     * The resolution strategy provides extra details on how to resolve this configuration.
+     * See docs for {@link ResolutionStrategy} for more info and examples.
+     *
+     * @param closure closure applied to the {@link ResolutionStrategy}
+     * @return this configuration instance
+     * @since 1.0-milestone-6
+     */
+    Configuration resolutionStrategy(Closure closure);
+
     /**
      * The states a configuration can be into. A configuration is only mutable as long as it is
      * in the unresolved state.
@@ -40,6 +68,7 @@ public interface Configuration extends FileCollection {
      * Returns the state of the configuration.
      *
      * @see org.gradle.api.artifacts.Configuration.State
+     * @return The state of the configuration
      */
     State getState();
 
@@ -50,6 +79,15 @@ public interface Configuration extends FileCollection {
      */
     String getName();
 
+    /**
+     * A {@link org.gradle.api.Namer} namer for configurations that returns {@link #getName()}.
+     */
+    static class Namer implements org.gradle.api.Namer<Configuration> {
+        public String determineName(Configuration c) {
+            return c.getName();
+        }
+    }
+    
     /**
      * Returns true if this is a visible configuration. A visible configuration is usable outside the project it belongs
      * to. The default value is true.
@@ -156,7 +194,7 @@ public interface Configuration extends FileCollection {
      * @param dependencySpec The spec describing a filter applied to the all the dependencies of this configuration (including dependencies from extended configurations).
      * @return The files of a subset of dependencies of this configuration.
      */
-    Set<File> files(Spec<Dependency> dependencySpec);
+    Set<File> files(Spec<? super Dependency> dependencySpec);
 
     /**
      * Resolves this configuration. This locates and downloads the files which make up this configuration.
@@ -176,7 +214,7 @@ public interface Configuration extends FileCollection {
      * @param dependencySpec The spec describing a filter applied to the all the dependencies of this configuration (including dependencies from extended configurations).
      * @return The FileCollection with a subset of dependencies of this configuration.
      */
-    FileCollection fileCollection(Spec<Dependency> dependencySpec);
+    FileCollection fileCollection(Spec<? super Dependency> dependencySpec);
 
     /**
      * Takes a closure which gets coerced into a Spec. Behaves otherwise in the same way as
@@ -210,6 +248,7 @@ public interface Configuration extends FileCollection {
      * Returns the name of the task that upload the artifacts of this configuration to repositories
      * declared by the user.
      *
+     * @return The name of the associated upload task
      * @see org.gradle.api.tasks.Upload
      */
     String getUploadTaskName();
@@ -236,90 +275,40 @@ public interface Configuration extends FileCollection {
     TaskDependency getTaskDependencyFromProjectDependency(boolean useDependedOn, final String taskName);
 
     /**
-     * Returns a {@code TaskDependency} object containing all required dependencies to build the artifacts
-     * belonging to this configuration or to one of its super configurations.
-     *
-     * @return a task dependency object
-     */
-    TaskDependency getBuildArtifacts();
-
-    /**
-     * Publishes the artifacts of this configuration to the specified repositories. This
-     * method is usually used only internally as the users use the associated upload tasks to
-     * upload the artifacts.
-     *
-     * @param publishRepositories The repositories to publish the artifacts to.
-     * @param descriptorDestination The destination dir for the descriptor file (if null no descriptor file is written).
-     *
-     * @see org.gradle.api.tasks.Upload
-     * @see #getUploadTaskName()
-     * @throws PublishException On failure to publish this configuration.
-     */
-    void publish(List<DependencyResolver> publishRepositories, File descriptorDestination) throws PublishException;
-
-    /**
      * Gets the set of dependencies directly contained in this configuration
      * (ignoring superconfigurations).
      *
      * @return the set of dependencies
      */
-    Set<Dependency> getDependencies();
+    DependencySet getDependencies();
 
     /**
-     * Gets the complete set of dependencies including those contributed by
-     * superconfigurations.
+     * <p>Gets the complete set of dependencies including those contributed by
+     * superconfigurations.</p>
      *
-     * @return the set of dependencies
+     * @return the (read-only) set of dependencies
      */
-    Set<Dependency> getAllDependencies();
-
-    /**
-     * Gets the set of dependencies of type T directly contained in this configuration (ignoring superconfigurations).
-     *
-     * @param type the dependency type
-     * @param <T> the dependency type
-     * @return The set. Returns an empty set if there are no such dependencies.
-     */
-    <T extends Dependency> Set<T> getDependencies(Class<T> type);
-
-    /**
-     * Gets the set of dependencies of type T for this configuration including those contributed by superconfigurations.
-     *
-     * @param type the dependency type
-     * @param <T> the dependency type
-     * @return The set. Returns an empty set if there are no such dependencies.
-     */
-    <T extends Dependency> Set<T> getAllDependencies(Class<T> type);
-
-    /**
-     * Adds a dependency to this configuration.
-     *
-     * @param dependency The dependency to be added.
-     */
-    void addDependency(Dependency dependency);
+    DependencySet getAllDependencies();
 
     /**
      * Returns the artifacts of this configuration excluding the artifacts of extended configurations.
+     * 
+     * @return The set.
      */
-    Set<PublishArtifact> getArtifacts();
+    PublishArtifactSet getArtifacts();
 
     /**
      * Returns the artifacts of this configuration including the artifacts of extended configurations.
+     * 
+     * @return The (read-only) set.
      */
-    Set<PublishArtifact> getAllArtifacts();
-
-    /**
-     * Returns the artifacts of this configuration as a {@link FileCollection}, including artifacts of extended
-     * configurations.
-     *
-     * @return the artifact files.
-     */
-    FileCollection getAllArtifactFiles();
+    PublishArtifactSet getAllArtifacts();
 
     /**
      * Returns the exclude rules applied for resolving any dependency of this configuration.
      *
      * @see #exclude(java.util.Map)
+     * @return The exclude rules
      */
     Set<ExcludeRule> getExcludeRules();
 
@@ -335,24 +324,17 @@ public interface Configuration extends FileCollection {
     /**
      * Returns all the configurations belonging to the same configuration container as this
      * configuration (including this configuration).
+     *
+     * @return All of the configurations belong to the configuration container that this set belongs to.
      */
     Set<Configuration> getAll();
 
     /**
-     * Adds an artifact to be published to this configuration.
+     * Returns the incoming dependencies of this configuration.
      *
-     * @param artifact The artifact.
-     * @return this
+     * @return The incoming dependencies of this configuration. Never null.
      */
-    Configuration addArtifact(PublishArtifact artifact);
-
-    /**
-     * Removes an artifact from the artifacts to be published to this configuration.
-     *
-     * @param artifact The artifact.
-     * @return this
-     */
-    Configuration removeArtifact(PublishArtifact artifact);
+    ResolvableDependencies getIncoming();
 
     /**
      * Creates a copy of this configuration that only contains the dependencies directly in this configuration
@@ -374,23 +356,21 @@ public interface Configuration extends FileCollection {
 
     /**
      * Creates a copy of this configuration ignoring superconfigurations (see {@link #copy()} but filtering
-     * the dependencies using the specified dependency spec. {@link org.gradle.api.artifacts.specs.Type}
-     * provides some predefined dependency specs.
+     * the dependencies using the specified dependency spec.
      *
      * @param dependencySpec filtering requirements
      * @return copy of this configuration
      */
-    Configuration copy(Spec<Dependency> dependencySpec);
+    Configuration copy(Spec<? super Dependency> dependencySpec);
 
     /**
      * Creates a copy of this configuration with dependencies from superconfigurations (see {@link #copyRecursive()})
-     * but filtering the dependencies using the dependencySpec. {@link org.gradle.api.artifacts.specs.Type}
-     * provides some predefined dependency specs.
+     * but filtering the dependencies using the dependencySpec.
      *
      * @param dependencySpec filtering requirements
      * @return copy of this configuration
      */
-    Configuration copyRecursive(Spec<Dependency> dependencySpec);
+    Configuration copyRecursive(Spec<? super Dependency> dependencySpec);
 
     /**
      * Takes a closure which gets coerced into a Spec. Behaves otherwise in the same way as {@link #copy(org.gradle.api.specs.Spec)}

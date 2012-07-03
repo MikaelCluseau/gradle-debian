@@ -15,26 +15,40 @@
  */
 package org.gradle.api.internal.tasks;
 
-import org.gradle.api.internal.AutoCreateDomainObjectContainer;
-import org.gradle.api.internal.ClassGenerator;
+import groovy.lang.Closure;
+import org.gradle.api.Namer;
+import org.gradle.api.internal.AbstractNamedDomainObjectContainer;
+import org.gradle.api.internal.Instantiator;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 
-public class DefaultSourceSetContainer extends AutoCreateDomainObjectContainer<SourceSet> implements SourceSetContainer {
+public class DefaultSourceSetContainer extends AbstractNamedDomainObjectContainer<SourceSet> implements SourceSetContainer {
     private final FileResolver fileResolver;
     private final TaskResolver taskResolver;
-    private final ClassGenerator generator;
+    private final Instantiator instantiator;
 
-    public DefaultSourceSetContainer(FileResolver fileResolver, TaskResolver taskResolver, ClassGenerator classGenerator) {
-        super(SourceSet.class, classGenerator);
+    public DefaultSourceSetContainer(FileResolver fileResolver, TaskResolver taskResolver, Instantiator classGenerator) {
+        super(SourceSet.class, classGenerator, new Namer<SourceSet>() { public String determineName(SourceSet ss) { return ss.getName(); }});
         this.fileResolver = fileResolver;
         this.taskResolver = taskResolver;
-        this.generator = classGenerator;
+        this.instantiator = classGenerator;
     }
 
     @Override
-    protected SourceSet create(String name) {
-        return generator.newInstance(DefaultSourceSet.class, name, fileResolver, taskResolver);
+    protected SourceSet doCreate(String name) {
+        DefaultSourceSet sourceSet = instantiator.newInstance(DefaultSourceSet.class, name, fileResolver);
+        sourceSet.setClasses(instantiator.newInstance(DefaultSourceSetOutput.class, sourceSet.getDisplayName(), fileResolver, taskResolver));
+
+        return sourceSet;
     }
+
+    public SourceSet add(String name) {
+        return create(name);
+    }
+
+    public SourceSet add(String name, Closure closure) {
+        return create(name, closure);
+    }
+
 }

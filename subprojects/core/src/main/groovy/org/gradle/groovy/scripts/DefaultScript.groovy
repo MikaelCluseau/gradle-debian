@@ -23,24 +23,27 @@ import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.file.CopySpec
 import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.dsl.ScriptHandler
+import org.gradle.api.internal.ProcessOperations
 import org.gradle.api.internal.plugins.DefaultObjectConfigurationAction
-import org.gradle.api.internal.project.ServiceRegistry
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.logging.LoggingManager
 import org.gradle.api.plugins.ObjectConfigurationAction
+import org.gradle.api.resources.ResourceHandler
 import org.gradle.api.tasks.WorkResult
 import org.gradle.configuration.ScriptPluginFactory
-import org.gradle.util.ConfigureUtil
+import org.gradle.internal.nativeplatform.filesystem.FileSystems
+import org.gradle.internal.service.ServiceRegistry
 import org.gradle.process.ExecResult
-import org.gradle.api.internal.file.*
+import org.gradle.util.ConfigureUtil
 import org.gradle.util.DeprecationLogger
+import org.gradle.api.internal.file.*
 
 abstract class DefaultScript extends BasicScript {
     private static final Logger LOGGER = Logging.getLogger(Script.class)
     private ServiceRegistry services
     private FileOperations fileOperations
+    private ProcessOperations processOperations
     private LoggingManager loggingManager
 
     def void init(Object target, ServiceRegistry services) {
@@ -50,10 +53,11 @@ abstract class DefaultScript extends BasicScript {
         if (target instanceof FileOperations) {
             fileOperations = target
         } else if (scriptSource.resource.file) {
-            fileOperations = new DefaultFileOperations(new BaseDirConverter(scriptSource.resource.file.parentFile), null, null)
+            fileOperations = new DefaultFileOperations(new BaseDirFileResolver(FileSystems.default, scriptSource.resource.file.parentFile), null, null)
         } else {
             fileOperations = new DefaultFileOperations(new IdentityFileResolver(), null, null)
         }
+        processOperations = fileOperations
     }
 
     FileResolver getFileResolver() {
@@ -105,7 +109,7 @@ abstract class DefaultScript extends BasicScript {
     }
 
     ConfigurableFileTree fileTree(Object baseDir) {
-        fileOperations.fileTree(baseDir)
+        fileOperations.fileTree((Object)baseDir)
     }
 
     ConfigurableFileTree fileTree(Map args) {
@@ -113,7 +117,12 @@ abstract class DefaultScript extends BasicScript {
     }
 
     ConfigurableFileTree fileTree(Closure closure) {
+        DeprecationLogger.nagUserWith("fileTree(Closure) is a deprecated method. Use fileTree((Object){ baseDir }) to have the closure used as the file tree base directory");
         fileOperations.fileTree(closure)
+    }
+
+    ConfigurableFileTree fileTree(Object baseDir, Closure configureClosure) {
+        fileOperations.fileTree(baseDir, configureClosure);
     }
 
     FileTree zipTree(Object zipPath) {
@@ -122,6 +131,10 @@ abstract class DefaultScript extends BasicScript {
 
     FileTree tarTree(Object tarPath) {
         fileOperations.tarTree(tarPath)
+    }
+
+    ResourceHandler getResources() {
+        fileOperations.resources
     }
 
     WorkResult copy(Closure closure) {
@@ -141,25 +154,15 @@ abstract class DefaultScript extends BasicScript {
     }
 
     ExecResult javaexec(Closure closure) {
-        return fileOperations.javaexec(closure);
+        return processOperations.javaexec(closure);
     }
 
     ExecResult exec(Closure closure) {
-        return fileOperations.exec(closure);
+        return processOperations.exec(closure);
     }
 
     LoggingManager getLogging() {
         return loggingManager
-    }
-
-    public void captureStandardOutput(LogLevel level) {
-        DeprecationLogger.nagUser('captureStandardOutput()', 'getLogging().captureStandardOutput()')
-        logging.captureStandardOutput(level)
-    }
-
-    public void disableStandardOutputCapture() {
-        DeprecationLogger.nagUser('disableStandardOutputCapture')
-        logging.disableStandardOutputCapture()
     }
 
     public Logger getLogger() {

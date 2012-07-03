@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-import org.gradle.build.samples.WrapperProjectCreator
 import org.gradle.build.Version
 import org.gradle.build.Install
 import org.gradle.build.Git
-import java.util.jar.Attributes
-import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDependency
+import org.gradle.build.Releases
 
 /**
  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
@@ -27,97 +25,166 @@ import org.gradle.api.internal.artifacts.dependencies.DefaultSelfResolvingDepend
  * following properties can be set:
  *
  * Uploading distributions to Gradle's release and snapshot repository at codehaus: artifactoryUserName, artifactoryUserPassword
- * Uploading the userguide and the javadoc to Gradle's website: websiteFtpUserName, websiteFtpUserPassword
+ * Uploading the userguide and the javadoc to Gradle's website: websiteScpUserName, websiteScpUserPassword
  * Using the build to create a new distribution and install it on the local machine: gradle_installPath
  */
 
-version = new Version(project)
+ext.releases = new Releases(project(':core').file('src/releases.xml'), project)
+version = Version.forProject(project)
 
 defaultTasks 'assemble'
 
 apply plugin: 'java-base'
 
-startScriptsDir = new File("$buildDir/startScripts")
-
 archivesBaseName = 'gradle'
 
-libraries = [
-        ant: 'org.apache.ant:ant:1.8.2@jar',
+ext {
+    versions = [
+        commons_io: 'commons-io:commons-io:1.4'
+    ]
+    libraries = [
+        ant: dependencies.module('org.apache.ant:ant:1.8.2') {
+            dependency 'org.apache.ant:ant-launcher:1.8.2@jar'
+        },
+        asm: 'asm:asm-all:3.3.1@jar',
+        commons_cli: 'commons-cli:commons-cli:1.2@jar',
+        commons_io: dependencies.module(versions.commons_io),
+        commons_lang: 'commons-lang:commons-lang:2.6@jar',
+        commons_collections: 'commons-collections:commons-collections:3.2.1@jar',
+        ivy: dependencies.module('org.apache.ivy:ivy:2.2.0'){
+            dependency "com.jcraft:jsch:0.1.46"
+        },
+        jcip: "net.jcip:jcip-annotations:1.0@jar",
+    ]
+    
+}
+
+// Logging
+libraries.slf4j_api = 'org.slf4j:slf4j-api:1.6.4@jar'
+libraries.jcl_to_slf4j = dependencies.module('org.slf4j:jcl-over-slf4j:1.6.4') {
+    dependency libraries.slf4j_api
+}
+libraries.jul_to_slf4j = dependencies.module('org.slf4j:jul-to-slf4j:1.6.4') {
+    dependency libraries.slf4j_api
+}
+libraries.log4j_to_slf4j = dependencies.module('org.slf4j:log4j-over-slf4j:1.6.4') {
+    dependency libraries.slf4j_api
+}
+libraries.logback_core = 'ch.qos.logback:logback-core:1.0.0@jar'
+libraries.logback_classic = dependencies.module('ch.qos.logback:logback-classic:1.0.0') {
+    dependency libraries.logback_core
+    dependency libraries.slf4j_api
+}
+
+// Jetty
+libraries.servlet_api = "org.mortbay.jetty:servlet-api:2.5-20081211@jar"
+libraries.jetty_util = dependencies.module("org.mortbay.jetty:jetty-util:6.1.25") {
+    dependency libraries.slf4j_api
+    dependency libraries.servlet_api
+}
+libraries.jetty = dependencies.module("org.mortbay.jetty:jetty:6.1.25") {
+    dependency libraries.jetty_util
+    dependency libraries.servlet_api
+}
+
+libraries.commons_httpclient = dependencies.module('org.apache.httpcomponents:httpclient:4.1.2') {
+    dependency "org.apache.httpcomponents:httpcore:4.1.2@jar"
+    dependency libraries.jcl_to_slf4j
+    dependency "commons-codec:commons-codec:1.4@jar"
+    dependency "org.samba.jcifs:jcifs:1.3.17"
+}
+
+libraries.maven_ant_tasks = dependencies.module("org.apache.maven:maven-ant-tasks:2.1.3") {
+    libraries.ant
+}
+
+libraries += [
         ant_junit: 'org.apache.ant:ant-junit:1.8.2@jar',
-        ant_launcher: 'org.apache.ant:ant-launcher:1.8.2@jar',
         ant_antlr: 'org.apache.ant:ant-antlr:1.8.2@jar',
         antlr: 'antlr:antlr:2.7.7@jar',
-        asm_all: 'asm:asm-all:3.3.1@jar',
-        commons_cli: 'commons-cli:commons-cli:1.2@jar',
-        commons_io: 'commons-io:commons-io:1.4@jar',
-        commons_lang: 'commons-lang:commons-lang:2.6@jar',
         dom4j: 'dom4j:dom4j:1.6.1@jar',
-        guava: 'com.google.guava:guava:r08@jar',
-        groovy: 'org.codehaus.groovy:groovy-all:1.7.10@jar',
-        ivy: 'org.apache.ivy:ivy:2.2.0@jar',
+        guava: 'com.google.guava:guava:11.0.1@jar',
+        groovy: 'org.codehaus.groovy:groovy-all:1.8.6@jar',
         jaxen: 'jaxen:jaxen:1.1@jar',
-        slf4j_api: 'org.slf4j:slf4j-api:1.6.1@jar',
-        jcl_to_slf4j: 'org.slf4j:jcl-over-slf4j:1.6.1@jar',
-        jul_to_slf4j: 'org.slf4j:jul-to-slf4j:1.6.1@jar',
-        log4j_to_slf4j: 'org.slf4j:log4j-over-slf4j:1.6.1@jar',
-        logback_classic: 'ch.qos.logback:logback-classic:0.9.28@jar',
-        logback_core: 'ch.qos.logback:logback-core:0.9.28@jar',
-        junit: 'junit:junit:4.8.2',
+        jcip: "net.jcip:jcip-annotations:1.0",
+        jna: 'net.java.dev.jna:jna:3.2.7@jar',
+        junit: 'junit:junit:4.10',
         xmlunit: 'xmlunit:xmlunit:1.3',
+        nekohtml: 'net.sourceforge.nekohtml:nekohtml:1.9.14'
 ]
 
-libraries.spock = ['org.spockframework:spock-core:0.5-groovy-1.7@jar',
+libraries.spock = ['org.spockframework:spock-core:0.6-groovy-1.8@jar',
         libraries.groovy,
-        'org.hamcrest:hamcrest-core:1.1@jar',
-        'cglib:cglib-nodep:2.2',
-        'org.objenesis:objenesis:1.2']
-libraries.jmock = ['org.jmock:jmock:2.5.1@jar',
-        'org.hamcrest:hamcrest-core:1.1@jar',
-        'org.hamcrest:hamcrest-library:1.1@jar',
-        'org.jmock:jmock-junit4:2.5.1@jar',
-        'org.jmock:jmock-legacy:2.5.1@jar',
         'org.objenesis:objenesis:1.2',
         'cglib:cglib-nodep:2.2']
-libraries.groovy_depends = [libraries.groovy, libraries.commons_cli]
-libraries.jetty_depends = ["org.mortbay.jetty:jetty:6.1.25@jar",
-        "org.mortbay.jetty:jetty-util:6.1.25@jar",
-        "org.mortbay.jetty:servlet-api:2.5-20081211@jar"]
+libraries.jmock = ['org.jmock:jmock:2.5.1',
+        'org.hamcrest:hamcrest-core:1.1',
+        'org.hamcrest:hamcrest-library:1.1',
+        'org.jmock:jmock-junit4:2.5.1',
+        'org.jmock:jmock-legacy:2.5.1',
+        'org.objenesis:objenesis:1.2',
+        'cglib:cglib-nodep:2.2']
 
 allprojects {
     group = 'org.gradle'
 
-    plugins.withType(JavaPlugin).whenPluginAdded {
+    plugins.withType(JavaPlugin) {
         sourceCompatibility = 1.5
         targetCompatibility = 1.5
     }
 
     repositories {
-        mavenRepo(urls: 'http://repo.gradle.org/gradle/libs')
+        maven { url 'http://repo.gradle.org/gradle/libs' }
+        maven { url 'http://repository.codehaus.org/' }
+    }
+
+    configurations {
+        all {
+            resolutionStrategy {
+                //we cannot use 'hours' for now due to java 1.5 problem
+                cacheDynamicVersionsFor 24*60*60, 'seconds'
+                cacheChangingModulesFor 24*60*60, 'seconds'
+            }
+        }
     }
 
     version = this.version
+
+    apply from: "$rootDir/gradle/conventions-dsl.gradle"
+    
+    ext {
+        isDevBuild = {
+            gradle.taskGraph.hasTask(developerBuild)
+        }
+
+        isCIBuild = {
+            gradle.taskGraph.hasTask(ciBuild)
+        }
+
+        isCommitBuild = {
+            gradle.taskGraph.hasTask(commitBuild)
+        }
+
+        isFinalReleaseBuild = {
+            gradle.taskGraph.hasTask(releaseVersion)
+        }
+
+        isRcBuild = {
+            gradle.taskGraph.hasTask(rcVersion)
+        }
+
+        isNightlyBuild = {
+            gradle.taskGraph.hasTask(nightlyVersion)
+        }
+
+        isReleaseBuild = { // Are we doing any kind of “release”? i.e. final, nightly or rc
+            isFinalReleaseBuild() || isNightlyBuild() || isRcBuild()
+        }
+    }
 }
 
 configure(groovyProjects()) {
-    apply plugin: 'groovy'
-
-    archivesBaseName = "gradle-${name.replaceAll("\\p{Upper}") { "-${it.toLowerCase()}" } }"
-    dependencies {
-        testCompile libraries.junit, libraries.jmock, libraries.spock
-    }
-
-    apply from: "$rootDir/gradle/compile.gradle"
-
-    test {
-        maxParallelForks = guessMaxForks()
-    }
-
-    tasks.withType(Jar).each { jar ->
-        jar.manifest.mainAttributes([
-                (Attributes.Name.IMPLEMENTATION_TITLE.toString()): 'Gradle',
-                (Attributes.Name.IMPLEMENTATION_VERSION.toString()): version,
-        ])
-    }
+    apply from: "$rootDir/gradle/groovyProject.gradle"
 }
 
 configure(publishedProjects()) {
@@ -126,226 +193,11 @@ configure(publishedProjects()) {
 
 allprojects {
     apply from: "$rootDir/gradle/codeQuality.gradle"
+    apply from: "$rootDir/gradle/testWithUnknownOS.gradle"
 }
 
-allprojects {
-    apply plugin: 'idea'
-    apply plugin: 'eclipse'
-    def config = configurations.findByName('testRuntime')
-    if (!config) {
-        return
-    }
-    ideDir = file('ide')
-    task ide(type: Sync) {
-        into "$ideDir/lib"
-        from { config.copyRecursive {dep -> !(dep instanceof ProjectDependency)}.files }
-    }
-}
-
-ideaModule {
-    excludeDirs += file('intTestHomeDir')
-    excludeDirs += file('buildSrc/build')
-    excludeDirs += file('buildSrc/.gradle')
-    excludeDirs += file('performanceTest/.gradle')
-    excludeDirs += file('performanceTest/build')
-    excludeDirs += file('website/.gradle')
-    excludeDirs += file('website/build')
-}
-
-ideaProject {
-    wildcards += ['?*.gradle']
-    javaVersion = '1.6'
-    withXml { provider ->
-		def node = provider.asNode()
-
-		// Use git
-        def vcsConfig = node.component.find { it.'@name' == 'VcsDirectoryMappings' }
-        vcsConfig.mapping[0].'@vcs' = 'Git'
-
-        // Set gradle home
-        def gradleSettings = node.appendNode('component', [name: 'GradleSettings'])
-        gradleSettings.appendNode('option', [name: 'SDK_HOME', value: gradle.gradleHomeDir.absolutePath])
-
-        // Code formatting options
-        def codeFormatSettings = new XmlParser().parseText('''
-  <component name="CodeStyleSettingsManager">
-    <option name="PER_PROJECT_SETTINGS">
-      <value>
-        <option name="USE_SAME_INDENTS" value="true" />
-        <option name="RIGHT_MARGIN" value="200" />
-        <option name="JD_ALIGN_PARAM_COMMENTS" value="false" />
-        <option name="JD_ALIGN_EXCEPTION_COMMENTS" value="false" />
-        <option name="JD_P_AT_EMPTY_LINES" value="false" />
-        <option name="JD_KEEP_EMPTY_PARAMETER" value="false" />
-        <option name="JD_KEEP_EMPTY_EXCEPTION" value="false" />
-        <option name="JD_KEEP_EMPTY_RETURN" value="false" />
-        <option name="WRAP_COMMENTS" value="true" />
-        <option name="IF_BRACE_FORCE" value="3" />
-        <option name="DOWHILE_BRACE_FORCE" value="3" />
-        <option name="WHILE_BRACE_FORCE" value="3" />
-        <option name="FOR_BRACE_FORCE" value="3" />
-        <ADDITIONAL_INDENT_OPTIONS fileType="groovy">
-          <option name="INDENT_SIZE" value="2" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="java">
-          <option name="INDENT_SIZE" value="4" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="js">
-          <option name="INDENT_SIZE" value="4" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="jsp">
-          <option name="INDENT_SIZE" value="4" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="php">
-          <option name="INDENT_SIZE" value="4" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="scala">
-          <option name="INDENT_SIZE" value="2" />
-          <option name="CONTINUATION_INDENT_SIZE" value="2" />
-          <option name="TAB_SIZE" value="2" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="sql">
-          <option name="INDENT_SIZE" value="2" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-        <ADDITIONAL_INDENT_OPTIONS fileType="xml">
-          <option name="INDENT_SIZE" value="4" />
-          <option name="CONTINUATION_INDENT_SIZE" value="8" />
-          <option name="TAB_SIZE" value="4" />
-          <option name="USE_TAB_CHARACTER" value="false" />
-          <option name="SMART_TABS" value="false" />
-          <option name="LABEL_INDENT_SIZE" value="0" />
-          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
-          <option name="USE_RELATIVE_INDENTS" value="false" />
-        </ADDITIONAL_INDENT_OPTIONS>
-      </value>
-    </option>
-    <option name="USE_PER_PROJECT_SETTINGS" value="true" />
-  </component>
-''')
-        node.append(codeFormatSettings)
-    }
-
-    whenConfigured { project ->
-        project.jdk.languageLevel = 'JDK_1_5'
-    }
-}
-
-ideaWorkspace {
-    withXml { provider ->
-        Node node = provider.asNode()
-
-        Node runManagerConfig = node.component.find { it.'@name' == 'RunManager' }
-
-        // Add int test configuration to JUnit defaults
-        Node runConfig = runManagerConfig.configuration.find { it.'@type' == 'JUnit'}
-
-        Node vmParameters = runConfig.option.find { it.'@name' == 'VM_PARAMETERS' }
-        vmParameters.'@value' = "\"-DintegTest.gradleHomeDir=${intTestImage.destinationDir}\" -ea -Dorg.gradle.integtest.executer=embedded"
-
-        // Add an application configuration
-        runManagerConfig.'@selected' = 'Application.Gradle'
-        def appConfig = new XmlParser().parseText('''
-    <configuration default="false" name="Gradle" type="Application" factoryName="Application">
-      <extension name="coverage" enabled="false" merge="false" />
-      <option name="MAIN_CLASS_NAME" value="org.gradle.launcher.Main" />
-      <option name="VM_PARAMETERS" value="" />
-      <option name="PROGRAM_PARAMETERS" value="" />
-      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
-      <option name="ALTERNATIVE_JRE_PATH" value="" />
-      <option name="ENABLE_SWING_INSPECTOR" value="false" />
-      <option name="ENV_VARIABLES" />
-      <option name="PASS_PARENT_ENVS" value="true" />
-      <module name="launcher" />
-      <envs />
-      <RunnerSettings RunnerId="Debug">
-        <option name="DEBUG_PORT" value="63810" />
-        <option name="TRANSPORT" value="0" />
-        <option name="LOCAL" value="true" />
-      </RunnerSettings>
-      <RunnerSettings RunnerId="Run" />
-      <ConfigurationWrapper RunnerId="Debug" />
-      <ConfigurationWrapper RunnerId="Run" />
-      <method />
-    </configuration>
-''')
-        runManagerConfig.append(appConfig)
-    }
-}
-
-// Exclude resource directories from compilation and add them back in as classpath resources
-
-ideaProject {
-    withXml { provider ->
-		def node = provider.asNode()
-        def compilerConfig = node.component.find { it.'@name' == 'CompilerConfiguration' }
-        def exclude = compilerConfig.appendNode('excludeFromCompile')
-        Collection resourceDirs = groovyProjects().collect { project -> project.sourceSets*.resources*.srcDirs }.flatten()
-        resourceDirs.each {
-            exclude.appendNode('directory', [url: "file://\$PROJECT_DIR\$/${rootProject.relativePath(it)}", includeSubdirectories: true])
-        }
-    }
-}
-
-configure(groovyProjects()) {
-    ideaModule {
-        scopes.RUNTIME.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets.main.resources.srcDirs })))
-        scopes.TEST.plus.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets*.resources*.srcDirs })))
-    }
-    eclipseClasspath {
-        plusConfigurations.add(configurations.detachedConfiguration(new DefaultSelfResolvingDependency(files { sourceSets*.resources*.srcDirs*.findAll { it.isDirectory() }} )))
-        whenConfigured { classpath ->
-            classpath.entries.removeAll { it instanceof org.gradle.plugins.ide.eclipse.model.SourceFolder && it.path.endsWith('/resources') }
-        }
-    }
-}
+apply from: "gradle/idea.gradle"
+apply from: "gradle/eclipse.gradle"
 
 configurations {
     dists
@@ -355,9 +207,6 @@ configurations {
     plugins {
         visible = false
     }
-    coreImpl {
-        visible = false
-    }
     testRuntime {
         extendsFrom runtime
         extendsFrom plugins
@@ -365,9 +214,9 @@ configurations {
 }
 
 dependencies {
-    runtime runtimeProjects()
+    runtime project(':launcher')
     plugins pluginProjects()
-    coreImpl project(':coreImpl')
+    plugins project(':coreImpl')
 }
 
 evaluationDependsOn(':docs')
@@ -377,19 +226,33 @@ clean.dependsOn subprojects.collect { "$it.path:clean" }
 
 task check(overwrite: true, dependsOn: groovyProjects()*.check)
 check.dependsOn ':docs:checkstyleApi'
+configure(groovyProjects()) {
+    check.dependsOn ":docs:checkstyleApi"
+}
+
 task test(overwrite: true, dependsOn: groovyProjects()*.test)
 task uploadArchives(dependsOn: publishedProjects()*.uploadArchives)
 task publishLocalArchives(dependsOn: publishedProjects()*.publishLocalArchives)
 
-zipRootFolder = "$archivesBaseName-${-> version}"
+task aggregateTestReports(type: TestReportAggregator) {
+    testReportDir = reporting.file("tests")
+    testResultsDir = file("${buildDir}/test-results")
+    projects = subprojects
+}
 
-binDistImage = copySpec {
+ext.zipRootFolder = "$archivesBaseName-${-> version}"
+
+ext.binDistImage = copySpec {
     from('src/toplevel') {
+        exclude 'media/**'
         expand(version: version)
     }
-    from project(':docs').distDocs.destFile
+    from('src/toplevel') {
+        include 'media/**'
+    }
+    from project(':docs').outputs.distDocs
     into('bin') {
-        from startScriptsDir
+        from { project(':launcher').startScripts.outputs.files }
         fileMode = 0755
     }
     into('lib') {
@@ -397,33 +260,30 @@ binDistImage = copySpec {
         into('plugins') {
             from configurations.plugins - configurations.runtime
         }
-        into('core-impl') {
-            from configurations.coreImpl - configurations.runtime
-        }
     }
 }
 
-allDistImage = copySpec {
+ext.allDistImage = copySpec {
     with binDistImage
     into('src') {
         from groovyProjects().collect {project -> project.sourceSets.main.allSource }
     }
     into('docs') {
-        from project(':docs').docsDir
+        from project(':docs').outputs.docs
     }
     into('samples') {
-        from project(':docs').samplesDir
+        from project(':docs').outputs.samples
     }
 }
 
-task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
+task allZip(type: Zip) {
     classifier = 'all'
     into(zipRootFolder) {
         with allDistImage
     }
 }
 
-task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
+task binZip(type: Zip) {
     classifier = 'bin'
     into(zipRootFolder) {
         with binDistImage
@@ -446,7 +306,6 @@ task srcZip(type: Zip) {
             include 'gradle/'
             include 'src/'
             include '*.gradle'
-            include 'gradle.properties'
             include 'wrapper/'
             include 'gradlew.bat'
         }
@@ -460,36 +319,28 @@ artifacts {
 }
 
 task intTestImage(type: Sync) {
-    dependsOn allZip.taskDependencies
-    with allDistImage
-    integTestGradleHome = file("$buildDir/integ test")
+    dependsOn "launcher:startScripts"
+    with binDistImage
+    ext.integTestGradleHome = file("$buildDir/integ test")
     into integTestGradleHome
     doLast { task ->
         ant.chmod(dir: "$integTestGradleHome/bin", perm: "ugo+rx", includes: "**/*")
-        WrapperProjectCreator.createProject(new File(integTestGradleHome, 'samples'), binZip.archivePath.parentFile, version.toString())
     }
 }
 
-def isDevBuild() {
-    gradle.taskGraph.hasTask(developerBuild)
+gradle.taskGraph.whenReady {
+    if (([isFinalReleaseBuild(), isNightlyBuild(), isRcBuild()].findAll { it }).size() > 1) {
+        throw new GradleException("This appears to be more than one type of release: final - ${isFinalReleaseBuild()}, rc - ${isRcBuild()}, nightly - ${isNightlyBuild() }")
+    }
 }
 
-def isCIBuild() {
-    gradle.taskGraph.hasTask(ciBuild)
-}
-
-def isCommitBuild() {
-    gradle.taskGraph.hasTask(commitBuild)
-}
-
-def guessMaxForks() {
+def guessMaxForks(project) {
+    if (project.hasProperty("maxParallelForks")) {
+        return Integer.valueOf(project.getProperty("maxParallelForks"))
+    }
     int processors = Runtime.runtime.availableProcessors()
     return Math.max(2, (int) (processors / 2))
 }
-
-task testedDists(dependsOn: [assemble, check, integTests])
-
-task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
 
 task install(type: Install) {
     description = 'Installs the minimal distribution into directory $gradle_installPath'
@@ -507,26 +358,27 @@ task installAll(type: Install) {
     installDirProperyName = 'gradle_installPath'
 }
 
-uploadDists {
-    dependsOn testedDists
-    uploadDescriptor = false
-    doFirst {
-        repositories {
-            ivy {
-                name = 'gradleReleases'
-                artifactPattern "${version.distributionUrl}/[artifact]-[revision](-[classifier]).[ext]"
-                userName = artifactoryUserName
-                password = artifactoryUserPassword
-            }
-        }
-    }
+task testedDists(dependsOn: [check]) {
+    outputs.files configurations.dists.allArtifacts.files
 }
 
 gradle.taskGraph.whenReady {graph ->
-    if (graph.hasTask(uploadDists) || graph.hasTask(uploadArchives)) {
+    if (graph.hasTask(uploadArchives)) {
         // check properties defined and fail early
         artifactoryUserName
         artifactoryUserPassword
+    }
+}
+
+task quickCheck {
+    def i = gradle.startParameter.taskNames.findIndexOf { it ==~ /(?i):?(quickCheck|qC)/ }
+    if (i >= 0) {
+        gradle.startParameter.taskNames.addAll(i, ["doc:checkstyleApi", "codeQuality", "classes", "test"])
+    }
+    doFirst {
+        if (i < 0) {
+            throw new GradleException("Due to the way it is implemented, the 'quickCheck' task has to be invoked directly, and its name can only be abbreviated to 'qC'.")
+        }
     }
 }
 
@@ -546,17 +398,138 @@ task commitBuild {
     dependsOn testedDists
 }
 
+task nightlyVersion
+
+task checkJavaVersion << {
+    assert Jvm.current().isJava7() : "Must use a Java 7 compatible JVM to perform this build. Current JVM is ${Jvm.current()}"
+}
+
+task nightlyBuild {
+    description = 'Nightly build performed by the CI server'
+    dependsOn checkJavaVersion, nightlyVersion, testedDists, "uploadAll"
+}
+
 gradle.taskGraph.whenReady {graph ->
     if (graph.hasTask(ciBuild)) {
-        subprojects { reportsDirName = "$rootProject.reportsDir/${path.replaceFirst(':', '').replaceAll(':', '.')}" }
+        subprojects { reporting.baseDir "$rootProject.reporting.baseDir/${path.replaceFirst(':', '').replaceAll(':', '.')}" }
     }
 }
 
 // A marker task which causes the release version to be used when it is present in the task graph
 task releaseVersion
+//TODO SF - this task name is inconsistent because other releaseXxx tasks actually upload some content somewhere. Should be called something like 'markReleaseVersion'
 
-task tag {
+// A marker task which indicates that we are building an rc of some sort
+task rcVersion
+
+//TODO RG - we depend here on the alphabetical order of dependent task execution. We Should change that to fail early if javaversion is inappropriate
+task rc {
+    description "Builds a release candidate for the next release"
+    dependsOn checkJavaVersion, rcVersion, testedDists, "uploadAll"
+}
+
+task tag(type: Tag)
+
+task testedTag(type: Tag, dependsOn: testedDists)
+
+task releaseArtifacts {
+    description = 'Builds the release artifacts'
+    //TODO SF - this task name is inconsistent because other releaseXxx tasks actually upload some content somewhere. Should be called something like 'buildReleaseArtifacts'
+    group = 'release'
+    dependsOn releaseVersion, assemble
+}
+
+//TODO RG - we depend here on the alphabetical order of dependent task execution. We Should change that to fail early if javaversion is inappropriate
+task release {
+    description = 'Builds, tests and uploads the release artifacts'
+    group = 'release'
+    dependsOn releaseVersion, checkJavaVersion, testedTag, releaseArtifacts, testedDists, 'uploadAll'
     doLast {
+        releases.incrementNextVersion()
+    }
+}
+
+task incrementNextVersion << {
+    releases.incrementNextVersion()
+}
+
+task uploadAll {
+    description = 'Uploads binaries, sources and documentation. Does not upload the website! Useful when release procedure breaks at upload and only upload tasks should executed again'
+    dependsOn uploadArchives, "website:uploadDistributions", "website:uploadDocs", "website:pushReleasesXml"
+}
+
+def wrapperUpdateTask = { name, label ->
+    task "${name}Wrapper"(type: Wrapper) {
+        doFirst {
+            def version = new groovy.json.JsonSlurper().parseText(new URL("http://services.gradle.org/versions/$label").text)
+            if (version.empty) {
+                throw new GradleException("Cannot update wrapper to '${label}' version as there is currently no version of that label")
+            }
+            println "updating wrapper to $label version: $version.version (downloadUrl: $version.downloadUrl)"
+            distributionUrl version.downloadUrl
+        }
+        doLast {
+            def jvmOpts = "-Xmx1024m -XX:MaxPermSize=256m -Dfile.encoding=UTF-8"
+            inputs.property("jvmOpts", jvmOpts)
+            def optsEnvVar = "DEFAULT_JVM_OPTS"
+            scriptFile.write scriptFile.text.replace("$optsEnvVar=\"\"", "$optsEnvVar=\"$jvmOpts\"")
+            batchScript.write batchScript.text.replace("set $optsEnvVar=", "set $optsEnvVar=$jvmOpts")
+        }
+    }
+}
+
+wrapperUpdateTask("nightly", "nightly")
+wrapperUpdateTask("rc", "release-candidate")
+wrapperUpdateTask("current", "current")
+
+def groovyProjects() {
+    subprojects.findAll { !(it.name in ["docs", "website"]) }
+}
+
+def publishedProjects() {
+    [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices')]
+}
+
+def pluginProjects() {
+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear'].collect {
+        project(it)
+    }
+}
+
+class TestReportAggregator extends Copy {
+    def projects
+
+    File testResultsDir
+
+    @OutputDirectory
+    File testReportDir
+
+    def TestReportAggregator() {
+        dependsOn { testTasks }
+        from { inputTestResultDirs }
+        into { testResultsDir }
+    }
+
+    @TaskAction
+    def aggregate() {
+        def report = new org.gradle.api.internal.tasks.testing.junit.report.DefaultTestReport(testReportDir: testReportDir, testResultsDir: testResultsDir)
+        report.generateReport()
+    }
+
+    def getTestTasks() {
+        projects.collect { it.tasks.withType(Test) }.flatten()
+    }
+
+    def getInputTestResultDirs() {
+        testTasks*.testResultsDir
+    }
+
+}
+
+class Tag extends DefaultTask {
+    @TaskAction
+    def tagNow() {
+        def version = project.version
         def git = new Git(project)
         git.checkNoModifications()
         git.tag("REL_$version", "Release $version")
@@ -564,50 +537,4 @@ task tag {
     }
 }
 
-task releaseArtifacts {
-    description = 'Builds the release artifacts'
-    group = 'release'
-    dependsOn releaseVersion, assemble, ':docs:websiteDocs'
-}
-
-task release {
-    description = 'Builds, tests and uploads the release artifacts'
-    group = 'release'
-    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '1.0-milestone-2'
-}
-
-def groovyProjects() {
-    subprojects.findAll { project -> project.name != 'docs' }
-}
-
-def publishedProjects() {
-    return [project(':core'), project(':toolingApi'), project(':wrapper')]
-}
-
-def runtimeProjects() {
-    groovyProjects() - pluginProjects() - [project(':integTest'), project(':coreImpl')]
-}
-
-def pluginProjects() {
-    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
-        project(it)
-    }
-}
-
-switch (System.getProperty("user.name")) {
-    case "pniederw":
-        allprojects {
-            tasks.withType(Test) {
-                maxParallelForks = 1
-                forkEvery = 0
-            }
-        }
-        break
-    default:
-        break
-}
 

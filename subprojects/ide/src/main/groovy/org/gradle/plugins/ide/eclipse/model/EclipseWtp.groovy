@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2011 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +19,14 @@ package org.gradle.plugins.ide.eclipse.model
 import org.gradle.util.ConfigureUtil
 
 /**
- * Dsl-friendly model of the eclipse wtp information
+ * Enables fine-tuning wtp/wst details of the Eclipse plugin
  * <p>
- * Example of use with a blend of all possible properties.
- * Bear in mind that usually you don't have configure them directly because Gradle configures it for free!
+ * More interesting examples you will find in docs for {@link EclipseWtpComponent} and {@link EclipseWtpFacet}
  *
  * <pre autoTested=''>
  * apply plugin: 'java'
  * apply plugin: 'war'
- * apply plugin: 'eclipse'
- *
- * configurations {
- *   someInterestingConfiguration
- *   anotherConfiguration
- * }
+ * apply plugin: 'eclipse-wtp'
  *
  * eclipse {
  *
@@ -41,31 +35,11 @@ import org.gradle.util.ConfigureUtil
  *
  *   wtp {
  *     component {
- *       //you can configure the context path:
- *       contextPath = 'someContextPath'
- *
- *       //you can configure the deployName:
- *       deployName = 'killerApp'
- *
- *       //you can alter the wb-resource elements. sourceDirs is a ConvenienceProperty.
- *       sourceDirs += file('someExtraFolder')
- *
- *       //you can alter the files are to be transformed into dependent-module elements:
- *       plusConfigurations += configurations.someInterestingConfiguration
- *
- *       //or whose files are to be excluded from dependent-module elements:
- *       minusConfigurations += configurations.anotherConfiguration
- *
- *       //you can add a wb-resource elements; mandatory keys: 'sourcePath', 'deployPath':
- *       resource sourcePath: 'extra/resource', deployPath: 'deployment/resource'
- *
- *       //you can add a wb-property elements; mandatory keys: 'name', 'value':
- *       property name: 'moodOfTheDay', value: ':-D'
+ *       //for examples see docs for {@link EclipseWtpComponent}
  *     }
  *
  *     facet {
- *       //you can add some extra wtp facets; mandatory keys: 'name', 'version':
- *       facet name: 'someCoolFacet', version: '1.3'
+ *       //for examples see docs for {@link EclipseWtpFacet}
  *     }
  *   }
  * }
@@ -76,13 +50,24 @@ import org.gradle.util.ConfigureUtil
  */
 class EclipseWtp {
 
+    /**
+     * Configures wtp component.
+     * <p>
+     * For examples see docs for {@link EclipseWtpComponent}
+     */
     EclipseWtpComponent component
+
+    /**
+     * Configures wtp facet.
+     * <p>
+     * For examples see docs for {@link EclipseWtpFacet}
+     */
     EclipseWtpFacet facet
 
     /**
      * Configures wtp component.
      * <p>
-     * For examples see docs for {@link EclipseWtp}
+     * For examples see docs for {@link EclipseWtpComponent}
      *
      * @param action
      */
@@ -93,11 +78,26 @@ class EclipseWtp {
     /**
      * Configures wtp facet.
      * <p>
-     * For examples see docs for {@link EclipseWtp}
+     * For examples see docs for {@link EclipseWtpFacet}
      *
      * @param action
      */
     void facet(Closure action) {
         ConfigureUtil.configure(action, facet)
     }
+
+    /**
+     * Deprecated. EclipseWtp needs access to EclipseClasspath. Please use the other constructor.
+     */
+    @Deprecated
+    public EclipseWtp() {}
+
+    /**
+     * @param eclipseClasspath - wtp needs access to classpath
+     */
+    public EclipseWtp(EclipseClasspath eclipseClasspath) {
+        this.eclipseClasspath = eclipseClasspath
+    }
+
+    private EclipseClasspath eclipseClasspath
 }

@@ -17,30 +17,32 @@
 package org.gradle.logging;
 
 import org.gradle.StartParameter;
-import org.gradle.api.internal.Factory;
-import org.gradle.api.internal.project.DefaultServiceRegistry;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.specs.Specs;
-import org.gradle.initialization.CommandLineConverter;
+import org.gradle.cli.CommandLineConverter;
+import org.gradle.internal.Factory;
+import org.gradle.internal.nativeplatform.NoOpTerminalDetector;
+import org.gradle.internal.nativeplatform.TerminalDetector;
+import org.gradle.internal.nativeplatform.jna.JnaBootPathConfigurer;
+import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.logging.internal.*;
+import org.gradle.logging.internal.slf4j.Slf4jLoggingConfigurer;
 import org.gradle.util.TimeProvider;
 import org.gradle.util.TrueTimeProvider;
 
-import java.io.FileDescriptor;
-
 /**
- * A {@link org.gradle.api.internal.project.ServiceRegistry} implementation which provides the logging services.
+ * A {@link org.gradle.internal.service.ServiceRegistry} implementation which provides the logging services.
  */
 public class LoggingServiceRegistry extends DefaultServiceRegistry {
     private TextStreamOutputEventListener stdoutListener;
     private final boolean detectConsole;
+    private final boolean isEmbedded;
 
     LoggingServiceRegistry() {
-        this(true);
+        this(true, false);
     }
 
-    LoggingServiceRegistry(boolean detectConsole) {
+    LoggingServiceRegistry(boolean detectConsole, boolean isEmbedded) {
         this.detectConsole = detectConsole;
+        this.isEmbedded = isEmbedded;
         stdoutListener = new TextStreamOutputEventListener(get(OutputEventListener.class));
     }
 
@@ -48,21 +50,21 @@ public class LoggingServiceRegistry extends DefaultServiceRegistry {
      * Creates a set of logging services which are suitable to use in a command-line process.
      */
     public static LoggingServiceRegistry newCommandLineProcessLogging() {
-        return new LoggingServiceRegistry(true);
+        return new LoggingServiceRegistry(true, false);
     }
 
     /**
      * Creates a set of logging services which are suitable to use in a child process. Does not attempt to use any terminal trickery.
      */
     public static LoggingServiceRegistry newChildProcessLogging() {
-        return new LoggingServiceRegistry(false);
+        return new LoggingServiceRegistry(false, false);
     }
 
     /**
      * Creates a set of logging services which are suitable to use embedded in another application. Does not attempt to use any terminal trickery.
      */
     public static LoggingServiceRegistry newEmbeddableLogging() {
-        return new LoggingServiceRegistry(false);
+        return new LoggingServiceRegistry(false, true);
     }
 
     protected CommandLineConverter<LoggingConfiguration> createCommandLineConverter() {
@@ -72,9 +74,12 @@ public class LoggingServiceRegistry extends DefaultServiceRegistry {
     protected TimeProvider createTimeProvider() {
         return new TrueTimeProvider();
     }
-    
+
     protected StdOutLoggingSystem createStdOutLoggingSystem() {
-        return new StdOutLoggingSystem(stdoutListener, get(TimeProvider.class));
+        if (isEmbedded) {
+            return new NoOpLoggingSystem();
+        }
+        return new DefaultStdOutLoggingSystem(stdoutListener, get(TimeProvider.class));
     }
 
     protected StyledTextOutputFactory createStyledTextOutputFactory() {
@@ -82,18 +87,28 @@ public class LoggingServiceRegistry extends DefaultServiceRegistry {
     }
 
     protected StdErrLoggingSystem createStdErrLoggingSystem() {
-        return new StdErrLoggingSystem(new TextStreamOutputEventListener(get(OutputEventListener.class)), get(TimeProvider.class));
+        if (isEmbedded) {
+            return new NoOpLoggingSystem();
+        }
+        TextStreamOutputEventListener listener = new TextStreamOutputEventListener(get(OutputEventListener.class));
+        return new DefaultStdErrLoggingSystem(listener, get(TimeProvider.class));
     }
 
     protected ProgressLoggerFactory createProgressLoggerFactory() {
         return new DefaultProgressLoggerFactory(new ProgressLoggingBridge(get(OutputEventListener.class)), get(TimeProvider.class));
     }
-    
+
     protected Factory<LoggingManagerInternal> createLoggingManagerFactory() {
         OutputEventRenderer renderer = get(OutputEventRenderer.class);
-        Slf4jLoggingConfigurer slf4jConfigurer = new Slf4jLoggingConfigurer(renderer);
-        LoggingConfigurer compositeConfigurer = new DefaultLoggingConfigurer(renderer, slf4jConfigurer, new JavaUtilLoggingConfigurer());
-        return new DefaultLoggingManagerFactory(compositeConfigurer, renderer, getStdOutLoggingSystem(), getStdErrLoggingSystem());
+        if (!isEmbedded) {
+            //we want to reset and manipulate java logging only if we own the process, e.g. we're *not* embedded
+            DefaultLoggingConfigurer compositeConfigurer = new DefaultLoggingConfigurer(renderer);
+            compositeConfigurer.add(new Slf4jLoggingConfigurer(renderer));
+            compositeConfigurer.add(new JavaUtilLoggingConfigurer());
+            return new DefaultLoggingManagerFactory(compositeConfigurer, renderer, getStdOutLoggingSystem(), getStdErrLoggingSystem());
+        } else {
+            return new EmbeddedLoggingManagerFactory(renderer);
+        }
     }
 
     private LoggingSystem getStdErrLoggingSystem() {
@@ -105,11 +120,13 @@ public class LoggingServiceRegistry extends DefaultServiceRegistry {
     }
 
     protected OutputEventRenderer createOutputEventRenderer() {
-        Spec<FileDescriptor> terminalDetector;
+        TerminalDetector terminalDetector;
         if (detectConsole) {
-            terminalDetector = new TerminalDetector(StartParameter.DEFAULT_GRADLE_USER_HOME);
+            StartParameter startParameter = new StartParameter();
+            JnaBootPathConfigurer jnaConfigurer = new JnaBootPathConfigurer(startParameter.getGradleUserHomeDir());
+            terminalDetector = new TerminalDetectorFactory().create(jnaConfigurer);
         } else {
-            terminalDetector = Specs.satisfyNone();
+            terminalDetector = new NoOpTerminalDetector();
         }
         return new OutputEventRenderer(terminalDetector).addStandardOutputAndError();
     }

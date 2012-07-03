@@ -15,32 +15,33 @@
  */
 package org.gradle.util;
 
-public class DistributionLocator {
-    private static final String ARTIFACTORY_RELEASE_REPOSITORY = "http://repo.gradle.org/gradle/distributions";
-    private static final String ARTIFACTORY_SNAPSHOT_REPOSITORY = "http://repo.gradle.org/gradle/distributions/gradle-snapshots";
-    private static final String CODEHAUS_RELEASE_REPOSITORY = "http://dist.codehaus.org/gradle";
-    private static final String CODEHAUS_SNAPSHOT_REPOSITORY = "http://snapshots.dist.codehaus.org/gradle";
+import org.gradle.internal.UncheckedException;
 
-    public String getDistributionFor(GradleVersion version) {
+import java.net.URI;
+import java.net.URISyntaxException;
+
+public class DistributionLocator {
+    private static final String RELEASE_REPOSITORY = "http://services.gradle.org/distributions";
+    private static final String SNAPSHOT_REPOSITORY = "http://services.gradle.org/distributions-snapshots";
+
+    public URI getDistributionFor(GradleVersion version) {
         return getDistribution(getDistributionRepository(version), version, "gradle", "bin");
     }
 
-    public String getDistributionRepository(GradleVersion version) {
-        if (version.compareTo(GradleVersion.version("0.9")) >= 0) {
-            if (version.isSnapshot()) {
-                return ARTIFACTORY_SNAPSHOT_REPOSITORY;
-            }
-            return ARTIFACTORY_RELEASE_REPOSITORY;
+    private String getDistributionRepository(GradleVersion version) {
+        if (version.isSnapshot()) {
+            return SNAPSHOT_REPOSITORY;
         } else {
-            if (version.isSnapshot()) {
-                return CODEHAUS_SNAPSHOT_REPOSITORY;
-            }
-            return CODEHAUS_RELEASE_REPOSITORY;
+            return RELEASE_REPOSITORY;
         }
     }
 
-    public String getDistribution(String repositoryUrl, GradleVersion version, String archiveName,
-                                  String archiveClassifier) {
-        return String.format("%s/%s-%s-%s.zip", repositoryUrl, archiveName, version.getVersion(), archiveClassifier);
+    private URI getDistribution(String repositoryUrl, GradleVersion version, String archiveName,
+                                   String archiveClassifier) {
+        try {
+            return new URI(String.format("%s/%s-%s-%s.zip", repositoryUrl, archiveName, version.getVersion(), archiveClassifier));
+        } catch (URISyntaxException e) {
+            throw UncheckedException.throwAsUncheckedException(e);
+        }
     }
 }

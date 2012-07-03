@@ -28,20 +28,29 @@ class DefaultSourceSetTest {
     private final FileResolver fileResolver = [resolve: {it as File}] as FileResolver
     private final TaskResolver taskResolver = [resolveTask: {name -> [getName: {name}] as Task}] as TaskResolver
 
+    private DefaultSourceSet sourceSet(String name) {
+        def s = new DefaultSourceSet(name, fileResolver)
+        s.classes = new DefaultSourceSetOutput(s.displayName, fileResolver, taskResolver)
+        return s
+    }
+
     @Test
     public void hasUsefulDisplayName() {
-        SourceSet sourceSet = new DefaultSourceSet('int-test', fileResolver, taskResolver)
+        SourceSet sourceSet = sourceSet('int-test')
         assertThat(sourceSet.toString(), equalTo('source set int test'));
     }
 
     @Test public void defaultValues() {
-        SourceSet sourceSet = new DefaultSourceSet('set-name', fileResolver, taskResolver)
+        SourceSet sourceSet = sourceSet('set-name')
 
-        assertThat(sourceSet.classesDir, nullValue())
-        assertThat(sourceSet.classes.files, isEmpty())
-        assertThat(sourceSet.classes.displayName, equalTo('set name classes'))
-        assertThat(sourceSet.classes.toString(), equalTo('set name classes'))
-        assertThat(sourceSet.classes.buildDependencies.getDependencies(null), isEmpty())
+        assertThat(sourceSet.output.classesDir, nullValue())
+        assertThat(sourceSet.output.files, isEmpty())
+        assertThat(sourceSet.output.displayName, equalTo('set name output'))
+        assertThat(sourceSet.output.toString(), equalTo('set name output'))
+        assertThat(sourceSet.output.buildDependencies.getDependencies(null), isEmpty())
+
+        assertThat(sourceSet.output.classesDir, nullValue())
+        assertThat(sourceSet.output.resourcesDir, nullValue())
 
         assertThat(sourceSet.compileClasspath, nullValue())
 
@@ -78,8 +87,8 @@ class DefaultSourceSetTest {
         assertThat(sourceSet.allSource.source, hasItem(sourceSet.java))
     }
 
-    @Test public void constructsTaskNamesUsingSourceSetName() {
-        SourceSet sourceSet = new DefaultSourceSet('set-name', fileResolver, taskResolver)
+    @Test public void constructsNamesUsingSourceSetName() {
+        SourceSet sourceSet = sourceSet('set-name')
 
         assertThat(sourceSet.classesTaskName, equalTo('setNameClasses'))
         assertThat(sourceSet.getCompileTaskName('java'), equalTo('compileSetNameJava'))
@@ -88,10 +97,12 @@ class DefaultSourceSetTest {
         assertThat(sourceSet.getTaskName('build', null), equalTo('buildSetName'))
         assertThat(sourceSet.getTaskName(null, 'jar'), equalTo('setNameJar'))
         assertThat(sourceSet.getTaskName('build', 'jar'), equalTo('buildSetNameJar'))
+        assertThat(sourceSet.compileConfigurationName, equalTo("setNameCompile"))
+        assertThat(sourceSet.runtimeConfigurationName, equalTo("setNameRuntime"))
     }
 
-    @Test public void mainSourceSetUsesSpecialCaseTaskNames() {
-        SourceSet sourceSet = new DefaultSourceSet('main', fileResolver, taskResolver)
+    @Test public void mainSourceSetUsesSpecialCaseNames() {
+        SourceSet sourceSet = sourceSet('main')
 
         assertThat(sourceSet.classesTaskName, equalTo('classes'))
         assertThat(sourceSet.getCompileTaskName('java'), equalTo('compileJava'))
@@ -100,38 +111,40 @@ class DefaultSourceSetTest {
         assertThat(sourceSet.getTaskName('build', null), equalTo('buildMain'))
         assertThat(sourceSet.getTaskName(null, 'jar'), equalTo('jar'))
         assertThat(sourceSet.getTaskName('build', 'jar'), equalTo('buildJar'))
+        assertThat(sourceSet.compileConfigurationName, equalTo("compile"))
+        assertThat(sourceSet.runtimeConfigurationName, equalTo("runtime"))
     }
 
     @Test public void canConfigureResources() {
-        SourceSet sourceSet = new DefaultSourceSet('main', fileResolver, taskResolver)
+        SourceSet sourceSet = sourceSet('main')
         sourceSet.resources { srcDir 'src/resources' }
         assertThat(sourceSet.resources.srcDirs, equalTo([new File('src/resources').canonicalFile] as Set))
     }
     
     @Test public void canConfigureJavaSource() {
-        SourceSet sourceSet = new DefaultSourceSet('main', fileResolver, taskResolver)
+        SourceSet sourceSet = sourceSet('main')
         sourceSet.java { srcDir 'src/java' }
         assertThat(sourceSet.java.srcDirs, equalTo([new File('src/java').canonicalFile] as Set))
     }
 
     @Test
     public void classesCollectionTracksChangesToClassesDir() {
-        SourceSet sourceSet = new DefaultSourceSet('set-name', fileResolver, taskResolver)
-        assertThat(sourceSet.classes.files, isEmpty())
+        SourceSet sourceSet = sourceSet('set-name')
+        assertThat(sourceSet.output.files, isEmpty())
 
-        sourceSet.classesDir = new File('classes')
-        assertThat(sourceSet.classes.files, equalTo([new File('classes')] as Set))
-        sourceSet.classesDir = new File('other-classes')
-        assertThat(sourceSet.classes.files, equalTo([new File('other-classes')] as Set))
+        sourceSet.output.classesDir = new File('classes')
+        assertThat(sourceSet.output.files, equalTo([new File('classes')] as Set))
+        sourceSet.output.classesDir = new File('other-classes')
+        assertThat(sourceSet.output.files, equalTo([new File('other-classes')] as Set))
     }
 
     @Test
     public void classesCollectionDependenciesTrackChangesToCompileTasks() {
-        SourceSet sourceSet = new DefaultSourceSet('set-name', fileResolver, taskResolver)
-        assertThat(sourceSet.classes.buildDependencies.getDependencies(null), isEmpty())
+        SourceSet sourceSet = sourceSet('set-name')
+        assertThat(sourceSet.output.buildDependencies.getDependencies(null), isEmpty())
 
-        sourceSet.classesDir = new File('classes')
+        sourceSet.output.classesDir = new File('classes')
         sourceSet.compiledBy('a', 'b')
-        assertThat(sourceSet.classes.buildDependencies.getDependencies(null)*.name as Set, equalTo(['a', 'b'] as Set))
+        assertThat(sourceSet.output.buildDependencies.getDependencies(null)*.name as Set, equalTo(['a', 'b'] as Set))
     }
 }

@@ -15,17 +15,18 @@
  */
 package org.gradle.api.internal.project;
 
-import org.gradle.api.Project;
 import org.gradle.api.internal.GradleInternal;
 import org.gradle.api.internal.artifacts.dsl.dependencies.ProjectFinder;
-import org.gradle.api.internal.artifacts.ivyservice.moduleconverter.PublishModuleDescriptorConverter;
-import org.gradle.api.internal.artifacts.repositories.DefaultInternalRepository;
-import org.gradle.api.internal.artifacts.repositories.InternalRepository;
+import org.gradle.api.internal.changedetection.TaskArtifactStateCacheAccess;
+import org.gradle.api.internal.changedetection.TaskCacheLockHandlingBuildExecuter;
 import org.gradle.api.internal.plugins.DefaultPluginRegistry;
 import org.gradle.api.internal.plugins.PluginRegistry;
-import org.gradle.execution.DefaultTaskGraphExecuter;
-import org.gradle.execution.TaskGraphExecuter;
+import org.gradle.internal.service.DefaultServiceRegistry;
+import org.gradle.execution.*;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.listener.ListenerManager;
+
+import static java.util.Arrays.asList;
 
 /**
  * Contains the services for a given {@link GradleInternal} instance.
@@ -36,11 +37,22 @@ public class GradleInternalServiceRegistry extends DefaultServiceRegistry implem
     public GradleInternalServiceRegistry(ServiceRegistry parent, final GradleInternal gradle) {
         super(parent);
         this.gradle = gradle;
+        add(new TaskExecutionServices(parent, gradle));
+    }
+
+    protected BuildExecuter createBuildExecuter() {
+        return new DefaultBuildExecuter(
+                asList(new DefaultTasksBuildExecutionAction(),
+                        new ExcludedTaskFilteringBuildConfigurationAction(),
+                        new TaskNameResolvingBuildConfigurationAction()),
+                asList(new DryRunBuildExecutionAction(),
+                        new TaskCacheLockHandlingBuildExecuter(get(TaskArtifactStateCacheAccess.class)),
+                        new SelectedTaskExecutionAction()));
     }
 
     protected ProjectFinder createProjectFinder() {
         return new ProjectFinder() {
-            public Project getProject(String path) {
+            public ProjectInternal getProject(String path) {
                 return gradle.getRootProject().project(path);
             }
         };
@@ -56,10 +68,6 @@ public class GradleInternalServiceRegistry extends DefaultServiceRegistry implem
 
     protected PluginRegistry createPluginRegistry() {
         return new DefaultPluginRegistry(gradle.getScriptClassLoader());
-    }
-
-    protected InternalRepository createInternalRepository() {
-        return new DefaultInternalRepository(gradle, get(PublishModuleDescriptorConverter.class));
     }
 
     public ServiceRegistryFactory createFor(Object domainObject) {

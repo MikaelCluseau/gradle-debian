@@ -17,11 +17,10 @@ package org.gradle.integtests.openapi;
 
 import org.gradle.integtests.fixtures.GradleDistribution;
 import org.gradle.integtests.fixtures.RuleHelper;
-import org.gradle.openapi.external.ui.CommandLineArgumentAlteringListenerVersion1;
+import org.gradle.internal.UncheckedException;
 import org.gradle.openapi.external.ui.DualPaneUIVersion1;
 import org.gradle.openapi.external.ui.SinglePaneUIVersion1;
 import org.gradle.openapi.external.ui.UIFactory;
-import org.gradle.util.UncheckedException;
 import org.junit.Assert;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
@@ -29,7 +28,6 @@ import org.junit.runners.model.Statement;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,7 +61,7 @@ public class OpenApiFixture implements MethodRule {
         try {
             singlePane = UIFactory.createSinglePaneUI(getClass().getClassLoader(), dist.getGradleHomeDir(), testSingleDualPaneUIInteractionVersion1, false);
         } catch (Exception e) {
-            throw UncheckedException.asUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         }
 
         //make sure we got something
@@ -81,7 +79,7 @@ public class OpenApiFixture implements MethodRule {
         try {
             dualPane = UIFactory.createDualPaneUI(getClass().getClassLoader(), dist.getGradleHomeDir(), testSingleDualPaneUIInteractionVersion1, false);
         } catch (Exception e) {
-            throw UncheckedException.asUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         }
 
         //make sure we got something
@@ -122,7 +120,7 @@ public class OpenApiFixture implements MethodRule {
                 }
             });
         } catch (Exception e) {
-            throw UncheckedException.asUncheckedException(e);
+            throw UncheckedException.throwAsUncheckedException(e);
         }
     }
 
@@ -149,15 +147,4 @@ public class OpenApiFixture implements MethodRule {
         return frame;
     }
 
-    private static class ExtraTestCommandLineOptionsListener implements CommandLineArgumentAlteringListenerVersion1 {
-        private final File gradleUserHomeDir;
-
-        public ExtraTestCommandLineOptionsListener(File gradleUserHomeDir) {
-            this.gradleUserHomeDir = gradleUserHomeDir;
-        }
-
-        public String getAdditionalCommandLineArguments(String commandLineArguments) {
-            return String.format("--no-search-upward --gradle-user-home \'%s\'", gradleUserHomeDir);
-        }
-    }
 }

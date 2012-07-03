@@ -15,19 +15,16 @@
  */
 package org.gradle.api.internal.changedetection;
 
-import org.gradle.cache.CacheRepository;
 import org.gradle.cache.PersistentIndexedCache;
 
 public class CacheBackedFileSnapshotRepository implements FileSnapshotRepository {
-    private final CacheRepository repository;
-    private PersistentIndexedCache<Object, Object> cache;
+    private final PersistentIndexedCache<Object, Object> cache;
 
-    public CacheBackedFileSnapshotRepository(CacheRepository repository) {
-        this.repository = repository;
+    public CacheBackedFileSnapshotRepository(TaskArtifactStateCacheAccess cacheAccess) {
+        cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class);
     }
 
     public Long add(FileCollectionSnapshot snapshot) {
-        open();
         Long id = (Long) cache.get("nextId");
         if (id == null) {
             id = 1L;
@@ -38,18 +35,10 @@ public class CacheBackedFileSnapshotRepository implements FileSnapshotRepository
     }
 
     public FileCollectionSnapshot get(Long id) {
-        open();
         return (FileCollectionSnapshot) cache.get(id);
     }
 
     public void remove(Long id) {
-        open();
         cache.remove(id);
-    }
-
-    private void open() {
-        if (cache == null) {
-            cache = repository.cache("fileSnapshots").open().openIndexedCache();
-        }
     }
 }

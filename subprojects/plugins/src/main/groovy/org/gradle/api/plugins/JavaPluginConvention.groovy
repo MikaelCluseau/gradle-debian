@@ -17,11 +17,14 @@ package org.gradle.api.plugins
 
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
-import org.gradle.api.internal.ClassGenerator
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.internal.Instantiator
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.internal.tasks.DefaultSourceSetContainer
 import org.gradle.api.java.archives.Manifest
 import org.gradle.api.java.archives.internal.DefaultManifest
+import org.gradle.api.reporting.ReportingExtension
+import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.util.ConfigureUtil
 
@@ -59,6 +62,12 @@ class JavaPluginConvention {
     private JavaVersion srcCompat
     private JavaVersion targetCompat
 
+    /**
+     * Deprecated. Please use jar.metaInf instead. The property didn't add much value over the jar's setting
+     * and Gradle offers convenient ways of configuring all tasks of given type should someone needed.
+     * <p>
+     * The lines of metaInf file that will be configured by default to every jar task.
+     */
     @Deprecated
     List metaInf
 
@@ -67,8 +76,8 @@ class JavaPluginConvention {
 
     JavaPluginConvention(Project project) {
         this.project = project
-        def classGenerator = project.services.get(ClassGenerator)
-        sourceSets = classGenerator.newInstance(DefaultSourceSetContainer.class, project.fileResolver, project.tasks, classGenerator)
+        def instantiator = project.services.get(Instantiator)
+        sourceSets = instantiator.newInstance(DefaultSourceSetContainer.class, project.fileResolver, project.tasks, instantiator)
         dependencyCacheDirName = 'dependency-cache'
         docsDirName = 'docs'
         testResultsDirName = 'test-results'
@@ -82,6 +91,21 @@ class JavaPluginConvention {
      *
      * <p>The given closure is executed to configure the {@link SourceSetContainer}. The {@link SourceSetContainer}
      * is passed to the closure as its delegate.
+     * <p>
+     * See the example below how {@link SourceSet} 'main' is accessed and how the {@link SourceDirectorySet} 'java'
+     * is configured to exclude some package from compilation.
+     *
+     * <pre autoTested=''>
+     * apply plugin: 'java'
+     *
+     * sourceSets {
+     *   main {
+     *     java {
+     *       exclude 'some/unwanted/package/**'
+     *     }
+     *   }
+     * }
+     * </pre>
      *
      * @param closure The closure to execute.
      */
@@ -115,14 +139,14 @@ class JavaPluginConvention {
     }
 
     private File getReportsDir() {
-        project.convention.plugins.reportingBase.reportsDir
+        project.extensions.getByType(ReportingExtension).baseDir
     }
 
     /**
      * Returns the source compatibility used for compiling Java sources.
      */
     JavaVersion getSourceCompatibility() {
-        srcCompat ?: JavaVersion.VERSION_1_5
+        srcCompat ?: JavaVersion.current()
     }
 
     /**
@@ -164,6 +188,6 @@ class JavaPluginConvention {
      * @param closure The closure to use to configure the manifest.
      */
     public Manifest manifest(Closure closure) {
-        return ConfigureUtil.configure(closure, new DefaultManifest(((ProjectInternal) getProject()).fileResolver));
+        return ConfigureUtil.configure(closure, new DefaultManifest((getProject()).fileResolver));
     }
 }

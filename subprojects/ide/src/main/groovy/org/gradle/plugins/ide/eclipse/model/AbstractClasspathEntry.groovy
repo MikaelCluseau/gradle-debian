@@ -23,11 +23,13 @@ import org.gradle.plugins.ide.eclipse.model.internal.PathUtil
 // TODO: consider entryAttributes in equals, hashCode, and toString
 abstract class AbstractClasspathEntry implements ClasspathEntry {
     private static final String NATIVE_LIBRARY_ATTRIBUTE = 'org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY'
+    public static final String COMPONENT_NON_DEPENDENCY_ATTRIBUTE = 'org.eclipse.jst.component.nondependency'
+    public static final String COMPONENT_DEPENDENCY_ATTRIBUTE = 'org.eclipse.jst.component.dependency'
 
     String path
     boolean exported
-    final Set<AccessRule> accessRules
-    final Map entryAttributes
+    Set<AccessRule> accessRules
+    final Map<String, Object> entryAttributes
 
     AbstractClasspathEntry(Node node) {
         path = normalizePath(node.@path)
@@ -37,13 +39,12 @@ abstract class AbstractClasspathEntry implements ClasspathEntry {
         assert path != null && accessRules != null
     }
 
-    AbstractClasspathEntry(String path, boolean exported, String nativeLibraryLocation, Set accessRules) {
-        assert path != null && accessRules != null
+    AbstractClasspathEntry(String path) {
+        assert path != null
         this.path = normalizePath(path);
-        this.exported = exported
-        this.accessRules = accessRules
+        this.exported = false
+        this.accessRules = [] as Set
         entryAttributes = [:]
-        this.nativeLibraryLocation = nativeLibraryLocation
     }
 
     String getNativeLibraryLocation() {
@@ -58,7 +59,7 @@ abstract class AbstractClasspathEntry implements ClasspathEntry {
         addClasspathEntry(node, [:])
     }
 
-    protected Node addClasspathEntry(Node node, Map attributes) {
+    protected Node addClasspathEntry(Node node, Map<String, ?> attributes) {
         def allAttributes = attributes.findAll { it.value } + [kind: getKind(), path: path]
         if (exported && !(this instanceof SourceFolder)) {
             allAttributes.exported = true
@@ -103,8 +104,15 @@ abstract class AbstractClasspathEntry implements ClasspathEntry {
     }
 
     void writeEntryAttributes(Node node) {
-        def effectiveEntryAttrs = entryAttributes.findAll { it.value }
+        def effectiveEntryAttrs = entryAttributes.findAll { it.value || it.key == COMPONENT_NON_DEPENDENCY_ATTRIBUTE }
         if (!effectiveEntryAttrs) { return }
+
+        if (effectiveEntryAttrs.containsKey(COMPONENT_DEPENDENCY_ATTRIBUTE)
+                && effectiveEntryAttrs.containsKey(COMPONENT_NON_DEPENDENCY_ATTRIBUTE)) {
+            //For conflicting component dependency entries, the non-dependency loses
+            //because it is our default and it means the user has configured something else.
+            effectiveEntryAttrs.remove(COMPONENT_NON_DEPENDENCY_ATTRIBUTE)
+        }
 
         Node attributesNode = node.children().find { it.name()  == 'attributes' } ?: node.appendNode('attributes')
         effectiveEntryAttrs.each { key, value ->

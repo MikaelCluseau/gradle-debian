@@ -17,9 +17,10 @@
 package org.gradle.process.internal;
 
 import org.gradle.api.internal.ClassPathRegistry;
-import org.gradle.api.internal.Factory;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.logging.LogLevel;
+import org.gradle.internal.Factory;
+import org.gradle.messaging.remote.Address;
 import org.gradle.messaging.remote.MessagingServer;
 import org.gradle.process.internal.child.ApplicationClassesInIsolatedClassLoaderWorkerFactory;
 import org.gradle.process.internal.child.ApplicationClassesInSystemClassLoaderWorkerFactory;
@@ -32,10 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.net.URI;
 import java.net.URL;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 public class DefaultWorkerProcessFactory implements Factory<WorkerProcessBuilder> {
@@ -73,8 +72,8 @@ public class DefaultWorkerProcessFactory implements Factory<WorkerProcessBuilder
                 throw new IllegalStateException("No worker action specified for this worker process.");
             }
 
-            final DefaultWorkerProcess workerProcess = new DefaultWorkerProcess(120, TimeUnit.SECONDS);
-            URI localAddress = server.accept(workerProcess.getConnectAction());
+            DefaultWorkerProcess workerProcess = new DefaultWorkerProcess(120, TimeUnit.SECONDS);
+            Address localAddress = server.accept(workerProcess.getConnectAction());
 
             // Build configuration for GradleWorkerMain
             List<URL> implementationClassPath = ClasspathUtil.getClasspath(getWorker().getClass().getClassLoader());
@@ -89,22 +88,25 @@ public class DefaultWorkerProcessFactory implements Factory<WorkerProcessBuilder
                 workerFactory = new ApplicationClassesInIsolatedClassLoaderWorkerFactory(id, displayName, this,
                         implementationClassPath, localAddress, classPathRegistry);
             }
-            Callable<?> workerMain = workerFactory.create();
-            byte[] config = GUtil.serialize(workerMain);
 
             LOGGER.debug("Creating {}", displayName);
             LOGGER.debug("Using application classpath {}", getApplicationClasspath());
             LOGGER.debug("Using implementation classpath {}", implementationClassPath);
 
             JavaExecHandleBuilder javaCommand = getJavaCommand();
-            javaCommand.classpath(workerFactory.getSystemClasspath());
-            javaCommand.setStandardInput(new ByteArrayInputStream(config));
+            attachStdInContent(workerFactory, javaCommand);
+            workerFactory.prepareJavaCommand(javaCommand);
             javaCommand.setDisplayName(displayName);
             ExecHandle execHandle = javaCommand.build();
 
             workerProcess.setExecHandle(execHandle);
 
             return workerProcess;
+        }
+
+        private void attachStdInContent(WorkerFactory workerFactory, JavaExecHandleBuilder javaCommand) {
+            ByteArrayInputStream stdinContent = new ByteArrayInputStream(GUtil.serialize(workerFactory.create()));
+            javaCommand.setStandardInput(stdinContent);
         }
     }
 }

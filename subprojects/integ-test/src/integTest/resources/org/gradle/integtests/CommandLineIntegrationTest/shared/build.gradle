@@ -1,3 +1,4 @@
+import org.gradle.internal.jvm.Jvm
 
 task checkGradleUserHomeViaSystemEnv << {
     assert gradle.gradleUserHomeDir == file('customUserHome')
@@ -16,5 +17,6 @@ task checkJavaHome << {
 }
 
 task checkSystemProperty << {
-    assert System.getProperty('customSystemProperty') == 'custom-value'
+    assert System.getProperty('customProp1') == 'custom-value'
+    assert System.getProperty('customProp2') == 'custom value'
 }

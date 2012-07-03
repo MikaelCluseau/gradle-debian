@@ -36,6 +36,7 @@ import org.gradle.build.docs.dsl.model.TypeMetaData
 import org.gradle.build.docs.model.ClassMetaDataRepository
 import org.gradle.build.docs.model.SimpleClassMetaDataRepository
 import org.gradle.util.Clock
+import org.gradle.build.docs.DocGenerationException
 
 /**
  * Extracts meta-data from the Groovy and Java source files which make up the Gradle DSL. Persists the meta-data to a file
@@ -49,6 +50,8 @@ class ExtractDslMetaDataTask extends SourceTask {
     def extract() {
         Clock clock = new Clock()
 
+        //parsing all input files into metadata
+        //and placing them in the repository object
         SimpleClassMetaDataRepository<ClassMetaData> repository = new SimpleClassMetaDataRepository<ClassMetaData>()
         int counter = 0
         source.each { File f ->
@@ -56,9 +59,11 @@ class ExtractDslMetaDataTask extends SourceTask {
             counter++
         }
 
+        //updating/modifying the metadata and making sure every type reference across the metadata is fully qualified
+        //so, the superClassName, interafaces and types needed by declared properties and declared methods will have fully qualified name
         TypeNameResolver resolver = new TypeNameResolver(repository)
         repository.each { name, metaData ->
-            resolve(metaData, resolver)
+            fullyQualifyAllTypeNames(metaData, resolver)
         }
         repository.store(destFile)
 
@@ -75,7 +80,7 @@ class ExtractDslMetaDataTask extends SourceTask {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Could not parse '$sourceFile'.", e)
+            throw new DocGenerationException("Could not parse '$sourceFile'.", e)
         }
     }
 
@@ -119,7 +124,7 @@ class ExtractDslMetaDataTask extends SourceTask {
         visitor.complete()
     }
 
-    def resolve(ClassMetaData classMetaData, TypeNameResolver resolver) {
+    def fullyQualifyAllTypeNames(ClassMetaData classMetaData, TypeNameResolver resolver) {
         try {
             if (classMetaData.superClassName) {
                 classMetaData.superClassName = resolver.resolve(classMetaData.superClassName, classMetaData)

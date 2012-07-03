@@ -16,8 +16,9 @@
 
 package org.gradle.process.internal;
 
+import org.apache.commons.io.output.CloseShieldOutputStream;
+import org.gradle.internal.jvm.Jvm;
 import org.gradle.process.ExecResult;
-import org.gradle.util.Jvm;
 import org.gradle.util.TemporaryFolder;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,8 +75,8 @@ public class DefaultExecHandleTest {
                         "-cp",
                         System.getProperty("java.class.path"),
                         BrokenApp.class.getName()), System.getenv(),
-                System.out,
-                System.err,
+                new CloseShieldOutputStream(System.out),
+                new CloseShieldOutputStream(System.err),
                 new ByteArrayInputStream(new byte[0]),
                 Collections.<ExecHandleListener>emptyList()
         );
@@ -123,8 +124,8 @@ public class DefaultExecHandleTest {
                         "-cp",
                         System.getProperty("java.class.path"),
                         SlowApp.class.getName()), System.getenv(),
-                System.out,
-                System.err,
+                new CloseShieldOutputStream(System.out),
+                new CloseShieldOutputStream(System.err),
                 new ByteArrayInputStream(new byte[0]),
                 Collections.<ExecHandleListener>emptyList()
         );

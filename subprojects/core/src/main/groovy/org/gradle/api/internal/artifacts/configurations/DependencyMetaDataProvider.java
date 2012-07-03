@@ -16,17 +16,10 @@
 package org.gradle.api.internal.artifacts.configurations;
 
 import org.gradle.api.artifacts.Module;
-import org.gradle.api.internal.artifacts.repositories.InternalRepository;
-
-import java.io.File;
 
 /**
  * @author Hans Dockter
  */
 public interface DependencyMetaDataProvider {
-    File getGradleUserHomeDir();
-
-    InternalRepository getInternalRepository();
-
     Module getModule();
 }

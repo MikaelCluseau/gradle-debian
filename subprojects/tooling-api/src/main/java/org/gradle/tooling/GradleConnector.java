@@ -15,11 +15,7 @@
  */
 package org.gradle.tooling;
 
-import org.gradle.api.internal.project.ServiceRegistry;
-import org.gradle.tooling.internal.consumer.ConnectionFactory;
-import org.gradle.tooling.internal.consumer.ConnectorServiceRegistry;
-import org.gradle.tooling.internal.consumer.DefaultGradleConnector;
-import org.gradle.tooling.internal.consumer.DistributionFactory;
+import org.gradle.tooling.internal.consumer.ConnectorServices;
 
 import java.io.File;
 import java.net.URI;
@@ -35,16 +31,27 @@ import java.net.URI;
  *
  * <li>Call {@link #connect()} to create the connection to a project.</li>
  *
- * <li>Optionally reuse the connector to create additional connections.</li>
- *
  * <li>When finished with the connection, call {@link ProjectConnection#close()} to clean up.</li>
  *
  * </ol>
  *
- * <p>{@code GradleConnector} instances are not thread-safe.</p>
+ * Example:
+ * <pre autoTested=''>
+ * ProjectConnection connection = GradleConnector.newConnector()
+ *    .forProjectDirectory(new File("someProjectFolder"))
+ *    .connect();
+ *
+ * try {
+ *    connection.newBuild().forTasks("tasks").run();
+ * } finally {
+ *    connection.close();
+ * }
+ * </pre>
+ *
+ * <p>{@code GradleConnector} instances are not thread-safe. If you want to use a {@code GradleConnector} concurrently you *must* always create a
+ * new instance for each thread using {@link #newConnector()}. Note, however, the {@link ProjectConnection} instances that a connector creates are completely thread-safe.</p>
  */
 public abstract class GradleConnector {
-    private static final ServiceRegistry SERVICES = new ConnectorServiceRegistry();
 
     /**
      * Creates a new connector instance.
@@ -52,7 +59,7 @@ public abstract class GradleConnector {
      * @return The instance. Never returns null.
      */
     public static GradleConnector newConnector() {
-        return new DefaultGradleConnector(SERVICES.get(ConnectionFactory.class), SERVICES.get(DistributionFactory.class));
+        return new ConnectorServices().createConnector();
     }
 
     /**
@@ -91,7 +98,7 @@ public abstract class GradleConnector {
     public abstract GradleConnector forProjectDirectory(File projectDir);
 
     /**
-     * Specifies the user's Gradle home directory to use. Defaults to {@code ~/.gradle}
+     * Specifies the user's Gradle home directory to use. Defaults to {@code ~/.gradle}.
      *
      * @param gradleUserHomeDir The user's Gradle home directory to use.
      * @return this
@@ -105,6 +112,6 @@ public abstract class GradleConnector {
      * @throws UnsupportedVersionException When the target Gradle version does not support this version of the tooling API.
      * @throws GradleConnectionException On failure to establish a connection with the target Gradle version.
      */
-    public abstract ProjectConnection connect() throws GradleConnectionException;
+    public abstract ProjectConnection connect() throws GradleConnectionException, UnsupportedVersionException;
 
 }

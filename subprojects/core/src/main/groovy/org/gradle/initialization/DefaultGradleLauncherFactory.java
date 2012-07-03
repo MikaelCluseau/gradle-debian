@@ -18,21 +18,25 @@ package org.gradle.initialization;
 
 import org.gradle.*;
 import org.gradle.api.internal.ExceptionAnalyser;
+import org.gradle.api.internal.GradleInternal;
+import org.gradle.api.internal.Instantiator;
 import org.gradle.api.internal.project.GlobalServicesRegistry;
-import org.gradle.api.internal.project.IProjectFactory;
-import org.gradle.api.internal.project.ServiceRegistry;
+import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.api.internal.project.TopLevelBuildServiceRegistry;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.logging.StandardOutputListener;
 import org.gradle.cache.CacheRepository;
+import org.gradle.cli.CommandLineConverter;
 import org.gradle.configuration.BuildConfigurer;
+import org.gradle.execution.BuildExecuter;
+import org.gradle.initialization.layout.BuildLayoutFactory;
 import org.gradle.invocation.DefaultGradle;
 import org.gradle.listener.ListenerManager;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.logging.ProgressLoggerFactory;
 import org.gradle.logging.StyledTextOutputFactory;
-import org.gradle.profile.ProfileListener;
-import org.gradle.util.WrapUtil;
+import org.gradle.profile.ProfileEventAdapter;
+import org.gradle.profile.ReportGeneratingProfileListener;
 
 import java.util.Arrays;
 
@@ -59,6 +63,7 @@ public class DefaultGradleLauncherFactory implements GradleLauncherFactory {
         // Register default loggers 
         ListenerManager listenerManager = sharedServices.get(ListenerManager.class);
         listenerManager.addListener(new BuildProgressLogger(sharedServices.get(ProgressLoggerFactory.class)));
+        listenerManager.useLogger(new DependencyResolutionLogger(sharedServices.get(ProgressLoggerFactory.class)));
 
         GradleLauncher.injectCustomFactory(this);
     }
@@ -114,34 +119,30 @@ public class DefaultGradleLauncherFactory implements GradleLauncherFactory {
         listenerManager.addListener(tracker);
         listenerManager.addListener(new BuildCleanupListener(serviceRegistry));
 
+        listenerManager.addListener(serviceRegistry.get(ProfileEventAdapter.class));
         if (startParameter.isProfile()) {
-            listenerManager.addListener(new ProfileListener(requestMetaData.getBuildTimeClock().getStartTime()));
+            listenerManager.addListener(new ReportGeneratingProfileListener());
         }
 
-        DefaultGradle gradle = new DefaultGradle(
-                tracker.getCurrentBuild(),
-                startParameter, serviceRegistry);
+        GradleInternal gradle = serviceRegistry.get(Instantiator.class).newInstance(DefaultGradle.class, tracker.getCurrentBuild(), startParameter, serviceRegistry);
         return new DefaultGradleLauncher(
                 gradle,
                 serviceRegistry.get(InitScriptHandler.class),
                 new SettingsHandler(
-                        new EmbeddedScriptSettingsFinder(
-                                new DefaultSettingsFinder(WrapUtil.<ISettingsFileSearchStrategy>toList(
-                                        new MasterDirSettingsFinderStrategy(),
-                                        new ParentDirSettingsFinderStrategy()))),
+                        new DefaultSettingsFinder(
+                                new BuildLayoutFactory()),
                         serviceRegistry.get(SettingsProcessor.class),
                         new BuildSourceBuilder(
                                 this,
-                                serviceRegistry.get(ClassLoaderFactory.class),
+                                serviceRegistry.get(ClassLoaderRegistry.class),
                                 serviceRegistry.get(CacheRepository.class))),
-                new DefaultGradlePropertiesLoader(),
-                new BuildLoader(
-                        serviceRegistry.get(IProjectFactory.class)
-                ),
+                serviceRegistry.get(BuildLoader.class),
                 serviceRegistry.get(BuildConfigurer.class),
                 gradle.getBuildListenerBroadcaster(),
                 serviceRegistry.get(ExceptionAnalyser.class),
-                loggingManager);
+                loggingManager,
+                listenerManager.getBroadcaster(ModelConfigurationListener.class),
+                gradle.getServices().get(BuildExecuter.class));
     }
 
     public void setCommandLineConverter(
