@@ -1,4 +1,4 @@
 #!/bin/sed -f
-/^# Attempt to set JAVA_HOME/ i\
+/^# Determine the Java command to use to start the JVM/ i\
 export JAVA_HOME=/usr/lib/jvm/default-java\
-export GRAILS_HOME=/usr/share/gradle\
+
