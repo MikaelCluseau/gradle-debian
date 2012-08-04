@@ -16,10 +16,10 @@
 package org.gradle.integtests.fixtures
 
 import java.text.SimpleDateFormat
-import junit.framework.AssertionFailedError
 
 import org.gradle.util.TestFile
 import org.gradle.util.hash.HashUtil
+import groovy.xml.MarkupBuilder
 
 /**
  * A fixture for dealing with Maven repositories.
@@ -48,6 +48,7 @@ class MavenModule {
     final String version
     String parentPomSection
     String type = 'jar'
+    String packaging
     private final List dependencies = []
     int publishCount = 1
     final updateFormat = new SimpleDateFormat("yyyyMMddHHmmss")
@@ -67,8 +68,8 @@ class MavenModule {
         return this
     }
 
-    MavenModule dependsOn(String group, String artifactId, String version) {
-        this.dependencies << [groupId: group, artifactId: artifactId, version: version]
+    MavenModule dependsOn(String group, String artifactId, String version, String type = null) {
+        this.dependencies << [groupId: group, artifactId: artifactId, version: version, type: type]
         return this
     }
 
@@ -92,10 +93,6 @@ class MavenModule {
     MavenModule withNonUniqueSnapshots() {
         uniqueSnapshots = false;
         return this;
-    }
-
-    File getMavenMetaDataFile() {
-        moduleDir.file("maven-metadata.xml")
     }
 
     /**
@@ -126,9 +123,13 @@ class MavenModule {
     TestFile getPomFile() {
         return moduleDir.file("$artifactId-${publishArtifactVersion}.pom")
     }
-    
+
     TestFile getMetaDataFile() {
         moduleDir.file("maven-metadata.xml")
+    }
+
+    TestFile getRootMetaDataFile() {
+        moduleDir.parentFile.file("maven-metadata.xml")
     }
 
     TestFile getArtifactFile() {
@@ -169,11 +170,15 @@ class MavenModule {
      */
     MavenModule publish() {
         moduleDir.createDir()
+        def rootMavenMetaData = getRootMetaDataFile()
 
+        updateRootMavenMetaData(rootMavenMetaData)
         if (uniqueSnapshots && version.endsWith("-SNAPSHOT")) {
             def metaDataFile = moduleDir.file('maven-metadata.xml')
-            metaDataFile.text = """
+            publish(metaDataFile) {
+                metaDataFile.text = """
 <metadata>
+  <!-- $publishCount -->
   <groupId>$groupId</groupId>
   <artifactId>$artifactId</artifactId>
   <version>$version</version>
@@ -186,37 +191,40 @@ class MavenModule {
   </versioning>
 </metadata>
 """
-            createHashFiles(metaDataFile)
+            }
         }
 
-        pomFile.text = ""
-        pomFile << """
+        publish(pomFile) {
+            def pomPackaging = packaging ?: type;
+            pomFile.text = ""
+            pomFile << """
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
   <groupId>$groupId</groupId>
   <artifactId>$artifactId</artifactId>
-  <packaging>$type</packaging>
+  <packaging>$pomPackaging</packaging>
   <version>$version</version>
   <description>Published on $publishTimestamp</description>"""
 
-        if (parentPomSection) {
-            pomFile << "\n$parentPomSection\n"
-        }
+            if (parentPomSection) {
+                pomFile << "\n$parentPomSection\n"
+            }
 
-        dependencies.each { dependency ->
-            pomFile << """
+            dependencies.each { dependency ->
+                def typeAttribute = dependency['type'] == null ? "" : "<type>$dependency.type</type>"
+                pomFile << """
   <dependencies>
     <dependency>
       <groupId>$dependency.groupId</groupId>
       <artifactId>$dependency.artifactId</artifactId>
       <version>$dependency.version</version>
-    </dependency>3.2.1
+      $typeAttribute
+    </dependency>
   </dependencies>"""
+            }
+
+            pomFile << "\n</project>"
         }
-
-        pomFile << "\n</project>"
-
-        createHashFiles(pomFile)
 
         artifacts.each { artifact ->
             publishArtifact(artifact)
@@ -225,13 +233,53 @@ class MavenModule {
         return this
     }
 
+    private void updateRootMavenMetaData(TestFile rootMavenMetaData) {
+        def allVersions = rootMavenMetaData.exists() ? new XmlParser().parseText(rootMavenMetaData.text).versioning.versions.version*.value().flatten() : []
+        allVersions << version;
+        publish(rootMavenMetaData) {
+            rootMavenMetaData.withWriter {writer ->
+                def builder = new MarkupBuilder(writer)
+                builder.metadata {
+                    groupId(groupId)
+                    artifactId(artifactId)
+                    version(allVersions.max())
+                    versioning {
+                        if (uniqueSnapshots && version.endsWith("-SNAPSHOT")) {
+                            snapshot {
+                                timestamp(timestampFormat.format(publishTimestamp))
+                                buildNumber(publishCount)
+                                lastUpdated(updateFormat.format(publishTimestamp))
+                            }
+                        } else {
+                            versions {
+                                allVersions.each{currVersion ->
+                                    version(currVersion)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private File publishArtifact(Map<String, ?> artifact) {
         def artifactFile = artifactFile(artifact)
-        if (type != 'pom') {
-            artifactFile << "add some content so that file size isn't zero: $publishCount"
+        publish(artifactFile) {
+            if (type != 'pom') {
+                artifactFile << "add some content so that file size isn't zero: $publishCount"
+            }
         }
-        createHashFiles(artifactFile)
         return artifactFile
+    }
+
+    private publish(File file, Closure cl) {
+        def lastModifiedTime = file.exists() ? file.lastModified() : null
+        cl.call(file)
+        if (lastModifiedTime != null) {
+            file.setLastModified(lastModifiedTime + 2000)
+        }
+        createHashFiles(file)
     }
 
     private Map<String, Object> toArtifact(Map<String, ?> options) {
@@ -254,8 +302,8 @@ class MavenModule {
         hashFile(file, "md5")
     }
 
-    private TestFile hashFile(File file, String algorithm) {
-        def hashFile = moduleDir.file("${file.name}.${algorithm}")
+    private TestFile hashFile(TestFile file, String algorithm) {
+        def hashFile = file.parentFile.file("${file.name}.${algorithm}")
         hashFile.text = HashUtil.createHash(file, algorithm.toUpperCase()).asHexString()
         return hashFile
     }
@@ -272,6 +320,10 @@ class MavenModule {
         server.expectHead(pomPath(prefix), pomFile)
     }
 
+    public allowPomHead(HttpServer server, prefix = null) {
+        server.allowHead(pomPath(prefix), pomFile)
+    }
+
     public expectPomGet(HttpServer server, prefix = null) {
         server.expectGet(pomPath(prefix), pomFile)
     }
@@ -282,6 +334,10 @@ class MavenModule {
 
     public expectPomSha1Get(HttpServer server, prefix = null) {
         server.expectGet(pomSha1Path(prefix), sha1File(pomFile))
+    }
+
+    public allowPomSha1Get(HttpServer server, prefix = null) {
+        server.allowGet(pomSha1Path(prefix), sha1File(pomFile))
     }
 
     public pomSha1Path(prefix = null) {
@@ -296,12 +352,20 @@ class MavenModule {
         server.expectGet(artifactPath(prefix), pomFile)
     }
 
+    public allowArtifactHead(HttpServer httpServer, prefix = null) {
+        httpServer.allowHead(artifactPath(prefix), artifactFile)
+    }
+
     public artifactPath(prefix = null) {
         path(prefix, artifactFile.name)
     }
 
     public expectArtifactSha1Get(HttpServer server, prefix = null) {
         server.expectGet(artifactSha1Path(prefix), sha1File(artifactFile))
+    }
+
+    public allowArtifactSha1Get(HttpServer server, prefix = null) {
+        server.allowGet(artifactSha1Path(prefix), sha1File(artifactFile))
     }
 
     public artifactSha1Path(prefix = null) {
@@ -315,10 +379,20 @@ class MavenModule {
 }
 
 class MavenPom {
+    String groupId
+    String artifactId
+    String version
+    String packaging
     final Map<String, MavenScope> scopes = [:]
 
     MavenPom(File pomFile) {
         def pom = new XmlParser().parse(pomFile)
+
+        groupId = pom.groupId[0]?.text()
+        artifactId = pom.artifactId[0]?.text()
+        version = pom.version[0]?.text()
+        packaging = pom.packaging[0]?.text()
+
         pom.dependencies.dependency.each { dep ->
             def scopeElement = dep.scope
             def scopeName = scopeElement ? scopeElement.text() : "runtime"
@@ -347,7 +421,7 @@ class MavenScope {
     void assertDependsOn(String groupId, String artifactId, String version) {
         def dep = [groupId: groupId, artifactId: artifactId, version: version]
         if (!dependencies.find { it == dep }) {
-            throw new AssertionFailedError("Could not find expected dependency $dep. Actual: $dependencies")
+            throw new AssertionError("Could not find expected dependency $dep. Actual: $dependencies")
         }
     }
 }

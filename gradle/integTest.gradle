@@ -1,27 +1,25 @@
 /*
  * Adds an 'integTest' source set, which contains the integration tests for the project.
  */
+import org.gradle.build.integtest.IntegTestPlugin
+
 apply plugin: 'java'
 rootProject.apply plugin: IntegTestPlugin
 
+sourceSets {
+    integTest {
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
 configurations {
-    integTestCompile {
-        extendsFrom testCompile
-    }
-    integTestRuntime {
-        extendsFrom integTestCompile, testRuntime
-    }
+    integTestCompile.extendsFrom testCompile
+    integTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
     integTestCompile project(":internalIntegTesting")
-}
-
-sourceSets {
-    integTest {
-        compileClasspath = sourceSets.main.output + sourceSets.test.output + configurations.integTestCompile
-        runtimeClasspath = output + compileClasspath + configurations.integTestRuntime
-    }
 }
 
 plugins.withType(org.gradle.plugins.ide.idea.IdeaPlugin) { // lazy as plugin not applied yet
@@ -66,9 +64,8 @@ integTestTasks.all {
         systemProperties['integTest.gradleHomeDir'] = integTestImageDir.absolutePath
         systemProperties['integTest.gradleUserHomeDir'] = integTestUserDir.absolutePath
         systemProperties['integTest.samplesdir'] = project(":docs").samplesDir.absolutePath
-        if (isCIBuild()) {
-            maxParallelForks = 4
-        }
+        systemProperties['integTest.distsDir'] = rootProject.distsDir.absolutePath
+        systemProperties['integTest.libsRepo'] = rootProject.file('build/repo')
     }
 }
 
@@ -101,38 +98,4 @@ task integTest(type: Test) {
 
 tasks.findByName("check")?.dependsOn(integTest)
 
-class IntegTestPlugin implements Plugin<Project> {
-    public void apply(Project project) {
-        project.convention.plugins.integTest = new IntegTestConvention(project)
-    }
-}
 
-class IntegTestConvention {
-    private final Project project
-    final List integTests = []
-
-    IntegTestConvention(Project project) {
-        this.project = project
-    }
-
-    String getIntegTestMode() {
-        if (!project.tasks.findByName('ciBuild') || !project.gradle.taskGraph.populated) {
-            return null
-        }
-        if (project.isCIBuild() || project.isReleaseBuild() ) {
-            return 'forking'
-        }
-        return System.getProperty("org.gradle.integtest.executer") ?: 'embedded'
-    }
-
-    File getIntegTestUserDir() {
-        return project.file('intTestHomeDir')
-    }
-
-    File getIntegTestImageDir() {
-        if (!project.tasks.findByName('intTestImage')) {
-            return null
-        }
-        return project.intTestImage.destinationDir
-    }
-}

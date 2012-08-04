@@ -20,10 +20,13 @@ import com.google.common.io.ByteStreams;
 import com.google.common.io.InputSupplier;
 import org.gradle.api.UncheckedIOException;
 import org.gradle.api.internal.ClassPathRegistry;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.messaging.remote.Address;
 import org.gradle.process.JavaExecSpec;
 import org.gradle.process.internal.WorkerProcessBuilder;
 import org.gradle.process.internal.launcher.BootstrapClassLoaderWorker;
+import org.gradle.process.internal.launcher.GradleWorkerMain;
 import org.gradle.util.GUtil;
 
 import java.io.*;
@@ -54,6 +57,9 @@ import java.util.concurrent.Callable;
  * </pre>
  */
 public class ApplicationClassesInSystemClassLoaderWorkerFactory implements WorkerFactory {
+
+    private final static Logger LOGGER = Logging.getLogger(ApplicationClassesInSystemClassLoaderWorkerFactory.class);
+
     private final Object workerId;
     private final String displayName;
     private final WorkerProcessBuilder processBuilder;
@@ -73,22 +79,24 @@ public class ApplicationClassesInSystemClassLoaderWorkerFactory implements Worke
     }
 
     public void prepareJavaCommand(JavaExecSpec execSpec) {
+        execSpec.setMain("jarjar." + GradleWorkerMain.class.getName());
         execSpec.classpath(classPathRegistry.getClassPath("WORKER_MAIN").getAsFiles());
         Object requestedSecurityManager = execSpec.getSystemProperties().get("java.security.manager");
         if (requestedSecurityManager != null) {
             execSpec.systemProperty("org.gradle.security.manager", requestedSecurityManager);
         }
-        execSpec.systemProperty("java.security.manager", BootstrapSecurityManager.class.getName());
+        execSpec.systemProperty("java.security.manager", "jarjar." + BootstrapSecurityManager.class.getName());
         try {
-            ByteArrayOutputStream stdin = new ByteArrayOutputStream();
-            DataOutputStream outstr = new DataOutputStream(stdin);
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            DataOutputStream outstr = new DataOutputStream(new EncodedStream.EncodedOutput(bytes));
+            LOGGER.debug("Writing an application classpath to child process' standard input.");
             outstr.writeInt(processBuilder.getApplicationClasspath().size());
             for (File file : processBuilder.getApplicationClasspath()) {
                 outstr.writeUTF(file.getAbsolutePath());
             }
             outstr.close();
             final InputStream originalStdin = execSpec.getStandardInput();
-            InputStream input = ByteStreams.join(ByteStreams.newInputStreamSupplier(stdin.toByteArray()), new InputSupplier<InputStream>() {
+            InputStream input = ByteStreams.join(ByteStreams.newInputStreamSupplier(bytes.toByteArray()), new InputSupplier<InputStream>() {
                 public InputStream getInput() throws IOException {
                     return originalStdin;
                 }

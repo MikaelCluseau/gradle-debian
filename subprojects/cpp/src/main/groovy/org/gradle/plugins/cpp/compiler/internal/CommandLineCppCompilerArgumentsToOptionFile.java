@@ -18,14 +18,16 @@ package org.gradle.plugins.cpp.compiler.internal;
 
 import org.gradle.api.Transformer;
 import org.gradle.api.UncheckedIOException;
+import org.gradle.api.internal.tasks.compile.ArgCollector;
+import org.gradle.api.internal.tasks.compile.ArgWriter;
+import org.gradle.api.internal.tasks.compile.CompileSpecToArguments;
 import org.gradle.plugins.cpp.internal.CppCompileSpec;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Collections;
 
-public class CommandLineCppCompilerArgumentsToOptionFile<T extends CppCompileSpec> implements Transformer<Iterable<String>, T> {
+public class CommandLineCppCompilerArgumentsToOptionFile<T extends CppCompileSpec> implements CompileSpecToArguments<T> {
 
     private final Transformer<ArgWriter, PrintWriter> argWriterFactory;
     private final CompileSpecToArguments<T> toArguments;
@@ -35,7 +37,7 @@ public class CommandLineCppCompilerArgumentsToOptionFile<T extends CppCompileSpe
         this.toArguments = toArguments;
     }
 
-    public Iterable<String> transform(T spec) {
+    public void collectArguments(T spec, ArgCollector collector) {
         File optionsFile = new File(spec.getWorkDir(), "compiler-options.txt");
         try {
             PrintWriter writer = new PrintWriter(optionsFile);
@@ -49,6 +51,6 @@ public class CommandLineCppCompilerArgumentsToOptionFile<T extends CppCompileSpe
             throw new UncheckedIOException(String.format("Could not write compiler options file '%s'.", optionsFile.getAbsolutePath()), e);
         }
 
-        return Collections.singletonList(String.format("@%s", optionsFile.getAbsolutePath()));
+        collector.args(String.format("@%s", optionsFile.getAbsolutePath()));
     }
 }

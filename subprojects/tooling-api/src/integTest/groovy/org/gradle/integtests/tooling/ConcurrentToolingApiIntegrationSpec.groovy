@@ -32,6 +32,8 @@ import org.gradle.tooling.model.idea.IdeaProject
 import org.junit.Rule
 import spock.lang.Issue
 import spock.lang.Specification
+import org.gradle.internal.classpath.ClassPath
+import java.util.concurrent.CopyOnWriteArrayList
 
 @Issue("GRADLE-1933")
 class ConcurrentToolingApiIntegrationSpec extends Specification {
@@ -58,7 +60,7 @@ class ConcurrentToolingApiIntegrationSpec extends Specification {
 
         when:
         threads.times {
-            concurrent.start { useToolingApi(dist) }
+            concurrent.start { useToolingApi(new GradleDistribution()) }
         }
 
         then:
@@ -177,7 +179,7 @@ project.description = text
         dist.file("build2/build.gradle") << "task foo2"
 
         when:
-        def allProgress = []
+        def allProgress = new CopyOnWriteArrayList<String>()
 
         concurrent.start {
             def connector = toolingApi.connector()
@@ -268,7 +270,7 @@ project.description = text
             return 'mock'
         }
 
-        Set<File> getToolingImplementationClasspath(ProgressLoggerFactory progressLoggerFactory) {
+        ClassPath getToolingImplementationClasspath(ProgressLoggerFactory progressLoggerFactory) {
             def o = progressLoggerFactory.newOperation("mock")
             operation(o)
             o.started()

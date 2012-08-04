@@ -27,7 +27,7 @@ repositories {
 
 dependencies {
     compile gradleApi()
-    compile 'com.google.guava:guava:11.0.1@jar'
+    compile 'com.google.guava:guava:11.0.2@jar'
     compile 'commons-lang:commons-lang:2.6@jar'
     groovy localGroovy()
     testCompile 'junit:junit:4.10@jar'
@@ -35,16 +35,7 @@ dependencies {
 
     compile "org.pegdown:pegdown:1.1.0"
     compile "org.jsoup:jsoup:1.6.3"
-}
-
-configurations {
-	all {
-		resolutionStrategy {
-            //we cannot use 'hours' for now due to java 1.5 problem
-			cacheDynamicVersionsFor 24*60*60, 'seconds'
-			cacheChangingModulesFor 24*60*60, 'seconds'
-		}
-	}
+    compile "com.googlecode.jarjar:jarjar:1.3"
 }
 
 apply from: '../gradle/compile.gradle'

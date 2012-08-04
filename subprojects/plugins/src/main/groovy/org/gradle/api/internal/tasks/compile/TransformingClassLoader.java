@@ -19,7 +19,7 @@ package org.gradle.api.internal.tasks.compile;
 import com.google.common.io.ByteStreams;
 import org.codehaus.groovy.transform.GroovyASTTransformationClass;
 import org.gradle.api.UncheckedIOException;
-import org.gradle.util.ClassPath;
+import org.gradle.internal.classpath.ClassPath;
 import org.gradle.util.MutableURLClassLoader;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.EmptyVisitor;
@@ -31,8 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Transforms @GroovyASTTransformationClass(classes = {classLiterals}) into @GroovyASTTransformationClass([classNames]), to work around Groovy's
- * loading of transformer classes.
+ * Transforms @GroovyASTTransformationClass(classes = {classLiterals}) into @GroovyASTTransformationClass([classNames]),
+ * to work around GROOVY-5416.
  */
 class TransformingClassLoader extends MutableURLClassLoader {
     private static final String ANNOTATION_DESCRIPTOR = Type.getType(GroovyASTTransformationClass.class).getDescriptor();
