@@ -15,7 +15,7 @@
  */
 package org.gradle.java
 
-import org.gradle.integtests.fixtures.*
+import org.gradle.integtests.fixtures.WellBehavedPluginTest
 
 class JavaPluginGoodBehaviourTest extends WellBehavedPluginTest {
     @Override

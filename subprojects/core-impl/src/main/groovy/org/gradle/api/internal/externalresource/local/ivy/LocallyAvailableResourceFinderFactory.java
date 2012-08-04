@@ -23,12 +23,16 @@ import org.gradle.api.internal.externalresource.local.LocallyAvailableResourceFi
 import org.gradle.api.internal.externalresource.local.LocallyAvailableResourceFinderSearchableFileStoreAdapter;
 import org.gradle.api.internal.filestore.FileStoreSearcher;
 import org.gradle.internal.Factory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
 public class LocallyAvailableResourceFinderFactory implements Factory<LocallyAvailableResourceFinder<ArtifactRevisionId>> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocallyAvailableResourceFinderFactory.class);
+
     private final File rootCachesDirectory;
     private final LocalMavenRepositoryLocator localMavenRepositoryLocator;
     private final FileStoreSearcher<ArtifactRevisionId> fileStore;
@@ -44,13 +48,16 @@ public class LocallyAvailableResourceFinderFactory implements Factory<LocallyAva
         List<LocallyAvailableResourceFinder<ArtifactRevisionId>> finders = new LinkedList<LocallyAvailableResourceFinder<ArtifactRevisionId>>();
 
         // Order is important here, because they will be searched in that order
-        
+
         // The current filestore
         finders.add(new LocallyAvailableResourceFinderSearchableFileStoreAdapter<ArtifactRevisionId>(fileStore));
-        
+
+        // rc-1, 1.0
+        addForPattern(finders, "artifacts-13", "filestore/[organisation]/[module](/[branch])/[revision]/[type]/*/[artifact]-[revision](-[classifier])(.[ext])");
+
         // Milestone 8 and 9
         addForPattern(finders, "artifacts-8", "filestore/[organisation]/[module](/[branch])/[revision]/[type]/*/[artifact]-[revision](-[classifier])(.[ext])");
-        
+
         // Milestone 7
         addForPattern(finders, "artifacts-7", "artifacts/*/[organisation]/[module](/[branch])/[revision]/[type]/[artifact]-[revision](-[classifier])(.[ext])");
 
@@ -61,8 +68,8 @@ public class LocallyAvailableResourceFinderFactory implements Factory<LocallyAva
         // Milestone 3
         addForPattern(finders, "../cache", "[organisation]/[module](/[branch])/[type]s/[artifact]-[revision](-[classifier])(.[ext])");
 
-        // Maven local
-        addForPattern(finders, localMavenRepositoryLocator.getLocalMavenRepository(), "[organisation-path]/[module]/[revision]/[artifact]-[revision](-[classifier])(.[ext])");
+        // local maven
+        finders.add(new LocalMavenLocallyAvailableResourceFinder(localMavenRepositoryLocator, "[organisation-path]/[module]/[revision]/[artifact]-[revision](-[classifier])(.[ext])"));
 
         return new CompositeLocallyAvailableResourceFinder<ArtifactRevisionId>(finders);
     }

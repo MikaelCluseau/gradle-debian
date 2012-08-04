@@ -17,6 +17,7 @@ package org.gradle.testing.testng
 
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
 import spock.lang.Issue
 import org.gradle.integtests.fixtures.*
 import static org.gradle.util.Matchers.containsLine
@@ -30,6 +31,11 @@ class TestNGIntegrationTest {
     @Rule public GradleDistribution dist = new GradleDistribution()
     @Rule public GradleDistributionExecuter executer = new GradleDistributionExecuter()
     @Rule public TestResources resources = new TestResources()
+
+    @Before
+    public void before() {
+        executer.allowExtraLogging = false
+    }
 
     @Test
     void executesTestsInCorrectEnvironment() {
@@ -46,8 +52,8 @@ class TestNGIntegrationTest {
     void canListenForTestResults() {
         ExecutionResult result = executer.withTasks("test").run();
 
-        assert containsLine(result.getOutput(), "START [tests] []");
-        assert containsLine(result.getOutput(), "FINISH [tests] []");
+        assert containsLine(result.getOutput(), "START [tests] [Test Run]");
+        assert containsLine(result.getOutput(), "FINISH [tests] [Test Run]");
         assert containsLine(result.getOutput(), "START [test process 'Gradle Worker 1'] [Gradle Worker 1]");
         assert containsLine(result.getOutput(), "FINISH [test process 'Gradle Worker 1'] [Gradle Worker 1]");
         assert containsLine(result.getOutput(), "START [test 'Gradle test'] [Gradle test]");
@@ -106,10 +112,6 @@ class TestNGIntegrationTest {
         result.testClass('org.gradle.BrokenAfterSuite').assertConfigMethodFailed('cleanup')
         result.testClass('org.gradle.TestWithBrokenMethodDependency').assertTestFailed('broken', equalTo('broken'))
         result.testClass('org.gradle.TestWithBrokenMethodDependency').assertTestSkipped('okTest')
-        assertThat(execution.error, containsString('Test org.gradle.BadTest FAILED'))
-        assertThat(execution.error, containsString('Test org.gradle.TestWithBrokenSetup FAILED'))
-        assertThat(execution.error, containsString('Test org.gradle.BrokenAfterSuite FAILED'))
-        assertThat(execution.error, containsString('Test org.gradle.TestWithBrokenMethodDependency FAILED'))
     }
 
     @Issue("GRADLE-1532")

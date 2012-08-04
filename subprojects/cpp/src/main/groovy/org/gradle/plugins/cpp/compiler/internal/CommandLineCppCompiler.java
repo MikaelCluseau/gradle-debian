@@ -17,7 +17,8 @@
 package org.gradle.plugins.cpp.compiler.internal;
 
 import groovy.lang.Closure;
-import org.gradle.api.Transformer;
+import org.gradle.api.internal.tasks.compile.CompileSpecToArguments;
+import org.gradle.api.internal.tasks.compile.ExecSpecBackedArgCollector;
 import org.gradle.api.internal.tasks.compile.SimpleWorkResult;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.internal.Factory;
@@ -29,9 +30,9 @@ import java.io.File;
 public class CommandLineCppCompiler<T extends CppCompileSpec> implements CppCompiler<T> {
     private final File executable;
     private final Factory<ExecAction> execActionFactory;
-    private final Transformer<Iterable<String>, T> toArguments;
+    private final CompileSpecToArguments<T> toArguments;
 
-    public CommandLineCppCompiler(File executable, Factory<ExecAction> execActionFactory, Transformer<Iterable<String>, T> toArguments) {
+    public CommandLineCppCompiler(File executable, Factory<ExecAction> execActionFactory, CompileSpecToArguments<T> toArguments) {
         this.executable = executable;
         this.execActionFactory = execActionFactory;
         this.toArguments = toArguments;
@@ -46,7 +47,7 @@ public class CommandLineCppCompiler<T extends CppCompileSpec> implements CppComp
         compiler.executable(executable);
         compiler.workingDir(workDir);
 
-        compiler.args(toArguments.transform(spec));
+        toArguments.collectArguments(spec, new ExecSpecBackedArgCollector(compiler));
 
         // Apply all of the settings
         for (Closure closure : spec.getSettings()) {

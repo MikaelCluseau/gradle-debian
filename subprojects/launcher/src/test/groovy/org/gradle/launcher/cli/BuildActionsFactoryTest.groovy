@@ -27,6 +27,10 @@ import org.gradle.util.SetSystemProperties
 import org.gradle.util.TemporaryFolder
 import org.junit.Rule
 import spock.lang.Specification
+import org.gradle.logging.ProgressLoggerFactory
+import org.gradle.launcher.daemon.client.SingleUseDaemonClient
+import org.gradle.launcher.daemon.client.DaemonClient
+import org.gradle.launcher.exec.InProcessGradleLauncherActionExecuter
 
 class BuildActionsFactoryTest extends Specification {
     @Rule
@@ -39,6 +43,7 @@ class BuildActionsFactoryTest extends Specification {
 
     def setup() {        
         _ * loggingServices.get(OutputEventListener) >> Mock(OutputEventListener)
+        _ * loggingServices.get(ProgressLoggerFactory) >> Mock(ProgressLoggerFactory)
     }
 
     def executesBuild() {
@@ -183,17 +188,21 @@ class BuildActionsFactoryTest extends Specification {
         return factory.createAction(parser, cl)
     }
 
-    def isDaemon(def action) {
+    void isDaemon(def action) {
         assert action instanceof ActionAdapter
-        action.action instanceof DaemonBuildAction
+        assert action.action instanceof RunBuildAction
+        assert action.action.executer instanceof DaemonClient
     }
 
-    def isInProcess(def action) {
-        action instanceof RunBuildAction
+    void isInProcess(def action) {
+        assert action instanceof ActionAdapter
+        assert action.action instanceof RunBuildAction
+        assert action.action.executer instanceof InProcessGradleLauncherActionExecuter
     }
 
-    def isSingleUseDaemon(def action) {
+    void isSingleUseDaemon(def action) {
         assert action instanceof ActionAdapter
-        action.action instanceof DaemonBuildAction
+        assert action.action instanceof RunBuildAction
+        assert action.action.executer instanceof SingleUseDaemonClient
     }
 }

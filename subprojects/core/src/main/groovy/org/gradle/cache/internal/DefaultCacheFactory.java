@@ -20,6 +20,7 @@ import org.gradle.api.Action;
 import org.gradle.internal.Factory;
 import org.gradle.cache.*;
 import org.gradle.cache.internal.btree.BTreePersistentIndexedCache;
+import org.gradle.messaging.serialize.Serializer;
 import org.gradle.util.GFileUtils;
 
 import java.io.File;
@@ -58,10 +59,19 @@ public class DefaultCacheFactory implements Factory<CacheFactory> {
             File canonicalDir = GFileUtils.canonicalise(cacheDir);
             DirCacheReference dirCacheReference = dirCaches.get(canonicalDir);
             if (dirCacheReference == null) {
-                DefaultPersistentDirectoryCache cache = new DefaultPersistentDirectoryCache(canonicalDir, displayName, usage, validator, properties, lockMode, action, lockManager);
-                cache.open();
-                dirCacheReference = new DirCacheReference(cache, properties, lockMode);
-                dirCaches.put(canonicalDir, dirCacheReference);
+                if (lockMode.equals(LockMode.None)) {
+                    // Create nested cache with LockMode#Exclusive (tb discussed) that is opened and closed on Demand in the DelegateOnDemandPersistentDirectoryCache.
+                    DefaultPersistentDirectoryCache nestedCache = new DefaultPersistentDirectoryCache(canonicalDir, displayName, usage, validator, properties, LockMode.Exclusive, action, lockManager);
+                    DelegateOnDemandPersistentDirectoryCache onDemandDache = new DelegateOnDemandPersistentDirectoryCache(nestedCache);
+                    onDemandDache.open();
+                    dirCacheReference = new DirCacheReference(onDemandDache, properties, lockMode);
+                    dirCaches.put(canonicalDir, dirCacheReference);
+                } else {
+                    ReferencablePersistentCache cache = new DefaultPersistentDirectoryCache(canonicalDir, displayName, usage, validator, properties, lockMode, action, lockManager);
+                    cache.open();
+                    dirCacheReference = new DirCacheReference(cache, properties, lockMode);
+                    dirCaches.put(canonicalDir, dirCacheReference);
+                }
             } else {
                 if (usage == CacheUsage.REBUILD && dirCacheReference.rebuiltBy != this) {
                     throw new IllegalStateException(String.format("Cannot rebuild cache '%s' as it is already open.", cacheDir));
@@ -87,7 +97,7 @@ public class DefaultCacheFactory implements Factory<CacheFactory> {
             File canonicalDir = GFileUtils.canonicalise(storeDir);
             DirCacheReference dirCacheReference = dirCaches.get(canonicalDir);
             if (dirCacheReference == null) {
-                DefaultPersistentDirectoryStore cache = new DefaultPersistentDirectoryStore(canonicalDir, displayName, lockMode, lockManager);
+                ReferencablePersistentCache cache = new DefaultPersistentDirectoryStore(canonicalDir, displayName, lockMode, lockManager);
                 cache.open();
                 dirCacheReference = new DirCacheReference(cache, Collections.<String, Object>emptyMap(), lockMode);
                 dirCaches.put(canonicalDir, dirCacheReference);
@@ -160,14 +170,14 @@ public class DefaultCacheFactory implements Factory<CacheFactory> {
         }
     }
 
-    private class DirCacheReference extends BasicCacheReference<DefaultPersistentDirectoryStore> {
+    private class DirCacheReference extends BasicCacheReference<ReferencablePersistentCache> {
         private final Map<String, ?> properties;
         private final FileLockManager.LockMode lockMode;
         IndexedCacheReference indexedCache;
         StateCacheReference stateCache;
         CacheFactoryImpl rebuiltBy;
 
-        public DirCacheReference(DefaultPersistentDirectoryStore cache, Map<String, ?> properties, FileLockManager.LockMode lockMode) {
+        public DirCacheReference(ReferencablePersistentCache cache, Map<String, ?> properties, FileLockManager.LockMode lockMode) {
             super(cache);
             this.properties = properties;
             this.lockMode = lockMode;

@@ -35,18 +35,32 @@ class FindBugsPluginIntegrationTest extends WellBehavedPluginTest {
         goodCode()
         expect:
         succeeds("check")
-		file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
-		file("build/reports/findbugs/test.xml").assertContents(containsClass("org.gradle.Class1Test"))
+        file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
+        file("build/reports/findbugs/test.xml").assertContents(containsClass("org.gradle.Class1Test"))
     }
 
     void "analyze bad code"() {
-        file("src/main/java/org/gradle/Class1.java") << "package org.gradle; class Class1 { public boolean equals(Object arg) { return true; } }"
+        badCode()
 
         expect:
         fails("check")
-		failure.assertHasDescription("Execution failed for task ':findbugsMain'")
-        failure.assertThatCause(startsWith("FindBugs rule violations were found. See the report at"))
-		file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
+        failure.assertHasDescription("Execution failed for task ':findbugsMain'")
+        failure.assertThatCause(startsWith("FindBugs rule violations were found. See the report at:"))
+        file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
+    }
+
+    void "can ignore failures"() {
+        badCode()
+        buildFile << """
+            findbugs {
+                ignoreFailures = true
+            }
+        """
+
+        expect:
+        succeeds("check")
+        output.contains("FindBugs rule violations were found. See the report at:")
+        file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
     }
 
     def "is incremental"() {
@@ -81,7 +95,7 @@ class FindBugsPluginIntegrationTest extends WellBehavedPluginTest {
 
         failure.assertHasCause "Findbugs tasks can only have one report enabled"
     }
-    
+
     def "can generate html reports"() {
         given:
         buildFile << """
@@ -90,13 +104,13 @@ class FindBugsPluginIntegrationTest extends WellBehavedPluginTest {
                 html.enabled true
             }
         """
-        
+
         and:
         goodCode()
-        
+
         when:
         run "findbugsMain"
-        
+
         then:
         file("build/reports/findbugs/main.html").exists()
     }
@@ -121,15 +135,31 @@ class FindBugsPluginIntegrationTest extends WellBehavedPluginTest {
         !file("build/reports/findbugs/main.xml").exists()
     }
 
-    private goodCode() {
-        file("src/main/java/org/gradle/Class1.java") << "package org.gradle; class Class1 { public boolean isFoo(Object arg) { return true; } }"
-        file("src/test/java/org/gradle/Class1Test.java") << "package org.gradle; class Class1Test { public boolean isFoo(Object arg) { return true; } }"
+    def "can analyze a lot of classes"() {
+        goodCode(800)
+        expect:
+        succeeds("check")
+        file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class1"))
+        file("build/reports/findbugs/main.xml").assertContents(containsClass("org.gradle.Class800"))
+        file("build/reports/findbugs/test.xml").assertContents(containsClass("org.gradle.Class1Test"))
+        file("build/reports/findbugs/test.xml").assertContents(containsClass("org.gradle.Class800Test"))
+    }
+
+    private goodCode(int numberOfClasses = 1) {
+        1.upto(numberOfClasses) {
+            file("src/main/java/org/gradle/Class${it}.java") << "package org.gradle; class Class${it} { public boolean isFoo(Object arg) { return true; } }"
+            file("src/test/java/org/gradle/Class${it}Test.java") << "package org.gradle; class Class${it}Test { public boolean isFoo(Object arg) { return true; } }"
+        }
+    }
+
+    private badCode() {
+        file("src/main/java/org/gradle/Class1.java") << "package org.gradle; class Class1 { public boolean equals(Object arg) { return true; } }"
     }
 
     private Matcher<String> containsClass(String className) {
         containsLine(containsString(className.replace(".", File.separator)))
     }
-  
+
     private void writeBuildFile() {
         file("build.gradle") << """
         apply plugin: "java"
@@ -138,6 +168,7 @@ class FindBugsPluginIntegrationTest extends WellBehavedPluginTest {
         repositories {
             mavenCentral()
         }
+
         """
     }
 }

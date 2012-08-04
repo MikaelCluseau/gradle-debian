@@ -15,10 +15,10 @@
  */
 package org.gradle.groovy.compile
 
-class DaemonGroovyCompilerIntegrationTest extends GroovyCompilerIntegrationSpec {
+class DaemonGroovyCompilerIntegrationTest extends ApiGroovyCompilerIntegrationSpec {
 
     @Override
-    def String compilerConfiguration() {
+    String compilerConfiguration() {
 '''
     tasks.withType(GroovyCompile) {
         groovyOptions.useAnt = false

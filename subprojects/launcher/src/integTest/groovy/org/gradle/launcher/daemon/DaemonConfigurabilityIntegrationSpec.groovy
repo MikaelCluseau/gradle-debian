@@ -17,6 +17,10 @@
 package org.gradle.launcher.daemon
 
 import org.gradle.integtests.fixtures.AvailableJavaHomes
+import org.gradle.internal.jvm.Jvm
+import org.gradle.internal.nativeplatform.filesystem.FileSystems
+import org.gradle.util.Requires
+import org.gradle.util.TestPrecondition
 import org.gradle.util.TextUtil
 import spock.lang.IgnoreIf
 
@@ -38,6 +42,27 @@ class DaemonConfigurabilityIntegrationSpec extends DaemonIntegrationSpec {
 assert System.getProperty('some-prop') == 'some-value'
 assert java.lang.management.ManagementFactory.runtimeMXBean.inputArguments.contains('-Xmx16m')
         """
+    }
+
+    @Requires(TestPrecondition.SYMLINKS)
+    def "connects to the daemon if java home is a symlink"() {
+        given:
+        def javaHome = Jvm.current().javaHome
+        def javaLink = distribution.testFile("javaLink")
+        FileSystems.default.createSymbolicLink(javaLink, javaHome)
+
+        String linkPath = TextUtil.escapeString(javaLink.absolutePath)
+        distribution.file("gradle.properties") << "org.gradle.java.home=$linkPath"
+
+        when:
+        buildSucceeds "println 'Hello!'"
+
+        then:
+        javaLink != javaHome
+        javaLink.canonicalFile == javaHome.canonicalFile
+
+        cleanup:
+        javaLink.usingNativeTools().deleteDir()
     }
 
     //TODO SF add coverage for reconnecting to those daemons.

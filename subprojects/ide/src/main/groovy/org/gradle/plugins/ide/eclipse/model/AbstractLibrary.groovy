@@ -15,6 +15,8 @@
  */
 package org.gradle.plugins.ide.eclipse.model
 
+import org.gradle.api.Nullable
+import org.gradle.api.artifacts.ModuleVersionIdentifier
 import org.gradle.plugins.ide.eclipse.model.internal.FileReferenceFactory
 
 /**
@@ -25,6 +27,8 @@ abstract class AbstractLibrary extends AbstractClasspathEntry {
     FileReference javadocPath
     FileReference library
     String declaredConfigurationName
+    @Nullable
+    ModuleVersionIdentifier moduleVersion
 
     AbstractLibrary(Node node, FileReferenceFactory fileReferenceFactory) {
         super(node)
@@ -87,6 +91,7 @@ abstract class AbstractLibrary extends AbstractClasspathEntry {
                 ", accessRules=" + accessRules +
                 ", sourcePath='" + sourcePath + '\'' +
                 ", javadocPath='" + javadocPath + '\'' +
+                ", id='" + moduleVersion + '\'' +
                 '}';
     }
 }

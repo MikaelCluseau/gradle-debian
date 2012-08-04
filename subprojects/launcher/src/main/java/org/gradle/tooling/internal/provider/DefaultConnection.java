@@ -22,11 +22,12 @@ import org.gradle.internal.Factory;
 import org.gradle.launcher.daemon.client.DaemonClient;
 import org.gradle.launcher.daemon.client.DaemonClientServices;
 import org.gradle.launcher.daemon.configuration.DaemonParameters;
+import org.gradle.launcher.exec.BuildActionParameters;
 import org.gradle.launcher.exec.GradleLauncherActionExecuter;
 import org.gradle.logging.LoggingManagerInternal;
 import org.gradle.logging.LoggingServiceRegistry;
 import org.gradle.logging.internal.OutputEventRenderer;
-import org.gradle.logging.internal.slf4j.SimpleSlf4jLoggingConfigurer;
+import org.gradle.logging.internal.logback.SimpleLogbackLoggingConfigurer;
 import org.gradle.tooling.internal.build.DefaultBuildEnvironment;
 import org.gradle.tooling.internal.protocol.*;
 import org.gradle.tooling.internal.provider.input.AdaptedOperationParameters;
@@ -42,12 +43,12 @@ import java.util.List;
 public class DefaultConnection implements InternalConnection {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultConnection.class);
     private final EmbeddedExecuterSupport embeddedExecuterSupport;
-    private final SimpleSlf4jLoggingConfigurer loggingConfigurer = new SimpleSlf4jLoggingConfigurer();
+    private final SimpleLogbackLoggingConfigurer loggingConfigurer = new SimpleLogbackLoggingConfigurer();
 
     public DefaultConnection() {
         LOGGER.debug("Provider implementation created.");
         //embedded use of the tooling api is not supported publicly so we don't care about its thread safety
-        //we can keep still keep this state:
+        //we can still keep this state:
         embeddedExecuterSupport = new EmbeddedExecuterSupport();
         LOGGER.debug("Embedded executer support created.");
     }
@@ -114,22 +115,20 @@ public class DefaultConnection implements InternalConnection {
     }
 
     private GradleLauncherActionExecuter<ProviderOperationParameters> createExecuter(ProviderOperationParameters operationParameters) {
+        LoggingServiceRegistry loggingServices;
+        DaemonParameters daemonParams = init(operationParameters);
+        GradleLauncherActionExecuter<BuildActionParameters> executer;
         if (Boolean.TRUE.equals(operationParameters.isEmbedded())) {
-            return embeddedExecuterSupport.getExecuter();
+            loggingServices = embeddedExecuterSupport.getLoggingServices();
+            executer = embeddedExecuterSupport.getExecuter();
         } else {
-            LoggingServiceRegistry loggingServices = LoggingServiceRegistry.newEmbeddableLogging();
-
+            loggingServices = LoggingServiceRegistry.newEmbeddableLogging();
             loggingServices.get(OutputEventRenderer.class).configure(operationParameters.getBuildLogLevel());
-
-            DaemonParameters daemonParams = init(operationParameters);
             DaemonClientServices clientServices = new DaemonClientServices(loggingServices, daemonParams, operationParameters.getStandardInput());
-            DaemonClient client = clientServices.get(DaemonClient.class);
-
-            GradleLauncherActionExecuter<ProviderOperationParameters> executer = new DaemonGradleLauncherActionExecuter(client, clientServices.getDaemonParameters());
-
-            Factory<LoggingManagerInternal> loggingManagerFactory = clientServices.getLoggingServices().getFactory(LoggingManagerInternal.class);
-            return new LoggingBridgingGradleLauncherActionExecuter(executer, loggingManagerFactory);
+            executer = clientServices.get(DaemonClient.class);
         }
+        Factory<LoggingManagerInternal> loggingManagerFactory = loggingServices.getFactory(LoggingManagerInternal.class);
+        return new LoggingBridgingGradleLauncherActionExecuter(new DaemonGradleLauncherActionExecuter(executer, daemonParams), loggingManagerFactory);
     }
 
     private DaemonParameters init(ProviderOperationParameters operationParameters) {

@@ -17,9 +17,9 @@ package org.gradle.api.internal;
 
 import groovy.lang.*;
 import org.gradle.api.Action;
-import org.gradle.api.internal.plugins.DefaultConvention;
 import org.gradle.api.plugins.Convention;
 import org.gradle.api.plugins.ExtensionAware;
+import org.gradle.internal.reflect.JavaReflectionUtil;
 import org.gradle.util.ConfigureUtil;
 import org.gradle.util.ReflectionUtil;
 import org.objectweb.asm.*;
@@ -51,8 +51,6 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
         private final Type dynamicObjectType = Type.getType(DynamicObject.class);
         private final Type conventionMappingType = Type.getType(ConventionMapping.class);
         private final Type groovyObjectType = Type.getType(GroovyObject.class);
-        private boolean dynamicAware;
-        private final Type defaultConventionType = Type.getType(DefaultConvention.class);
         private final Type conventionType = Type.getType(Convention.class);
 
         private ClassBuilderImpl(Class<T> type) {
@@ -64,18 +62,15 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
             superclassType = Type.getType(type);
         }
 
-        public void startClass(boolean isConventionAware, boolean isDynamicAware) {
-            dynamicAware = isDynamicAware;
+        public void startClass(boolean isConventionAware) {
             List<String> interfaceTypes = new ArrayList<String>();
             if (isConventionAware) {
                 interfaceTypes.add(conventionAwareType.getInternalName());
             }
-            if (isDynamicAware) {
-                interfaceTypes.add(dynamicObjectAwareType.getInternalName());
-                interfaceTypes.add(extensionAwareType.getInternalName());
-                interfaceTypes.add(hasConventionType.getInternalName());
-                interfaceTypes.add(groovyObjectType.getInternalName());
-            }
+            interfaceTypes.add(dynamicObjectAwareType.getInternalName());
+            interfaceTypes.add(extensionAwareType.getInternalName());
+            interfaceTypes.add(hasConventionType.getInternalName());
+            interfaceTypes.add(groovyObjectType.getInternalName());
 
             visitor.visit(Opcodes.V1_5, Opcodes.ACC_PUBLIC, generatedType.getInternalName(), null,
                     superclassType.getInternalName(), interfaceTypes.toArray(new String[interfaceTypes.size()]));
@@ -233,24 +228,13 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
                     visitor.visitInsn(Opcodes.DUP);
                     visitor.visitVarInsn(Opcodes.ALOAD, 0);
 
-                    if (dynamicAware) {
-                        // GENERATE getConvention()
+                    // GENERATE getConvention()
 
-                        visitor.visitVarInsn(Opcodes.ALOAD, 0);
-                        visitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, generatedType.getInternalName(), "getConvention",
-                                getConventionDesc);
+                    visitor.visitVarInsn(Opcodes.ALOAD, 0);
+                    visitor.visitMethodInsn(Opcodes.INVOKEVIRTUAL, generatedType.getInternalName(), "getConvention",
+                            getConventionDesc);
 
-                        // END
-                    } else {
-                        // GENERATE new DefaultConvention()
-
-                        visitor.visitTypeInsn(Opcodes.NEW, defaultConventionType.getInternalName());
-                        visitor.visitInsn(Opcodes.DUP);
-                        visitor.visitMethodInsn(Opcodes.INVOKESPECIAL, defaultConventionType.getInternalName(),
-                                "<init>", "()V");
-
-                        // END
-                    }
+                    // END
 
                     String constructorDesc = Type.getMethodDescriptor(Type.VOID_TYPE, new Type[]{
                             conventionAwareType, conventionType
@@ -549,7 +533,7 @@ public class AsmBackedClassGenerator extends AbstractClassGenerator {
             Type boxedType = null;
             if (getter.getReturnType().isPrimitive()) {
                 // Box value
-                boxedType = Type.getType(ReflectionUtil.getWrapperTypeForPrimitiveType(getter.getReturnType()));
+                boxedType = Type.getType(JavaReflectionUtil.getWrapperTypeForPrimitiveType(getter.getReturnType()));
                 String valueOfMethodDescriptor = Type.getMethodDescriptor(boxedType, new Type[]{returnType});
                 methodVisitor.visitMethodInsn(Opcodes.INVOKESTATIC, boxedType.getInternalName(), "valueOf", valueOfMethodDescriptor);
             }

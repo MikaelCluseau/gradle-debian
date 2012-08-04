@@ -35,6 +35,22 @@ task multiGroovy(type: ProjectGeneratorTask, description: 'Generates a multi-pro
     groovyProject = true
 }
 
+task largeMulti(type: ProjectGeneratorTask, description: 'Generates a large multi-project build') {
+    projects = 800
+    sourceFiles = 100
+}
+
+task lotDependencies(type: ProjectGeneratorTask, description: 'Generates a small multi-project build with a large Dependency Graph'){
+    projects = 25
+    sourceFiles = 100
+
+    dependencyGraph {
+        size = 200
+        depth = 4
+        useSnapshotVersions = true //default is false
+    }
+}
+
 def generators = tasks.withType(ProjectGeneratorTask)
 generators.all {
     group = 'Project setup'

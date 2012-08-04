@@ -28,6 +28,7 @@ import org.gradle.api.internal.file.BaseDirFileResolver;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.cache.CacheRepository;
 import org.gradle.cache.internal.*;
+import org.gradle.internal.id.LongIdGenerator;
 import org.gradle.internal.nativeplatform.filesystem.FileSystems;
 import org.gradle.internal.nativeplatform.services.NativeServices;
 import org.gradle.listener.ListenerBroadcast;
@@ -39,7 +40,6 @@ import org.gradle.messaging.remote.internal.MessagingServices;
 import org.gradle.internal.nativeplatform.ProcessEnvironment;
 import org.gradle.process.internal.*;
 import org.gradle.process.internal.child.WorkerProcessClassPathProvider;
-import org.gradle.util.LongIdGenerator;
 import org.gradle.util.TemporaryFolder;
 import org.jmock.Expectations;
 import org.jmock.Sequence;
@@ -50,6 +50,9 @@ import org.junit.runner.RunWith;
 
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -160,15 +163,11 @@ public class WorkerProcessIntegrationTest {
 
     @Test
     public void handlesWorkerProcessWhenJvmFailsToStart() throws Throwable {
-        execute(mainClass("no-such-class").expectStartFailure());
+        execute(worker(new NoOpAction()).jvmArgs("--broken").expectStartFailure());
     }
 
     private ChildProcess worker(Action<WorkerProcessContext> action) {
         return new ChildProcess(action);
-    }
-
-    private ChildProcess mainClass(String mainClass) {
-        return new ChildProcess(new NoOpAction()).mainClass(mainClass);
     }
 
     void execute(ChildProcess... processes) throws Throwable {
@@ -187,7 +186,7 @@ public class WorkerProcessIntegrationTest {
         private boolean startFails;
         private WorkerProcess proc;
         private Action<WorkerProcessContext> action;
-        private String mainClass;
+        private List<String> jvmArgs = Collections.emptyList();
         private Action<ObjectConnection> serverAction;
 
         public ChildProcess(Action<WorkerProcessContext> action) {
@@ -212,9 +211,7 @@ public class WorkerProcessIntegrationTest {
             builder.getJavaCommand().environment("TEST_ENV_VAR", "value");
             builder.worker(action);
 
-            if (mainClass != null) {
-                builder.getJavaCommand().setMain(mainClass);
-            }
+            builder.getJavaCommand().jvmArgs(jvmArgs);
 
             proc = builder.build();
             try {
@@ -242,13 +239,13 @@ public class WorkerProcessIntegrationTest {
             }
         }
 
-        public ChildProcess mainClass(String mainClass) {
-            this.mainClass = mainClass;
+        public ChildProcess onServer(Action<ObjectConnection> action) {
+            this.serverAction = action;
             return this;
         }
 
-        public ChildProcess onServer(Action<ObjectConnection> action) {
-            this.serverAction = action;
+        public ChildProcess jvmArgs(String... jvmArgs) {
+            this.jvmArgs = Arrays.asList(jvmArgs);
             return this;
         }
     }

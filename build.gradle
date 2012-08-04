@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-import org.gradle.build.Version
 import org.gradle.build.Install
-import org.gradle.build.Git
-import org.gradle.build.Releases
+import org.gradle.build.TestReportAggregator
 
 /**
  * For building Gradle you usually don't need to specify any properties. Only certain functionality of the Gradle requires
@@ -25,26 +23,20 @@ import org.gradle.build.Releases
  * following properties can be set:
  *
  * Uploading distributions to Gradle's release and snapshot repository at codehaus: artifactoryUserName, artifactoryUserPassword
- * Uploading the userguide and the javadoc to Gradle's website: websiteScpUserName, websiteScpUserPassword
- * Using the build to create a new distribution and install it on the local machine: gradle_installPath
  */
 
-ext.releases = new Releases(project(':core').file('src/releases.xml'), project)
-version = Version.forProject(project)
-
 defaultTasks 'assemble'
-
 apply plugin: 'java-base'
-
 archivesBaseName = 'gradle'
+apply from: "gradle/versioning.gradle"
 
 ext {
     versions = [
         commons_io: 'commons-io:commons-io:1.4'
     ]
     libraries = [
-        ant: dependencies.module('org.apache.ant:ant:1.8.2') {
-            dependency 'org.apache.ant:ant-launcher:1.8.2@jar'
+        ant: dependencies.module('org.apache.ant:ant:1.8.4') {
+            dependency 'org.apache.ant:ant-launcher:1.8.4@jar'
         },
         asm: 'asm:asm-all:3.3.1@jar',
         commons_cli: 'commons-cli:commons-cli:1.2@jar',
@@ -56,22 +48,22 @@ ext {
         },
         jcip: "net.jcip:jcip-annotations:1.0@jar",
     ]
-    
+
 }
 
 // Logging
-libraries.slf4j_api = 'org.slf4j:slf4j-api:1.6.4@jar'
-libraries.jcl_to_slf4j = dependencies.module('org.slf4j:jcl-over-slf4j:1.6.4') {
+libraries.slf4j_api = 'org.slf4j:slf4j-api:1.6.6@jar'
+libraries.jcl_to_slf4j = dependencies.module('org.slf4j:jcl-over-slf4j:1.6.6') {
     dependency libraries.slf4j_api
 }
-libraries.jul_to_slf4j = dependencies.module('org.slf4j:jul-to-slf4j:1.6.4') {
+libraries.jul_to_slf4j = dependencies.module('org.slf4j:jul-to-slf4j:1.6.6') {
     dependency libraries.slf4j_api
 }
-libraries.log4j_to_slf4j = dependencies.module('org.slf4j:log4j-over-slf4j:1.6.4') {
+libraries.log4j_to_slf4j = dependencies.module('org.slf4j:log4j-over-slf4j:1.6.6') {
     dependency libraries.slf4j_api
 }
-libraries.logback_core = 'ch.qos.logback:logback-core:1.0.0@jar'
-libraries.logback_classic = dependencies.module('ch.qos.logback:logback-classic:1.0.0') {
+libraries.logback_core = 'ch.qos.logback:logback-core:1.0.6@jar'
+libraries.logback_classic = dependencies.module('ch.qos.logback:logback-classic:1.0.6') {
     dependency libraries.logback_core
     dependency libraries.slf4j_api
 }
@@ -87,10 +79,10 @@ libraries.jetty = dependencies.module("org.mortbay.jetty:jetty:6.1.25") {
     dependency libraries.servlet_api
 }
 
-libraries.commons_httpclient = dependencies.module('org.apache.httpcomponents:httpclient:4.1.2') {
-    dependency "org.apache.httpcomponents:httpcore:4.1.2@jar"
+libraries.commons_httpclient = dependencies.module('org.apache.httpcomponents:httpclient:4.2.1') {
+    dependency "org.apache.httpcomponents:httpcore:4.2.1@jar"
     dependency libraries.jcl_to_slf4j
-    dependency "commons-codec:commons-codec:1.4@jar"
+    dependency "commons-codec:commons-codec:1.6@jar"
     dependency "org.samba.jcifs:jcifs:1.3.17"
 }
 
@@ -99,11 +91,12 @@ libraries.maven_ant_tasks = dependencies.module("org.apache.maven:maven-ant-task
 }
 
 libraries += [
-        ant_junit: 'org.apache.ant:ant-junit:1.8.2@jar',
-        ant_antlr: 'org.apache.ant:ant-antlr:1.8.2@jar',
+        ant_junit: 'org.apache.ant:ant-junit:1.8.4@jar',
+        ant_antlr: 'org.apache.ant:ant-antlr:1.8.4@jar',
         antlr: 'antlr:antlr:2.7.7@jar',
         dom4j: 'dom4j:dom4j:1.6.1@jar',
-        guava: 'com.google.guava:guava:11.0.1@jar',
+        guava: 'com.google.guava:guava:11.0.2@jar',
+        jsr305: 'com.google.code.findbugs:jsr305:1.3.9',
         groovy: 'org.codehaus.groovy:groovy-all:1.8.6@jar',
         jaxen: 'jaxen:jaxen:1.1@jar',
         jcip: "net.jcip:jcip-annotations:1.0",
@@ -113,6 +106,15 @@ libraries += [
         nekohtml: 'net.sourceforge.nekohtml:nekohtml:1.9.14'
 ]
 
+libraries.maven3_settings_builder = dependencies.module("org.apache.maven:maven-settings-builder:3.0.4") {
+    dependency "org.apache.maven:maven-settings:3.0.4@jar"
+    dependency "org.codehaus.plexus:plexus-utils:2.0.6@jar"
+    dependency "org.codehaus.plexus:plexus-interpolation:1.14@jar"
+    dependency "org.codehaus.plexus:plexus-component-annotations:1.5.5@jar"
+    dependency "org.sonatype.plexus:plexus-cipher:1.4@jar"
+    dependency "org.sonatype.plexus:plexus-sec-dispatcher:1.3@jar"
+}
+
 libraries.spock = ['org.spockframework:spock-core:0.6-groovy-1.8@jar',
         libraries.groovy,
         'org.objenesis:objenesis:1.2',
@@ -120,7 +122,7 @@ libraries.spock = ['org.spockframework:spock-core:0.6-groovy-1.8@jar',
 libraries.jmock = ['org.jmock:jmock:2.5.1',
         'org.hamcrest:hamcrest-core:1.1',
         'org.hamcrest:hamcrest-library:1.1',
-        'org.jmock:jmock-junit4:2.5.1',
+        dependencies.create('org.jmock:jmock-junit4:2.5.1') { exclude group: 'junit', module: 'junit-dep' }, //junit-dep pulls old definitions of core junit types.
         'org.jmock:jmock-legacy:2.5.1',
         'org.objenesis:objenesis:1.2',
         'cglib:cglib-nodep:2.2']
@@ -138,20 +140,10 @@ allprojects {
         maven { url 'http://repository.codehaus.org/' }
     }
 
-    configurations {
-        all {
-            resolutionStrategy {
-                //we cannot use 'hours' for now due to java 1.5 problem
-                cacheDynamicVersionsFor 24*60*60, 'seconds'
-                cacheChangingModulesFor 24*60*60, 'seconds'
-            }
-        }
-    }
-
     version = this.version
 
     apply from: "$rootDir/gradle/conventions-dsl.gradle"
-    
+
     ext {
         isDevBuild = {
             gradle.taskGraph.hasTask(developerBuild)
@@ -163,22 +155,6 @@ allprojects {
 
         isCommitBuild = {
             gradle.taskGraph.hasTask(commitBuild)
-        }
-
-        isFinalReleaseBuild = {
-            gradle.taskGraph.hasTask(releaseVersion)
-        }
-
-        isRcBuild = {
-            gradle.taskGraph.hasTask(rcVersion)
-        }
-
-        isNightlyBuild = {
-            gradle.taskGraph.hasTask(nightlyVersion)
-        }
-
-        isReleaseBuild = { // Are we doing any kind of “release”? i.e. final, nightly or rc
-            isFinalReleaseBuild() || isNightlyBuild() || isRcBuild()
         }
     }
 }
@@ -238,6 +214,76 @@ task aggregateTestReports(type: TestReportAggregator) {
     testReportDir = reporting.file("tests")
     testResultsDir = file("${buildDir}/test-results")
     projects = subprojects
+}
+
+task determineCommitId {
+    ext.commitId = null
+
+    doLast {
+        def strategies = []
+
+        def env = System.getenv()
+
+        // Builds of Gradle happening on the CI server
+        strategies << {
+            env["BUILD_VCS_NUMBER"]
+        }
+
+        // For the discovery builds, this points to the Gradle revision
+        strategies << {
+            env.find { it.key.startsWith("BUILD_VCS_NUMBER_Gradle_Master") }?.value
+        }
+
+        // If it's a checkout, ask Git for it
+        strategies << {
+            if (file(".git").exists()) {
+                def baos = new ByteArrayOutputStream()
+                exec {
+                    executable "git"
+                    args "log", "-1", "--format=%H"
+                    standardOutput = baos
+                }
+                new String(baos.toByteArray(), "utf8").trim()
+            } else {
+                null
+            }
+        }
+
+        for (strategy in strategies) {
+            commitId = strategy()
+            if (commitId) {
+                break
+            }
+        }
+        if (!commitId) {
+            throw new InvalidUserDataException("Could not determine commit id")
+        }
+    }
+}
+
+task createBuildReceipt(dependsOn: determineCommitId) {
+    ext.receiptFile = file("$buildDir/build-receipt.properties")
+    outputs.file receiptFile
+    outputs.upToDateWhen { false }
+    doLast {
+        def data = [
+            commitId:  determineCommitId.commitId,
+            versionNumber: version,
+            buildTimestamp: buildTimestamp,
+            username: System.properties["user.name"],
+            hostname: InetAddress.localHost.hostName,
+            javaVersion: System.properties["java.version"],
+            osName: System.properties["os.name"],
+            osVersion: System.properties["os.version"]
+        ]
+
+        receiptFile.parentFile.mkdirs()
+
+        // We write this out ourself instead of using the properties class to avoid the
+        // annoying timestamp that insists on placing in there, that throws out incremental.
+        def content = data.entrySet().collect { "$it.key=$it.value" }.sort().join("\n")
+        receiptFile.setText(content, "ISO-8859-1")
+    }
 }
 
 ext.zipRootFolder = "$archivesBaseName-${-> version}"
@@ -312,10 +358,14 @@ task srcZip(type: Zip) {
     }
 }
 
+task outputsZip(type: Zip) {
+    archiveName "outputs.zip"
+    from(createBuildReceipt)
+    ["all", "bin", "src"].each { from(tasks["${it}Zip"]) }
+}
+
 artifacts {
-    tasks.withType(Zip).each {
-        dists it
-    }
+    dists allZip, binZip, srcZip
 }
 
 task intTestImage(type: Sync) {
@@ -325,12 +375,6 @@ task intTestImage(type: Sync) {
     into integTestGradleHome
     doLast { task ->
         ant.chmod(dir: "$integTestGradleHome/bin", perm: "ugo+rx", includes: "**/*")
-    }
-}
-
-gradle.taskGraph.whenReady {
-    if (([isFinalReleaseBuild(), isNightlyBuild(), isRcBuild()].findAll { it }).size() > 1) {
-        throw new GradleException("This appears to be more than one type of release: final - ${isFinalReleaseBuild()}, rc - ${isRcBuild()}, nightly - ${isNightlyBuild() }")
     }
 }
 
@@ -347,7 +391,7 @@ task install(type: Install) {
     group = 'build'
     dependsOn binZip.taskDependencies
     with binDistImage
-    installDirProperyName = 'gradle_installPath'
+    installDirPropertyName = 'gradle_installPath'
 }
 
 task installAll(type: Install) {
@@ -355,7 +399,7 @@ task installAll(type: Install) {
     group = 'build'
     dependsOn allZip.taskDependencies
     with allDistImage
-    installDirProperyName = 'gradle_installPath'
+    installDirPropertyName = 'gradle_installPath'
 }
 
 task testedDists(dependsOn: [check]) {
@@ -398,64 +442,16 @@ task commitBuild {
     dependsOn testedDists
 }
 
-task nightlyVersion
-
-task checkJavaVersion << {
+task verifyIsProductionBuildEnvironment << {
     assert Jvm.current().isJava7() : "Must use a Java 7 compatible JVM to perform this build. Current JVM is ${Jvm.current()}"
-}
-
-task nightlyBuild {
-    description = 'Nightly build performed by the CI server'
-    dependsOn checkJavaVersion, nightlyVersion, testedDists, "uploadAll"
+    def systemCharset = java.nio.charset.Charset.defaultCharset().name()
+    assert systemCharset == "UTF-8" : "Platform encoding must be UTF-8. Is currently $systemCharset. Set -Dfile.encoding=UTF-8."
 }
 
 gradle.taskGraph.whenReady {graph ->
     if (graph.hasTask(ciBuild)) {
         subprojects { reporting.baseDir "$rootProject.reporting.baseDir/${path.replaceFirst(':', '').replaceAll(':', '.')}" }
     }
-}
-
-// A marker task which causes the release version to be used when it is present in the task graph
-task releaseVersion
-//TODO SF - this task name is inconsistent because other releaseXxx tasks actually upload some content somewhere. Should be called something like 'markReleaseVersion'
-
-// A marker task which indicates that we are building an rc of some sort
-task rcVersion
-
-//TODO RG - we depend here on the alphabetical order of dependent task execution. We Should change that to fail early if javaversion is inappropriate
-task rc {
-    description "Builds a release candidate for the next release"
-    dependsOn checkJavaVersion, rcVersion, testedDists, "uploadAll"
-}
-
-task tag(type: Tag)
-
-task testedTag(type: Tag, dependsOn: testedDists)
-
-task releaseArtifacts {
-    description = 'Builds the release artifacts'
-    //TODO SF - this task name is inconsistent because other releaseXxx tasks actually upload some content somewhere. Should be called something like 'buildReleaseArtifacts'
-    group = 'release'
-    dependsOn releaseVersion, assemble
-}
-
-//TODO RG - we depend here on the alphabetical order of dependent task execution. We Should change that to fail early if javaversion is inappropriate
-task release {
-    description = 'Builds, tests and uploads the release artifacts'
-    group = 'release'
-    dependsOn releaseVersion, checkJavaVersion, testedTag, releaseArtifacts, testedDists, 'uploadAll'
-    doLast {
-        releases.incrementNextVersion()
-    }
-}
-
-task incrementNextVersion << {
-    releases.incrementNextVersion()
-}
-
-task uploadAll {
-    description = 'Uploads binaries, sources and documentation. Does not upload the website! Useful when release procedure breaks at upload and only upload tasks should executed again'
-    dependsOn uploadArchives, "website:uploadDistributions", "website:uploadDocs", "website:pushReleasesXml"
 }
 
 def wrapperUpdateTask = { name, label ->
@@ -483,58 +479,16 @@ wrapperUpdateTask("rc", "release-candidate")
 wrapperUpdateTask("current", "current")
 
 def groovyProjects() {
-    subprojects.findAll { !(it.name in ["docs", "website"]) }
+    subprojects.findAll { !(it.name in ["docs"]) }
 }
 
 def publishedProjects() {
-    [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices')]
+    [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices'), project(':messaging')]
 }
 
 def pluginProjects() {
-    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear'].collect {
+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript'].collect {
         project(it)
     }
 }
-
-class TestReportAggregator extends Copy {
-    def projects
-
-    File testResultsDir
-
-    @OutputDirectory
-    File testReportDir
-
-    def TestReportAggregator() {
-        dependsOn { testTasks }
-        from { inputTestResultDirs }
-        into { testResultsDir }
-    }
-
-    @TaskAction
-    def aggregate() {
-        def report = new org.gradle.api.internal.tasks.testing.junit.report.DefaultTestReport(testReportDir: testReportDir, testResultsDir: testResultsDir)
-        report.generateReport()
-    }
-
-    def getTestTasks() {
-        projects.collect { it.tasks.withType(Test) }.flatten()
-    }
-
-    def getInputTestResultDirs() {
-        testTasks*.testResultsDir
-    }
-
-}
-
-class Tag extends DefaultTask {
-    @TaskAction
-    def tagNow() {
-        def version = project.version
-        def git = new Git(project)
-        git.checkNoModifications()
-        git.tag("REL_$version", "Release $version")
-        git.branch("RB_$version")
-    }
-}
-
 

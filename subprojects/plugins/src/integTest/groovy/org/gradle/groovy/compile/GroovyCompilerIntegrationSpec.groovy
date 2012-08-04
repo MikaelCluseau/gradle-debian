@@ -15,9 +15,11 @@
  */
 package org.gradle.groovy.compile
 
+import spock.lang.Issue
+
 abstract class GroovyCompilerIntegrationSpec extends BasicGroovyCompilerIntegrationSpec {
     def "canUseBuiltInAstTransform"() {
-        if (version.startsWith('1.5.')) {
+        if (versionLowerThan('1.6')) {
             return
         }
 
@@ -29,7 +31,7 @@ abstract class GroovyCompilerIntegrationSpec extends BasicGroovyCompilerIntegrat
     }
 
     def "canUseThirdPartyAstTransform"() {
-        if (version.startsWith('1.5.')) {
+        if (versionLowerThan('1.6')) {
             return
         }
 
@@ -41,7 +43,7 @@ abstract class GroovyCompilerIntegrationSpec extends BasicGroovyCompilerIntegrat
     }
 
     def "canUseAstTransformWrittenInGroovy"() {
-        if (version.startsWith('1.5.')) {
+        if (versionLowerThan('1.6')) {
             return
         }
 
@@ -52,4 +54,18 @@ abstract class GroovyCompilerIntegrationSpec extends BasicGroovyCompilerIntegrat
         noExceptionThrown()
     }
 
+    // more generally, this test is about transforms that statically reference
+    // a class from the Groovy (compiler) Jar that in turn references a class from another Jar
+    @Issue("GRADLE-2317")
+    def canUseAstTransformThatReferencesGroovyTestCase() {
+        if (versionLowerThan('1.6')) {
+            return
+        }
+
+        when:
+        run("test")
+
+        then:
+        noExceptionThrown()
+    }
 }

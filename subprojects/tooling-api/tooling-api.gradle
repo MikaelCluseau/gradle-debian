@@ -1,11 +1,12 @@
-import org.gradle.internal.os.OperatingSystem
 
 dependencies {
     groovy libraries.groovy
 
     publishCompile project(':core')
     publishCompile project(':baseServices')
+    publishCompile project(':messaging')
     publishCompile project(':wrapper')
+    publishCompile libraries.slf4j_api
 
     // lots of integTest errors otherwise
     integTestRuntime project(':ide')
@@ -13,13 +14,10 @@ dependencies {
 
 useTestFixtures()
 
-// is some of this unnecessary, or should it be moved into gradle/integTest ?
-integTest {
+integTestTasks.all {
     dependsOn ':publishLocalArchives', ':binZip'
 
     doFirst {
-        systemProperties['integTest.distsDir'] = rootProject.distsDir.absolutePath
-        systemProperties['integTest.libsRepo'] = rootProject.file('build/repo')
         systemProperties['org.gradle.integtest.toolingApiFromTestClasspath'] = 'true'
     }
 }
@@ -27,5 +25,3 @@ integTest {
 daemonIntegTest {
     enabled = false //tooling integ tests use daemon anyway, don't rerun
 }
-
-
