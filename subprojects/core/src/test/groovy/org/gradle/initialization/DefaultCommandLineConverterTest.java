@@ -71,6 +71,7 @@ public class DefaultCommandLineConverterTest {
     private boolean expectedOffline;
     private RefreshOptions expectedRefreshOptions = RefreshOptions.NONE;
     private boolean expectedRecompileScripts;
+    private int expectedParallelExecutorCount;
 
     @Test
     public void withoutAnyOptions() {
@@ -109,6 +110,7 @@ public class DefaultCommandLineConverterTest {
         assertEquals(expectedRefreshOptions, startParameter.getRefreshOptions());
         assertEquals(expectedRefreshDependencies, startParameter.isRefreshDependencies());
         assertEquals(expectedProjectCacheDir, startParameter.getProjectCacheDir());
+        assertEquals(expectedParallelExecutorCount, startParameter.getParallelThreadCount());
     }
 
     @Test
@@ -348,6 +350,7 @@ public class DefaultCommandLineConverterTest {
     public void withOffline() {
         expectedOffline = true;
         checkConversion("--offline");
+        checkConversion("-offline");
     }
 
     @Test
@@ -355,6 +358,7 @@ public class DefaultCommandLineConverterTest {
         expectedRefreshDependencies = true;
         expectedRefreshOptions = new RefreshOptions(asList(RefreshOptions.Option.DEPENDENCIES));
         checkConversion("--refresh-dependencies");
+        checkConversion("-refresh-dependencies");
     }
 
     @Test
@@ -384,5 +388,22 @@ public class DefaultCommandLineConverterTest {
     public void withTaskAndTaskOption() {
         expectedTaskNames = toList("someTask", "--some-task-option");
         checkConversion("someTask", "--some-task-option");
+    }
+
+    @Test
+    public void withParallelExecutor() {
+        expectedParallelExecutorCount = -1;
+        checkConversion("--parallel");
+    }
+
+    @Test
+    public void withParallelExecutorThreads() {
+        expectedParallelExecutorCount = 5;
+        checkConversion("--parallel-threads", "5");
+    }
+
+    @Test(expected = CommandLineArgumentException.class)
+    public void withInvalidParallelExecutorThreads() {
+        checkConversion("--parallel-threads", "foo");
     }
 }

@@ -16,13 +16,9 @@
 
 package org.gradle.integtests.fixtures;
 
-import org.gradle.StartParameter;
-import org.gradle.cli.CommandLineParser;
-import org.gradle.cli.SystemPropertiesCommandLineConverter;
 import org.gradle.internal.Factory;
 import org.gradle.internal.nativeplatform.jna.WindowsHandlesManipulator;
 import org.gradle.internal.os.OperatingSystem;
-import org.gradle.launcher.daemon.configuration.DaemonParameters;
 import org.gradle.launcher.daemon.registry.DaemonRegistry;
 import org.gradle.launcher.daemon.registry.DaemonRegistryServices;
 import org.gradle.process.internal.ExecHandleBuilder;
@@ -32,13 +28,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.fail;
 
-public class ForkingGradleExecuter extends AbstractGradleExecuter {
+class ForkingGradleExecuter extends AbstractGradleExecuter {
     private static final Logger LOG = LoggerFactory.getLogger(ForkingGradleExecuter.class);
     private final TestFile gradleHomeDir;
 
@@ -50,35 +44,12 @@ public class ForkingGradleExecuter extends AbstractGradleExecuter {
 //        gradleOpts.add("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005");
     }
 
-    public TestFile getGradleHomeDir() {
-        return gradleHomeDir;
-    }
-
     public DaemonRegistry getDaemonRegistry() {
-        File userHome = getUserHomeDir();
-        if (userHome == null) {
-            userHome = StartParameter.DEFAULT_GRADLE_USER_HOME;
-        }
-
-        DaemonParameters parameters = new DaemonParameters();
-        parameters.configureFromGradleUserHome(userHome);
-        parameters.configureFromSystemProperties(getSystemPropertiesFromArgs());
-        return new DaemonRegistryServices(parameters.getBaseDir()).get(DaemonRegistry.class);
+        return new DaemonRegistryServices(getDaemonBaseDir()).get(DaemonRegistry.class);
     }
 
-    protected Map<String, String> getSystemPropertiesFromArgs() {
-        SystemPropertiesCommandLineConverter converter = new SystemPropertiesCommandLineConverter();
-        CommandLineParser commandLineParser = new CommandLineParser();
-        converter.configure(commandLineParser);
-        commandLineParser.allowUnknownOptions();
-        return converter.convert(commandLineParser.parse(getAllArgs()));
-    }
-
-    /**
-     * Adds some options to the GRADLE_OPTS environment variable to use.
-     */
-    public void addGradleOpts(String... opts) {
-        gradleOpts.addAll(Arrays.asList(opts));
+    public void assertCanExecute() throws AssertionError {
+        // Can run any build
     }
 
     @Override
@@ -128,11 +99,15 @@ public class ForkingGradleExecuter extends AbstractGradleExecuter {
 
     @Override
     public GradleHandle doStart() {
-        return new ForkingGradleHandle(getDefaultCharacterEncoding(), new Factory<ExecHandleBuilder>() {
+        return createGradleHandle(getDefaultCharacterEncoding(), new Factory<ExecHandleBuilder>() {
             public ExecHandleBuilder create() {
                 return createExecHandleBuilder();
             }
         }).start();
+    }
+
+    protected ForkingGradleHandle createGradleHandle(String encoding, Factory<ExecHandleBuilder> execHandleFactory) {
+        return new ForkingGradleHandle(encoding, execHandleFactory);
     }
 
     protected ExecutionResult doRun() {
@@ -144,6 +119,10 @@ public class ForkingGradleExecuter extends AbstractGradleExecuter {
     }
 
     private String formatGradleOpts() {
+        if (getUserHomeDir() != null) {
+            gradleOpts.add(String.format("-Duser.home=%s", getUserHomeDir()));
+        }
+
         StringBuilder result = new StringBuilder();
         for (String gradleOpt : gradleOpts) {
             if (result.length() > 0) {
@@ -158,7 +137,7 @@ public class ForkingGradleExecuter extends AbstractGradleExecuter {
                 result.append(gradleOpt);
             }
         }
-        
+
         result.append(" -Dfile.encoding=");
         result.append(getDefaultCharacterEncoding());
         result.append(" -Dorg.gradle.deprecation.trace=true");

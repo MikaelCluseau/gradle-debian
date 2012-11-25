@@ -15,7 +15,7 @@ dependencies {
 useTestFixtures()
 
 integTestTasks.all {
-    dependsOn ':publishLocalArchives', ':binZip'
+    dependsOn({ rootProject.getTasksByName('publishLocalArchives', true) }, ':distributions:binZip')
 
     doFirst {
         systemProperties['org.gradle.integtest.toolingApiFromTestClasspath'] = 'true'
@@ -24,4 +24,14 @@ integTestTasks.all {
 
 daemonIntegTest {
     enabled = false //tooling integ tests use daemon anyway, don't rerun
+}
+
+eclipse {
+	classpath {
+    	file.whenMerged { classpath ->
+        	 //**TODO
+        	classpath.entries.removeAll { it.path.contains('src/test/groovy') }
+        	classpath.entries.removeAll { it.path.contains('src/integTest/groovy') }
+        }
+    }
 }

@@ -1,6 +1,17 @@
 def timestampFormat = new java.text.SimpleDateFormat('yyyyMMddHHmmssZ')
 timestampFormat.timeZone = TimeZone.getTimeZone("UTC")
 
+if (incomingDistributionsBuildReceipt) {
+    def incomingVersion = incomingDistributionsBuildReceipt.versionNumber
+    def match = incomingVersion =~ /(.+)-(\d{14}[+-]\d{4})/
+    if (!match) {
+        throw new GradleException("Can't extract version number from incoming distribution build receipt version number: $incomingVersion")
+    }
+
+    version = match[0][1]
+    ext.buildTimestamp = match[0][2]
+}
+
 if (project.hasProperty("buildTimestamp")) {
     ext.buildTime = timestampFormat.parse(buildTimestamp)
 } else {
@@ -41,8 +52,8 @@ if (version == "unspecified") {
     // version = "0.0"
 
     // Using 0.0 causes issues with the Tooling API. It's something to do with older versions of Gradle not
-    // understanding the 0.0 version number scheme. For the time being, we are going to hardcode 1.1.
-    version = "1.1"
+    // understanding the 0.0 version number scheme. For the time being, we are going to hardcode the version.
+    version = "1.3"
 
     ext.isSymbolicVersion = false
 } else {

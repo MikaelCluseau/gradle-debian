@@ -106,7 +106,7 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
     private boolean ignoreFailures;
     private FileCollection classpath;
     private TestFramework testFramework;
-    private boolean testReport = true;
+    private boolean testReport;
     private boolean scanForTestClasses = true;
     private long forkEvery;
     private int maxParallelForks = 1;
@@ -733,17 +733,20 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
     }
 
     /**
-     * <p>Returns the test options options.</p>
+     * Returns test framework specific options. Make sure to call {@link #useJUnit()} or {@link #useTestNG()} before using this method.
      *
-     * <p>Be sure to call the appropriate {@link #useJUnit()} or {@link #useTestNG()} method before using this method.</p>
-     *
-     * @return The testframework options.
+     * @return The test framework options.
      */
     @Nested
     public TestFrameworkOptions getOptions() {
         return options(null);
     }
 
+    /**
+     * Configures test framework specific options. Make sure to call {@link #useJUnit()} or {@link #useTestNG()} before using this method.
+     *
+     * @return The test framework options.
+     */
     public TestFrameworkOptions options(Closure testFrameworkConfigure) {
         TestFrameworkOptions options = getTestFramework().getOptions();
         ConfigureUtil.configure(testFrameworkConfigure, testFramework.getOptions());
@@ -816,6 +819,21 @@ public class Test extends ConventionTask implements JavaForkOptions, PatternFilt
 
     /**
      * Specifies whether the test report should be generated.
+     * <p>
+     * Since Gradle 1.3 the TestNG uses this property in the following way:
+     * <ul>
+     *     <li>report 'on' means that new TestNG reporting is used:
+     *     new improved html reports are generated, old reports are not generated,
+     *     xml junit results (typically consumed by your CI server) are generated to {@link Test#getTestResultsDir()} dir
+     *     (previously those were generated into {@code Test.testReportsDir/junitreports} dir).
+     *     </li>
+     *     <li>report 'off' means that old TestNG reporting is used: old html reports are generated,
+     *     the xml junit results (for CI) are generated to {@code Test.testReportsDir/junitreports} dir.
+     *     </li>
+     * </ul>
+     * Even though the property is processed differently by TestNG tests, the default behavior does not change.
+     * The changes above were needed so that we can improve the TestNG reporting in a backwards compatible way.
+     * For more information please refer to the release notes for Gradle 1.3.
      */
     @Input
     public boolean isTestReport() {

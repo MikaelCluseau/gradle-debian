@@ -24,6 +24,7 @@ import spock.lang.Specification
 abstract class CrossVersionIntegrationSpec extends Specification {
     @Rule public final GradleDistribution current = new GradleDistribution()
     static BasicGradleDistribution previous
+    private MavenFileRepository mavenRepo
 
     BasicGradleDistribution getPrevious() {
         return previous
@@ -41,10 +42,22 @@ abstract class CrossVersionIntegrationSpec extends Specification {
         testDir.file(path);
     }
 
+    protected MavenRepository getMavenRepo() {
+        if (mavenRepo == null) {
+            mavenRepo = new MavenFileRepository(file("maven-repo"))
+        }
+        return mavenRepo
+    }
+
     def version(BasicGradleDistribution dist) {
         def executer = dist.executer();
         if (executer instanceof GradleDistributionExecuter) {
             executer.withDeprecationChecksDisabled()
+        }
+        if (dist.multiProcessSafeCache) {
+            executer.withGradleUserHomeDir(current.userHomeDir)
+        } else {
+            executer.withGradleUserHomeDir(current.file("user-home/$dist.version"))
         }
         executer.inDirectory(testDir)
         return executer;

@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+include 'distributions'
 include 'baseServices'
+include 'baseServicesGroovy'
 include 'core'
 include 'coreImpl'
 include 'wrapper'
@@ -43,7 +45,11 @@ include 'internalTesting'
 include 'internalIntegTesting'
 include 'performance'
 include 'javascript'
-include 'migration'
+include 'buildComparison'
+include 'reporting'
+include 'diagnostics'
+include 'publish'
+include 'ivy'
 
 rootProject.name = 'gradle'
 rootProject.children.each {project ->

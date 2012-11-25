@@ -36,7 +36,7 @@ class SamplesToolingApiIntegrationTest extends Specification {
         result.output.contains("src/main/java")
     }
 
-    @UsesSample('toolingApi/build')
+    @UsesSample('toolingApi/runBuild')
     def "can use tooling API to run tasks"() {
         tweakProject()
 
@@ -83,18 +83,13 @@ repositories {
     maven { url "${distribution.libsRepo.toURI()}" }
 }
 run {
-    args = ["${TextUtil.escapeString(distribution.gradleHomeDir.absolutePath)}"]
+    args = ["${TextUtil.escapeString(distribution.gradleHomeDir.absolutePath)}", "${TextUtil.escapeString(distribution.userHomeDir.absolutePath)}"]
+    systemProperty 'org.gradle.daemon.idletimeout', 10000
+    systemProperty 'org.gradle.daemon.registry.base', "${TextUtil.escapeString(projectDir.file("daemon").absolutePath)}"
 }
 """ + buildScript.substring(index)
 
         buildFile.text = buildScript
-
-        // Tweak the build environment
-        Properties props = new Properties()
-        props['org.gradle.daemon.idletimeout'] = '60000'
-        projectDir.file('gradle.properties').withOutputStream {outstr ->
-            props.store(outstr, 'props')
-        }
 
         // Add in an empty settings file to avoid searching up
         projectDir.file('settings.gradle').text = '// to stop search upwards'
@@ -104,6 +99,7 @@ run {
         try {
             return new GradleDistributionExecuter(distribution).inDirectory(sample.dir)
                     .withTasks('run')
+                    .withDaemonIdleTimeoutSecs(60)
                     .run()
         } catch (Exception e) {
             throw new IntegrationTestHint(e);

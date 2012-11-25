@@ -7,6 +7,7 @@ configurations {
 dependencies {
     junit 'junit:junit:4.10'
     groovy libraries.groovy
+    testFixturesCompile project(':internalIntegTesting')
 }
 
 useTestFixtures()
@@ -17,11 +18,17 @@ task small(type: ProjectGeneratorTask, description: 'Generates a small project')
 task largeSrc(type: ProjectGeneratorTask, description: 'Generates a single project with lots of source files') {
     sourceFiles = 50000
     linesOfCodePerSourceFile = 20
+    withPlainAntCompile = true
 }
 
 task multi(type: ProjectGeneratorTask, description: 'Generates a multi-project build') {
     projects = 25
     sourceFiles = 100
+}
+
+task parallel(type: ProjectGeneratorTask, description: 'Generates a multi-project build') {
+    projects = 8
+    sourceFiles = 1000
 }
 
 task mixedSize(type: ProjectGeneratorTask) {
@@ -30,9 +37,29 @@ task mixedSize(type: ProjectGeneratorTask) {
     projects[1].sourceFiles = 20000
 }
 
+task withTestNG(type: ProjectGeneratorTask) {
+    projects = 2
+    sourceFiles = 10
+    testReport = false
+    testFramework = 'useTestNG()'
+    testClassTemplate = 'TestNGTest.java'
+}
+
+task withVerboseJUnits(type: ProjectGeneratorTask) {
+    projects = 2
+    sourceFiles = 10
+    testReport = true
+    testClassTemplate = 'VerboseJUnitTest.java'
+}
+
 task multiGroovy(type: ProjectGeneratorTask, description: 'Generates a multi-project groovy build') {
     projects = 25
     groovyProject = true
+}
+
+task multiScala(type: ProjectGeneratorTask, description: 'Generates a multi-project Scala build') {
+    projects = 25
+    scalaProject = true
 }
 
 task largeMulti(type: ProjectGeneratorTask, description: 'Generates a large multi-project build') {
@@ -41,7 +68,7 @@ task largeMulti(type: ProjectGeneratorTask, description: 'Generates a large mult
 }
 
 task lotDependencies(type: ProjectGeneratorTask, description: 'Generates a small multi-project build with a large Dependency Graph'){
-    projects = 25
+    projects = 5
     sourceFiles = 100
 
     dependencyGraph {
@@ -58,21 +85,32 @@ generators.all {
 }
 task all(dependsOn: generators)
 
-task prepareSamples(dependsOn: [small, multi])
+task prepareSamples(dependsOn: [small, multi, lotDependencies, withTestNG, withVerboseJUnits])
 
-tasks.integTest.dependsOn prepareSamples
-
-task performanceTest(dependsOn: tasks.integTest) {
-    description = "Runs the performance test (note that performanceTest is not a part of 'check' or 'test')"
+integTestTasks.all {
+    if (buildTypes.isActive('performanceTest')) {
+        dependsOn prepareSamples
+    } else {
+        enabled = false
+        dependsOn = []
+    }
+    maxParallelForks = 1
 }
 
-tasks.integTest.testLogging.showStandardStreams = true
+tasks.integTest.testLogging {
+    showStandardStreams = true
+    lifecycle {
+        exceptionFormat 'full'
+    }
+}
 
-gradle.taskGraph.whenReady {
-    if (!it.hasTask(':performance:performanceTest')) {
-        project.tasks.withType(Test) {
-            logger.info("Skipping $it because task 'performanceTest' was not requested.")
-            enabled = false
+eclipse {
+    classpath {
+        file.whenMerged { classpath ->
+            //**TODO
+            classpath.entries.removeAll {it.path.contains('src/test/groovy')}
+            classpath.entries.removeAll {it.path.contains('src/testFixtures/groovy')}
+            classpath.entries.removeAll {it.path.contains('src/integTest/groovy')}
         }
     }
 }

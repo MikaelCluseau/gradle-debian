@@ -39,22 +39,22 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
     private static final TestFile USER_GUIDE_INFO_DIR;
     private static final TestFile DISTS_DIR;
     private static final TestFile LIBS_REPO;
+    private static final TestFile DAEMON_BASE_DIR;
 
     private final TemporaryFolder temporaryFolder = new TemporaryFolder();
     private TestFile userHome;
-    private boolean usingOwnUserHomeDir;
     private boolean usingIsolatedDaemons;
-    private boolean avoidsConfiguringTmpDir;
 
     static {
         USER_HOME_DIR = file("integTest.gradleUserHomeDir", "intTestHomeDir").file("worker-1");
         GRADLE_HOME_DIR = file("integTest.gradleHomeDir", null);
-        SAMPLES_DIR = file("integTest.samplesdir", "subprojects/docs/build/samples");
+        SAMPLES_DIR = file("integTest.samplesdir", String.format("%s/samples", GRADLE_HOME_DIR));
         USER_GUIDE_OUTPUT_DIR = file("integTest.userGuideOutputDir",
                 "subprojects/docs/src/samples/userguideOutput");
         USER_GUIDE_INFO_DIR = file("integTest.userGuideInfoDir", "subprojects/docs/build/src");
         DISTS_DIR = file("integTest.distsDir", "build/distributions");
         LIBS_REPO = file("integTest.libsRepo", "build/repo");
+        DAEMON_BASE_DIR = file("org.gradle.integtest.daemon.registry", "build/daemon");
     }
 
     public GradleDistribution() {
@@ -91,17 +91,24 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
         return true;
     }
 
+    public boolean isMultiProcessSafeCache() {
+        return true;
+    }
+
     public boolean wrapperCanExecute(String version) {
         // Current wrapper works with anything > 0.8
         return GradleVersion.version(version).compareTo(GradleVersion.version("0.8")) > 0;
     }
 
-    public boolean isUsingOwnUserHomeDir() {
-        return usingOwnUserHomeDir;
+    public TestFile getDaemonBaseDir() {
+        if (usingIsolatedDaemons) {
+            return getTestDir().file("daemon");
+        } else {
+            return DAEMON_BASE_DIR;
+        }
     }
 
     public void requireOwnUserHomeDir() {
-        usingOwnUserHomeDir = true;
         userHome = getTestDir().file("user-home");
     }
 
@@ -110,7 +117,6 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
     }
 
     public void requireIsolatedDaemons() {
-        requireOwnUserHomeDir();
         this.usingIsolatedDaemons = true;
     }
 
@@ -230,18 +236,6 @@ public class GradleDistribution implements MethodRule, TestFileContext, BasicGra
      */
     public TestFile testFile(Object... path) {
         return getTestDir().file(path);
-    }
-
-    /**
-     * avoids configuring -Djava.io.tmpdir=xxx property
-     */
-    public GradleDistribution avoidsConfiguringTmpDir() {
-        this.avoidsConfiguringTmpDir = true;
-        return this;
-    }
-
-    public boolean shouldAvoidConfiguringTmpDir() {
-        return avoidsConfiguringTmpDir;
     }
 }
 

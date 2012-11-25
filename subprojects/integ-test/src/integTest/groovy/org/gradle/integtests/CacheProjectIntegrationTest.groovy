@@ -20,8 +20,8 @@ import org.gradle.api.internal.artifacts.ivyservice.DefaultCacheLockingManager
 import org.gradle.groovy.scripts.ScriptSource
 import org.gradle.groovy.scripts.UriScriptSource
 import org.gradle.integtests.fixtures.AbstractIntegrationTest
-import org.gradle.integtests.fixtures.HttpServer
 import org.gradle.integtests.fixtures.MavenRepository
+import org.gradle.test.fixtures.server.http.HttpServer
 import org.gradle.util.GradleVersion
 import org.gradle.util.TestFile
 import org.junit.Before
@@ -64,7 +64,7 @@ public class CacheProjectIntegrationTest extends AbstractIntegrationTest {
 
         def repoDir = file("repo")
         repo = maven(repoDir)
-        server.allowGet("/repo", repo.rootDir)
+        server.allowGetOrHead("/repo", repo.rootDir)
         repo.module("commons-io", "commons-io", "1.4").publish()
         repo.module("commons-lang", "commons-lang", "2.6").publish()
 

@@ -15,10 +15,10 @@
  */
 package org.gradle.integtests.resolve.http
 
-import org.gradle.integtests.fixtures.HttpServer
+import org.gradle.integtests.resolve.AbstractDependencyResolutionTest
+import org.gradle.test.fixtures.server.http.HttpServer
 import org.hamcrest.Matchers
 import spock.lang.Unroll
-import org.gradle.integtests.resolve.AbstractDependencyResolutionTest
 
 class HttpAuthenticationDependencyResolutionIntegrationTest extends AbstractDependencyResolutionTest {
     static String badCredentials = "credentials{username 'testuser'; password 'bad'}"
@@ -117,12 +117,12 @@ task listJars << {
         server.expectGet('/repo/group/projectB/2.3/projectB-2.3.pom', 'username', 'password', moduleB.pomFile)
         server.expectGet('/repo/group/projectB/2.3/projectB-2.3.jar', 'username', 'password', moduleB.artifactFile)
 
-        server.expectGet('/repo/group/projectC/3.1-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleC.metaDataFile) // TODO: double check why we have two get requests here.
+        server.expectGet('/repo/group/projectC/3.1-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleC.metaDataFile)
         server.expectGet('/repo/group/projectC/3.1-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleC.metaDataFile)
         server.expectGet("/repo/group/projectC/3.1-SNAPSHOT/projectC-${moduleC.getPublishArtifactVersion()}.pom", 'username', 'password', moduleC.pomFile)
         server.expectGet("/repo/group/projectC/3.1-SNAPSHOT/projectC-${moduleC.getPublishArtifactVersion()}.jar", 'username', 'password', moduleC.artifactFile)
 
-        server.expectGet('/repo/group/projectD/4-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleD.metaDataFile)  //same here: two requests necessary?
+        server.expectGet('/repo/group/projectD/4-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleD.metaDataFile)
         server.expectGet('/repo/group/projectD/4-SNAPSHOT/maven-metadata.xml', 'username', 'password', moduleD.metaDataFile)
         server.expectGet("/repo/group/projectD/4-SNAPSHOT/projectD-4-SNAPSHOT.pom", 'username', 'password', moduleD.pomFile)
         server.expectGet("/repo/group/projectD/4-SNAPSHOT/projectD-4-SNAPSHOT.jar", 'username', 'password', moduleD.artifactFile)
@@ -159,7 +159,7 @@ task listJars << {
 
         and:
         server.authenticationScheme = authScheme
-        server.allowGet('/repo/group/projectA/1.2/ivy-1.2.xml', 'username', 'password', module.ivyFile)
+        server.allowGetOrHead('/repo/group/projectA/1.2/ivy-1.2.xml', 'username', 'password', module.ivyFile)
 
         then:
         fails 'listJars'
@@ -203,7 +203,7 @@ task listJars << {
 
         and:
         server.authenticationScheme = authScheme
-        server.allowGet('/repo/group/projectA/1.2/projectA-1.2.pom', 'username', 'password', module.pomFile)
+        server.allowGetOrHead('/repo/group/projectA/1.2/projectA-1.2.pom', 'username', 'password', module.pomFile)
 
         then:
         fails 'listJars'

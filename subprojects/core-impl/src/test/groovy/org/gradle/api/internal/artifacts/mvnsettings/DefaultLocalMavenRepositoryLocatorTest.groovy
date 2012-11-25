@@ -36,7 +36,7 @@ class DefaultLocalMavenRepositoryLocatorTest extends Specification {
 
     def setup() {
         locations = new SimpleMavenFileLocations()
-        locator = new DefaultLocalMavenRepositoryLocator(locations, systemProperties, environmentVariables)
+        locator = new DefaultLocalMavenRepositoryLocator(new DefaultMavenSettingsProvider(locations), systemProperties, environmentVariables)
     }
 
     def "returns default location if no settings file exists"() {
@@ -53,7 +53,7 @@ class DefaultLocalMavenRepositoryLocatorTest extends Specification {
         locator.localMavenRepository
         then:
         def ex = thrown(CannotLocateLocalMavenRepositoryException);
-        ex.message == "Unable to parse local maven settings"
+        ex.message == "Unable to parse local maven settings."
         ex.cause.message.contains(settingsFile.absolutePath)
     }
 
@@ -65,7 +65,7 @@ class DefaultLocalMavenRepositoryLocatorTest extends Specification {
         locator.localMavenRepository
         then:
         def ex = thrown(CannotLocateLocalMavenRepositoryException)
-        ex.message == "Unable to parse local maven settings"
+        ex.message == "Unable to parse local maven settings."
         ex.cause.message.contains(settingsFile.absolutePath)
     }
 

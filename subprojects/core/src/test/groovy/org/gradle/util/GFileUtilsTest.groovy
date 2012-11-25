@@ -19,11 +19,15 @@ package org.gradle.util
 import org.junit.Rule
 import spock.lang.Specification
 
+import static org.gradle.util.GFileUtils.mkdirs
+import static org.gradle.util.GFileUtils.parentMkdirs
+import org.gradle.api.UncheckedIOException
+
 /**
  * by Szczepan Faber, created at: 2/28/12
  */
 class GFileUtilsTest extends Specification {
-    
+
     @Rule TemporaryFolder temp
 
     def "can read the file's tail"() {
@@ -52,4 +56,68 @@ three
         noExceptionThrown()
         dir.exists()
     }
+
+    def "relative path"() {
+        when:
+        def from = new File(fromPath)
+        def to = new File(toPath)
+
+        then:
+        GFileUtils.relativePath(from, to) == path
+
+        where:
+        fromPath | toPath  | path
+        "a"      | "a/b"   | "b"
+        "a"      | "a/b/a" | "b/a"
+        "a"      | "b"     | "../b"
+        "a/b"    | "b"     | "../../b"
+        "a"      | "a"     | ""
+    }
+
+    def "can mkdirs"() {
+        given:
+        def f = temp.file("a/b/c/d")
+
+        expect:
+        !f.isDirectory()
+
+        when:
+        mkdirs(f)
+
+        then:
+        f.isDirectory()
+    }
+
+    def "can parentMkdirs"() {
+        given:
+        def f = temp.file("a/b/c/d")
+
+        expect:
+        !f.parentFile.exists()
+
+        when:
+        def p = parentMkdirs(f)
+
+        then:
+        p.isDirectory()
+        f.parentFile == p
+    }
+
+    def "mkdirs fails if can't make parent"() {
+        given:
+        def e = temp.file("a/b/c/d/e")
+        def b = temp.createFile("a/b")
+        def c = temp.file("a/b/c")
+
+        expect:
+        b.file
+
+        when:
+        mkdirs(e)
+
+        then:
+        def ex = thrown UncheckedIOException
+        ex.message == "Cannot create parent directory '$c' when creating directory '$e' as '$b' is not a directory"
+    }
+
 }

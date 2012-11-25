@@ -21,7 +21,6 @@ import groovy.util.Node;
 import groovy.util.XmlNodePrinter;
 import groovy.util.XmlParser;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.api.Action;
 import org.gradle.api.Transformer;
 import org.gradle.api.XmlProvider;
@@ -56,7 +55,35 @@ public class XmlTransformer implements Transformer<String, String> {
     }
 
     public void addAction(Closure closure) {
-        actions.add((Action<XmlProvider>) DefaultGroovyMethods.asType(closure, Action.class));
+        actions.add(new ClosureBackedAction<XmlProvider>(closure));
+    }
+
+    public void transform(File destination, final String encoding, final Action<? super Writer> generator) {
+        IoActions.writeFile(destination, encoding, new Action<Writer>() {
+            public void execute(Writer writer) {
+                transform(writer, encoding, generator);
+            }
+        });
+    }
+
+    public void transform(File destination, final Action<? super Writer> generator) {
+        IoActions.writeFile(destination, new Action<Writer>() {
+            public void execute(Writer writer) {
+                transform(writer, generator);
+            }
+        });
+    }
+
+    public void transform(Writer destination, Action<? super Writer> generator) {
+        StringWriter stringWriter = new StringWriter();
+        generator.execute(stringWriter);
+        transform(stringWriter.toString(), destination);
+    }
+
+    public void transform(Writer destination, String encoding, Action<? super Writer> generator) {
+        StringWriter stringWriter = new StringWriter();
+        generator.execute(stringWriter);
+        transform(stringWriter.toString(), destination, encoding);
     }
 
     public String transform(String original) {
@@ -65,6 +92,10 @@ public class XmlTransformer implements Transformer<String, String> {
 
     public void transform(String original, Writer destination) {
         doTransform(original).writeTo(destination);
+    }
+
+    public void transform(String original, Writer destination, String encoding) {
+        doTransform(original).writeTo(destination, encoding);
     }
 
     public void transform(String original, OutputStream destination) {
@@ -141,6 +172,10 @@ public class XmlTransformer implements Transformer<String, String> {
 
         public void writeTo(Writer writer) {
             doWriteTo(writer, null);
+        }
+
+        public void writeTo(Writer writer, String encoding) {
+            doWriteTo(writer, encoding);
         }
 
         public void writeTo(OutputStream stream) {

@@ -18,13 +18,16 @@ package org.gradle.api.internal.artifacts.repositories
 import org.apache.ivy.core.cache.RepositoryCacheManager
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.artifacts.repositories.PasswordCredentials
+import org.gradle.api.internal.artifacts.repositories.resolver.MavenResolver
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransportFactory
 import org.gradle.api.internal.externalresource.transport.file.FileTransport
 import org.gradle.api.internal.externalresource.transport.http.HttpTransport
 import org.gradle.api.internal.file.FileResolver
+import org.gradle.api.internal.file.TemporaryFileProvider
 import spock.lang.Specification
 import org.gradle.api.internal.externalresource.local.LocallyAvailableResourceFinder
 import org.gradle.api.internal.externalresource.cached.CachedExternalResourceIndex
+import org.gradle.logging.ProgressLoggerFactory
 
 class DefaultMavenArtifactRepositoryTest extends Specification {
     final FileResolver resolver = Mock()
@@ -34,14 +37,16 @@ class DefaultMavenArtifactRepositoryTest extends Specification {
     final LocallyAvailableResourceFinder locallyAvailableResourceFinder = Mock()
     final CachedExternalResourceIndex cachedExternalResourceIndex = Mock()
 
-    final DefaultMavenArtifactRepository repository = new DefaultMavenArtifactRepository(resolver, credentials, transportFactory, locallyAvailableResourceFinder, cachedExternalResourceIndex)
+    final DefaultMavenArtifactRepository repository = new DefaultMavenArtifactRepository(resolver, credentials, transportFactory, locallyAvailableResourceFinder)
+    final ProgressLoggerFactory progressLoggerFactory = Mock();
+
 
     def "creates local repository"() {
         given:
         def file = new File('repo')
         def uri = file.toURI()
         _ * resolver.resolveUri('repo-dir') >> uri
-        transportFactory.createFileTransport('repo') >> new FileTransport('repo', cacheManager)
+        transportFactory.createFileTransport('repo') >> new FileTransport('repo', cacheManager, Mock(TemporaryFileProvider))
 
         and:
         repository.name = 'repo'
@@ -105,7 +110,7 @@ class DefaultMavenArtifactRepositoryTest extends Specification {
     }
 
     private HttpTransport createHttpTransport(String repo, PasswordCredentials credentials) {
-        return new HttpTransport(repo, credentials, cacheManager)
+        return new HttpTransport(repo, credentials, cacheManager, progressLoggerFactory, Mock(TemporaryFileProvider), cachedExternalResourceIndex)
     }
 
     def "fails when no root url specified"() {
