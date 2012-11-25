@@ -1,0 +1,25 @@
+Description: Small fixes for Hamcrest 1.2 compat
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-09-03
+
+--- a/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
++++ b/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
+@@ -258,7 +258,7 @@
+     }
+ 
+     @Factory
+-    public static Matcher<Task> dependsOn(final Matcher<? extends Iterable<String>> matcher) {
++    public static Matcher<Task> dependsOn(final Matcher matcher) {
+         return new BaseMatcher<Task>() {
+             public boolean matches(Object o) {
+                 Task task = (Task) o;
+@@ -288,7 +288,7 @@
+     }
+ 
+     @Factory
+-    public static <T extends Buildable> Matcher<T> builtBy(final Matcher<? extends Iterable<String>> matcher) {
++    public static <T extends Buildable> Matcher<T> builtBy(final Matcher matcher) {
+         return new BaseMatcher<T>() {
+             public boolean matches(Object o) {
+                 Buildable task = (Buildable) o;

@@ -1,9 +1,36 @@
-gradle (1.0-1) UNRELEASED; urgency=low
+gradle (1.1-1) UNRELEASED; urgency=low
 
-  * New upstream release.
+  * New upstream release (Closes: #667077).
+
+  [ Miguel Landaeta ]
   * Replace dependencies on jna-posix library with jnr-posix. (Closes: #628662).
 
- -- Miguel Landaeta <miguel@miguel.cc>  Mon, 02 Jul 2012 20:34:46 -0430
+  [ Damien Raude-Morvan ]
+  * d/control: Add myself as Uploader.
+  * d/control: Depends and B-D on new groovy (>= 1.8) (Closes: #637273).
+  * Update all patches for new Gradle 1.1:
+    - Drop d/patches/12_fix_missing_classpath.diff since its not needed anymore.
+  * d/control: Replace B-D on libcommons-httpclient-java to libhttpclient-java.
+  * d/control: Replace B-D on libgoogle-collections-java to libguava-java.
+  * d/control: Add B-D on libjarjar-java,
+    libjcifs-java, libjcip-annotations-java.
+  * d/control: Drop B-D on libjoptsimple-java and libjzlib-java.
+  * d/control: Replace B-D on maven (>= 3.0.4-4) instead of libmaven2-*.
+  * d/bootstrap.sh: Update to Gradle 1.1 and add Provides for libraries.
+  * Bump Standards-Version to 3.9.3: no changes needed.
+  * Generate documentation:
+    - d/patches/21_docs.diff: Fix links in docbook files.
+    - Add B-D on docbook-xsl for documentation export.
+    - Add B-D on libxalan2-java, libxerces2-java, libxslthl-java
+      and libcore-renderer-java.
+  * Enable new modules module cpp, ear, javascript, signing:
+    - Add B-D on libbcpg-java and libbcprov-java.
+    - Add B-D on librhino-java, libgoogle-gson-java.
+  * Tomcat 6 / 7 compatibility (Closes: #683595):
+    - Depends in libservlet2.5-java and libecj-java instead of libtomcat6-java.
+  * Include new d/watch from Bart Martens <bartm@debian.org>.
+
+ -- Damien Raude-Morvan <drazzib@debian.org>  Sat, 01 Sep 2012 00:49:07 +0200
 
 gradle (1.0~m3-1) unstable; urgency=low
 

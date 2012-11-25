@@ -2,11 +2,10 @@
 
 set -e
 
-URL="http://services.gradle.org/distributions/gradle-1.0-bin.zip"
-#URL="http://localhost/%7Emiguel/gradle/gradle-1.0-bin.zip"
+URL="http://services.gradle.org/distributions/gradle-1.1-bin.zip"
 ZIP="$(basename $URL)"
 DIR="$(echo $ZIP | sed 's/-bin\.zip$//')"
-VERSION="1.0~+bootstrap1"
+VERSION="1.1+bootstrap"
 
 wget $URL -O $ZIP
 unzip $ZIP
@@ -23,6 +22,12 @@ Version: $VERSION
 Architecture: all
 Maintainer: Debian Java Maintainers <pkg-java-maintainers@lists.alioth.debian.org>
 Depends: default-jre-headless
+Provides: libgradle-code-quality-java,
+ libgradle-ide-java,
+ libgradle-ear-java,
+ libgradle-maven-java,
+ libgradle-wrapper-java,
+ libgradle-scala-java
 Section: java
 Priority: optional
 Homepage: http://gradle.org/

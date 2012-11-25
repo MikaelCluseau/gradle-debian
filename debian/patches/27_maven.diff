@@ -1,0 +1,55 @@
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-08-18
+
+--- a/subprojects/core-impl/core-impl.gradle
++++ b/subprojects/core-impl/core-impl.gradle
+@@ -20,7 +20,7 @@
+     compile libraries.nekohtml
+ 
+     testCompile libraries.junit
+-
++/*
+     compile files(["$buildDir/libs/jarjar/jarjar-maven-settings-3.0.4.jar",
+             "$buildDir/libs/jarjar/jarjar-maven-settings-builder-3.0.4.jar",
+             "$buildDir/libs/jarjar/jarjar-plexus-cipher-1.4.jar",
+@@ -30,18 +30,19 @@
+             "$buildDir/libs/jarjar/jarjar-plexus-utils-2.0.6.jar"]) {
+         builtBy tasks.withType(JarJar)
+     }
++*/
+ 
+-    mvn3Input libraries.maven3_settings_builder
++    compile libraries.maven3_settings_builder
+ }
+-configurations.mvn3Input.files.each{libFile->
++/*configurations.mvn3Input.files.each{libFile->
+    task "jarjar-${libFile.name}"(type: JarJar) {
+         inputFile = libFile
+         outputFile = file("$buildDir/libs/jarjar/jarjar-${libFile.name}")
+         rule('org.**', 'jarjar.org.@1')
+     }
+-}
++}*/
+ 
+-def allJarJars = tasks.withType(JarJar)
+-ideaModule.dependsOn allJarJars // I expected that buildable file collections links the ideaModule to the allJarJars already.
++//def allJarJars = tasks.withType(JarJar)
++//ideaModule.dependsOn allJarJars // I expected that buildable file collections links the ideaModule to the allJarJars already.
+ 
+-useTestFixtures()
+\ No newline at end of file
++useTestFixtures()
+--- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultLocalMavenRepositoryLocator.java
++++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultLocalMavenRepositoryLocator.java
+@@ -15,8 +15,8 @@
+  */
+ package org.gradle.api.internal.artifacts.mvnsettings;
+ 
+-import jarjar.org.apache.maven.settings.Settings;
+-import jarjar.org.apache.maven.settings.building.*;
++import org.apache.maven.settings.Settings;
++import org.apache.maven.settings.building.*;
+ 
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;

@@ -1,19 +1,31 @@
 Description: Link javadocs with local -doc packages
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: no
-Last-Update: 2011-05-29
+Author: Damien Raude-Morvan <drazzib@debian.org
+Forwarded: not-needed
+Last-Update: 2012-08-18
 
---- gradle-1.0~m3.orig/subprojects/docs/docs.gradle
-+++ gradle-1.0~m3/subprojects/docs/docs.gradle
-@@ -238,8 +238,9 @@ task javadoc(type: Javadoc) {
+--- a/subprojects/docs/docs.gradle
++++ b/subprojects/docs/docs.gradle
+@@ -226,8 +226,10 @@
+     classpath = configurations.userGuideTask
+ }
+ 
+-def javaApiUrl = "http://docs.oracle.com/javase/1.5.0/docs/api/"
+-def groovyApiUrl = "http://groovy.codehaus.org/gapi/"
++//def javaApiUrl = "http://docs.oracle.com/javase/1.5.0/docs/api/"
++def javaApiUrl = "file:///usr/share/doc/default-jdk-doc/api"
++//def groovyApiUrl = "http://groovy.codehaus.org/gapi/"
++def groovyApiUrl = "file:///usr/share/doc/groovy-doc/gapi/"
+ 
+ task javadoc(type: Javadoc) {
+     ext.stylesheetFile = file("src/docs/css/javadoc.css")
+@@ -249,8 +251,7 @@
      include 'org/gradle/testfixtures/**'
      include 'org/gradle/tooling/**'
      exclude '**/internal/**'
--    options.links("http://download.oracle.com/javase/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
+-    options.links(javaApiUrl, groovyApiUrl, "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
 -        "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
-+    //options.links("http://download.oracle.com/javase/1.5.0/docs/api", "http://groovy.codehaus.org/gapi/", "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
-+    //    "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
-+    options.links("file:///usr/share/doc/default-jdk-doc/api", "file:///usr/share/doc/groovy-doc/gapi/", "file:///usr/share/doc/libmaven2-core-java/api")
++    options.links(javaApiUrl, groovyApiUrl, "file:///usr/share/doc/libmaven2-core-java/api")
      doFirst {
          title = "Gradle API $version"
      }

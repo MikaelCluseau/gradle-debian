@@ -1,8 +1,10 @@
 build/distributions/bin/gradle-*/bin/gradle                    usr/share/gradle/bin
 
-build/distributions/bin/gradle-*/lib/gradle-launcher-*.jar     usr/share/gradle/lib
-build/distributions/bin/gradle-*/lib/gradle-open-api-*.jar     usr/share/gradle/lib
-build/distributions/bin/gradle-*/lib/gradle-tooling-api-*.jar  usr/share/gradle/lib
-build/distributions/bin/gradle-*/lib/gradle-ui-*.jar           usr/share/gradle/lib
-
-build/distributions/bin/gradle-*/lib/core-impl/gradle-core-impl-*.jar  usr/share/gradle/lib/core-impl
+build/distributions/bin/gradle-*/lib/gradle-base-services-*.jar     usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-cli-*.jar           usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-launcher-*.jar      usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-messaging-*.jar     usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-native-*.jar        usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-open-api-*.jar      usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-tooling-api-*.jar   usr/share/gradle/lib
+build/distributions/bin/gradle-*/lib/gradle-ui-*.jar            usr/share/gradle/lib

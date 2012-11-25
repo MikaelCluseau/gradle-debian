@@ -1,31 +1,31 @@
 Description: Set the correct path to locate jnidispatch.so library
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: no
-Last-Update: 2011-05-23
+Author: Damien Raude-Morvan <drazzib@debian.org
+Forwarded: not-needed
+Last-Update: 2012-08-18
 
---- gradle-1.0~m3.orig/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
-+++ gradle-1.0~m3/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
-@@ -107,7 +107,8 @@ public class LoggingServiceRegistry exte
-     protected OutputEventRenderer createOutputEventRenderer() {
-         Spec<FileDescriptor> terminalDetector;
+--- a/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
++++ b/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
+@@ -123,7 +123,7 @@
+         TerminalDetector terminalDetector;
          if (detectConsole) {
--            terminalDetector = new TerminalDetector(StartParameter.DEFAULT_GRADLE_USER_HOME);
-+            //terminalDetector = new TerminalDetector(StartParameter.DEFAULT_GRADLE_USER_HOME);
-+            terminalDetector = new TerminalDetector(new java.io.File("/usr/lib"));
+             StartParameter startParameter = new StartParameter();
+-            JnaBootPathConfigurer jnaConfigurer = new JnaBootPathConfigurer(startParameter.getGradleUserHomeDir());
++            JnaBootPathConfigurer jnaConfigurer = new JnaBootPathConfigurer(new java.io.File("/usr/lib"));
+             terminalDetector = new TerminalDetectorFactory().create(jnaConfigurer);
          } else {
-             terminalDetector = Specs.satisfyNone();
-         }
---- gradle-1.0~m3.orig/subprojects/core/src/main/groovy/org/gradle/logging/internal/TerminalDetector.java
-+++ gradle-1.0~m3/subprojects/core/src/main/groovy/org/gradle/logging/internal/TerminalDetector.java
-@@ -29,8 +29,9 @@ import java.io.*;
- public class TerminalDetector implements Spec<FileDescriptor> {
-     public TerminalDetector(File libCacheDir) {
-         // Some hackery to prevent JNA from creating a shared lib in the tmp dir, as it does not clean things up
--        File tmpDir = new File(libCacheDir, "jna");
+             terminalDetector = new NoOpTerminalDetector();
+--- a/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/jna/JnaBootPathConfigurer.java
++++ b/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/jna/JnaBootPathConfigurer.java
+@@ -45,8 +45,9 @@
+     }
+ 
+     public void configure() throws NativeIntegrationUnavailableException {
+-        File tmpDir = new File(storageDir, "jna");
 -        tmpDir.mkdirs();
-+        //File tmpDir = new File(libCacheDir, "jna");
-+        File tmpDir = new File(libCacheDir, "jni");
++        //File tmpDir = new File(storageDir, "jna");
++        File tmpDir = new File(storageDir, "jni");
 +        //tmpDir.mkdirs();
-         String libName = System.mapLibraryName("jnidispatch");
-         File libFile = new File(tmpDir, libName);
+         String jnaLibName = OperatingSystem.current().isMacOsX() ? "libjnidispatch.jnilib" : System.mapLibraryName("jnidispatch");
+         File libFile = new File(tmpDir, jnaLibName);
          if (!libFile.exists()) {

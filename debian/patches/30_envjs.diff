@@ -1,0 +1,24 @@
+Description: Disable envjs build.
+ org.simpleframework is not available in Debian yet, so
+ disable envjs build in javascript plugin.
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-08-18
+
+--- a/subprojects/javascript/javascript.gradle
++++ b/subprojects/javascript/javascript.gradle
+@@ -19,11 +19,13 @@
+ 
+     compile "org.mozilla:js:1.7R3"
+     compile "com.google.code.gson:gson:2.2.1" // used by JsHint
+-    compile "org.simpleframework:simple:4.1.21" // used by http package in envjs
++    //compile "org.simpleframework:simple:4.1.21" // used by http package in envjs
+     compile project(':core'), project(":plugins")
+ 
+     // Required by JavaScriptExtension#getGoogleApisRepository()
+     compile project(':coreImpl')
+ }
+ 
++sourceSets.main.groovy.excludes = ['**/org/gradle/plugins/javascript/envjs/**']
++
+ useTestFixtures()

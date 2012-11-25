@@ -1,0 +1,8 @@
+usr/share/java/jetty.jar                         usr/share/gradle/lib/plugins/jetty.jar
+usr/share/java/jetty-util.jar                    usr/share/gradle/lib/plugins/jetty-util.jar
+usr/share/java/servlet-api-2.5.jar               usr/share/gradle/lib/plugins/servlet-api-2.5.jar
+usr/share/java/jetty-plus.jar                    usr/share/gradle/lib/plugins/jetty-plus.jar
+usr/share/java/jsp-api-2.1.jar                   usr/share/gradle/lib/plugins/jsp-api-2.1.jar
+usr/share/java/jetty-annotations.jar             usr/share/gradle/lib/plugins/jetty-annotations.jar
+usr/share/java/jetty-naming.jar                  usr/share/gradle/lib/plugins/jetty-naming.jar
+usr/share/java/eclipse-ecj.jar                   usr/share/gradle/lib/plugins/eclipse-ecj.jar

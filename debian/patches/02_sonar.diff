@@ -1,28 +1,75 @@
 Description: Disable Sonar features since it is not available in Debian yet
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: no
-Last-Update: 2011-05-22
+Author: Damien Raude-Morvan <drazzib@debian.org
+Forwarded: not-needed
+Last-Update: 2012-08-18
 
---- gradle-1.0~m3.orig/build.gradle
-+++ gradle-1.0~m3/build.gradle
-@@ -602,7 +602,8 @@ def runtimeProjects() {
+--- a/build.gradle
++++ b/build.gradle
+@@ -496,7 +496,8 @@
  }
  
  def pluginProjects() {
--    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
-+    //['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar'].collect {
-+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala'].collect {
+-    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript'].collect {
++    //['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript'].collect {
++    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'signing', 'cpp', 'ear', 'javascript'].collect {
          project(it)
      }
  }
---- gradle-1.0~m3.orig/settings.gradle
-+++ gradle-1.0~m3/settings.gradle
-@@ -31,7 +31,7 @@ include 'openApi'
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -34,7 +34,7 @@
  include 'toolingApi'
  include 'docs'
  include 'integTest'
 -include 'sonar'
 +//include 'sonar'
+ include 'signing'
+ include 'cpp'
+ include 'ear'
+--- a/subprojects/docs/src/docs/dsl/dsl.xml
++++ b/subprojects/docs/src/docs/dsl/dsl.xml
+@@ -271,9 +271,11 @@
+             <tr>
+                 <td>org.gradle.plugins.signing.Sign</td>
+             </tr>
++<!--
+             <tr>
+                 <td>org.gradle.api.plugins.sonar.SonarAnalyze</td>
+             </tr>
++-->
+             <tr>
+                 <td>org.gradle.api.tasks.Sync</td>
+             </tr>
+@@ -410,4 +412,4 @@
+         </para>
+     </section>
  
- rootProject.name = 'gradle'
- rootProject.children.each {project ->
+-</book>
+\ No newline at end of file
++</book>
+--- a/subprojects/docs/src/docs/userguide/sonarPlugin.xml
++++ b/subprojects/docs/src/docs/userguide/sonarPlugin.xml
+@@ -147,9 +147,8 @@
+             <tr>
+                 <td><literal>sonarAnalyze</literal></td>
+                 <td>-</td>
+-                <td><apilink class="org.gradle.api.plugins.sonar.SonarAnalyze"/></td>
+                 <td>Analyzes a project hierarchy and stores the results in the Sonar database.</td>
+             </tr>
+         </table>
+     </section>
+-</chapter>
+\ No newline at end of file
++</chapter>
+--- a/subprojects/docs/src/docs/userguide/userguide.xml
++++ b/subprojects/docs/src/docs/userguide/userguide.xml
+@@ -69,7 +69,7 @@
+     <xi:include href='findBugsPlugin.xml'/>
+     <xi:include href='jdependPlugin.xml'/>
+     <xi:include href='pmdPlugin.xml'/>
+-    <xi:include href='sonarPlugin.xml'/>
++<!--    <xi:include href='sonarPlugin.xml'/> -->
+     <xi:include href='osgi.xml'/>
+     <xi:include href='eclipsePlugin.xml'/>
+     <xi:include href='ideaPlugin.xml'/>

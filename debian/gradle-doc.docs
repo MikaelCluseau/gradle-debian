@@ -1,1 +1,3 @@
 build/distributions/all/gradle-*/docs/groovydoc
+build/distributions/all/gradle-*/docs/dsl
+build/distributions/all/gradle-*/docs/userguide

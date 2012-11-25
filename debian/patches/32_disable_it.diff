@@ -1,0 +1,47 @@
+Description: Disable integration tests until Apache SSHD 
+ and littleproxy are packaged in Debian.
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Bug-Debian: http://bugs.debian.org/683639
+Forwarded: not-needed
+Last-Update: 2012-09-03
+
+--- a/gradle/integTest.gradle
++++ b/gradle/integTest.gradle
+@@ -19,7 +19,7 @@
+ }
+ 
+ dependencies {
+-    integTestCompile project(":internalIntegTesting")
++    //integTestCompile project(":internalIntegTesting")
+ }
+ 
+ plugins.withType(org.gradle.plugins.ide.idea.IdeaPlugin) { // lazy as plugin not applied yet
+--- a/settings.gradle
++++ b/settings.gradle
+@@ -40,7 +40,7 @@
+ include 'ear'
+ include 'native'
+ include 'internalTesting'
+-include 'internalIntegTesting'
++//include 'internalIntegTesting'
+ include 'performance'
+ include 'javascript'
+ include 'migration'
+--- a/subprojects/core/core.gradle
++++ b/subprojects/core/core.gradle
+@@ -52,7 +52,7 @@
+     testFixturesCompile project(":internalTesting")
+     testFixturesRuntime project(':coreImpl')
+ 
+-    integTestCompile project(":internalIntegTesting")
++    //integTestCompile project(":internalIntegTesting")
+ 
+     //reports 'css3-pie:css3-pie:1.0beta3'
+ }
+@@ -98,4 +98,4 @@
+     def generate() {
+         propertiesFile.withOutputStream { pluginProperties.save(it, 'plugin definitions') }
+     }
+-}
+\ No newline at end of file
++}

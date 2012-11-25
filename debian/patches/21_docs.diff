@@ -1,79 +1,49 @@
-Description: Generate javadocs and groovydocs only
- I still have to figure out how to build the rest of the documentation
- using DocBook and other libraries available in Debian.
+Description: Fix build of documentation to build everything
+ using docbook-xsl, xalan2 and xhtmlrenderer from Debian
 Author: Miguel Landaeta <miguel@miguel.cc>
-Forwarded: no
-Last-Update: 2011-05-10
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-08-18
 
---- gradle-1.0~m3.orig/build.gradle
-+++ gradle-1.0~m3/build.gradle
-@@ -393,7 +393,7 @@ binDistImage = copySpec {
-     from('src/toplevel') {
-         expand(version: version)
-     }
--    from project(':docs').distDocs.destFile
-+    //from project(':docs').distDocs.destFile
-     into('bin') {
-         from startScriptsDir
-         fileMode = 0755
-@@ -422,14 +422,16 @@ allDistImage = copySpec {
-     }
- }
+--- a/buildSrc/src/main/groovy/org/gradle/build/docs/Docbook2XHtml.groovy
++++ b/buildSrc/src/main/groovy/org/gradle/build/docs/Docbook2XHtml.groovy
+@@ -71,8 +71,8 @@
+                 jvmArgs '-Xmx256m'
+                 classpath ClasspathUtil.getClasspathForClass(XslTransformer)
+                 classpath this.classpath
+-                classpath new File(stylesheetsDir, 'extensions/xalan27.jar')
+-                systemProperty 'xslthl.config', new File("$stylesheetsDir/highlighting/xslthl-config.xml").toURI()
++                classpath new File('/usr/share/java/xalan2.jar')
++                systemProperty 'xslthl.config', new File("/usr/share/xml/docbook/stylesheet/docbook-xsl/highlighting/xslthl-config.xml").toURI()
+                 systemProperty 'org.apache.xerces.xni.parser.XMLParserConfiguration', 'org.apache.xerces.parsers.XIncludeParserConfiguration'
+             }
+         }
+--- a/subprojects/docs/docs.gradle
++++ b/subprojects/docs/docs.gradle
+@@ -27,18 +27,18 @@
+ apply plugin: 'jsoup'
  
--task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
-+//task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs', 'docs:samples']) {
-+task allZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
-     classifier = 'all'
-     into(zipRootFolder) {
-         with allDistImage
-     }
- }
- 
--task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
-+//task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:distDocs']) {
-+task binZip(type: Zip, dependsOn: ['launcher:startScripts', 'docs:docs']) {
-     classifier = 'bin'
-     into(zipRootFolder) {
-         with binDistImage
-@@ -495,7 +497,8 @@ def guessMaxForks() {
- 
- task testedDists(dependsOn: [assemble, check, integTests])
- 
--task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
-+//task nightlyBuild(dependsOn: [clean, testedDists, ':docs:uploadDocs'])
-+task nightlyBuild(dependsOn: [clean, testedDists])
- 
- task install(type: Install) {
-     description = 'Installs the minimal distribution into directory $gradle_installPath'
-@@ -579,7 +582,8 @@ task releaseArtifacts {
- task release {
-     description = 'Builds, tests and uploads the release artifacts'
-     group = 'release'
--    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
-+    //dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists, ':docs:uploadDocs'
-+    dependsOn releaseVersion, tag, releaseArtifacts, testedDists, uploadArchives, uploadDists
- }
- 
- task wrapper(type: Wrapper) {
---- gradle-1.0~m3.orig/subprojects/docs/docs.gradle
-+++ gradle-1.0~m3/subprojects/docs/docs.gradle
-@@ -28,6 +28,7 @@ configurations {
+ configurations {
+-    userGuideStyleSheets
++    //userGuideStyleSheets
      userGuideTask
  }
  
-+/*
  dependencies {
-     userGuideTask 'xalan:xalan:2.7.1', 'xerces:xercesImpl:2.9.1'
-     userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
-@@ -37,6 +38,7 @@ dependencies {
+-    userGuideTask 'xalan:xalan:2.7.1', 'xerces:xercesImpl:2.9.1'
+-    userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
++    userGuideTask 'xalan:xalan2:2.7.1', 'xerces:xercesImpl:2.9.1'
++    userGuideTask module('xhtmlrenderer:core-renderer:R8') {
+         dependency 'itext:itext:2.0.8@jar'
+     }
+     userGuideTask 'xslthl:xslthl:2.0.1@jar'
  
-     userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
+-    userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
++    //userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
  }
-+*/
  
- RemoteLocations remoteLocations = new RemoteLocations(version: version)
- 
-@@ -94,10 +96,10 @@ task userguideStyleSheets(type: Copy) {
+ ext {
+@@ -116,10 +116,10 @@
      from(cssSrcDir) {
          include '*.css'
      }
@@ -88,13 +58,100 @@ Last-Update: 2011-05-10
  }
  
  task samplesDocbook(type: AssembleSamplesDocTask) {
-@@ -332,7 +334,8 @@ task userguide {
- }
+--- a/subprojects/docs/src/docs/stylesheets/dslHtml.xsl
++++ b/subprojects/docs/src/docs/stylesheets/dslHtml.xsl
+@@ -14,7 +14,7 @@
+   ~ limitations under the License.
+   -->
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
+-    <xsl:import href="html/chunkfast.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/chunkfast.xsl"/>
+     <xsl:import href="userGuideHtmlCommon.xsl"/>
  
- task docs {
--    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
-+    //dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
-+    dependsOn javadoc, groovydoc
-     description = 'Generates all documentation'
-     group = 'documentation'
- }
+     <xsl:output method="html" doctype-system="http://www.w3.org/TR/html4/strict.dtd"
+@@ -209,4 +209,4 @@
+         <dt><xsl:apply-templates select="$segtitles[$segnum=position()]" mode="segtitle-in-seg"/>:</dt>
+         <dd><xsl:apply-templates/></dd>
+     </xsl:template>
+-</xsl:stylesheet>
+\ No newline at end of file
++</xsl:stylesheet>
+--- a/subprojects/docs/src/docs/stylesheets/standaloneHtml.xsl
++++ b/subprojects/docs/src/docs/stylesheets/standaloneHtml.xsl
+@@ -17,7 +17,7 @@
+         xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+         xmlns:xi="http://www.w3.org/2001/XInclude"
+         version="1.0">
+-    <xsl:import href="html/docbook.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/docbook.xsl"/>
+     <xsl:import href="userGuideHtmlCommon.xsl"/>
+ 
+     <xsl:param name="section.autolabel">0</xsl:param>
+@@ -36,4 +36,4 @@
+             <xi:include href="userguide.css" parse="text"/>
+         </style>
+     </xsl:template>
+-</xsl:stylesheet>
+\ No newline at end of file
++</xsl:stylesheet>
+--- a/subprojects/docs/src/docs/stylesheets/userGuideHtml.xsl
++++ b/subprojects/docs/src/docs/stylesheets/userGuideHtml.xsl
+@@ -15,7 +15,7 @@
+   -->
+ <xsl:stylesheet
+         xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+-    <xsl:import href="html/chunkfast.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/chunkfast.xsl"/>
+     <xsl:import href="userGuideHtmlCommon.xsl"/>
+ 
+     <xsl:param name="root.filename">userguide</xsl:param>
+@@ -84,4 +84,4 @@
+         </div>
+     </xsl:template>
+ 
+-</xsl:stylesheet>
+\ No newline at end of file
++</xsl:stylesheet>
+--- a/subprojects/docs/src/docs/stylesheets/userGuideHtmlCommon.xsl
++++ b/subprojects/docs/src/docs/stylesheets/userGuideHtmlCommon.xsl
+@@ -16,8 +16,8 @@
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+                 xmlns:xslthl="http://xslthl.sf.net"
+                 version="1.0">
+-    <xsl:import href="highlighting/common.xsl"/>
+-    <xsl:import href="html/highlight.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/highlighting/common.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/highlight.xsl"/>
+ 
+     <xsl:output method="html"
+                 encoding="UTF-8"
+--- a/subprojects/docs/src/docs/stylesheets/userGuidePdf.xsl
++++ b/subprojects/docs/src/docs/stylesheets/userGuidePdf.xsl
+@@ -14,7 +14,7 @@
+   ~ limitations under the License.
+   -->
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+-    <xsl:import href="xhtml/docbook.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/xhtml/docbook.xsl"/>
+     <xsl:import href="userGuideHtmlCommon.xsl"/>
+ 
+     <xsl:output method="xml"
+@@ -59,4 +59,4 @@
+             <xsl:apply-templates select=".." mode="title.markup"/>
+         </h1>
+     </xsl:template>
+-</xsl:stylesheet>
+\ No newline at end of file
++</xsl:stylesheet>
+--- a/subprojects/docs/src/docs/stylesheets/userGuideSingleHtml.xsl
++++ b/subprojects/docs/src/docs/stylesheets/userGuideSingleHtml.xsl
+@@ -15,6 +15,6 @@
+   -->
+ <xsl:stylesheet
+         xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+-    <xsl:import href="html/docbook.xsl"/>
++    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/docbook.xsl"/>
+     <xsl:import href="userGuideHtmlCommon.xsl"/>
+-</xsl:stylesheet>
+\ No newline at end of file
++</xsl:stylesheet>

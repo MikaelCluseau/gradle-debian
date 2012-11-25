@@ -1,0 +1,66 @@
+Description: Disable findbugs build.
+ com.google.code.findbugs is not available in Debian yet, so
+ disable findbugs build in code-quality plugin.
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-08-18
+
+--- a/subprojects/code-quality/code-quality.gradle
++++ b/subprojects/code-quality/code-quality.gradle
+@@ -25,8 +25,8 @@
+ 
+     // minimal dependencies to make our code compile
+     // we don't ship these dependencies because findbugs plugin will download them (and more) at runtime
+-    provided "com.google.code.findbugs:findbugs:2.0.0@jar"
+-    provided "com.google.code.findbugs:bcel:2.0.0@jar"
++    // provided "com.google.code.findbugs:findbugs:2.0.0@jar"
++    // provided "com.google.code.findbugs:bcel:2.0.0@jar"
+     provided "dom4j:dom4j:1.6.1@jar"
+     provided "jaxen:jaxen:1.1.1@jar"
+ }
+--- a/subprojects/code-quality/src/main/groovy/org/gradle/api/plugins/quality/internal/findbugs/FindBugsExecuter.java
++++ b/subprojects/code-quality/src/main/groovy/org/gradle/api/plugins/quality/internal/findbugs/FindBugsExecuter.java
+@@ -16,10 +16,12 @@
+ 
+ package org.gradle.api.plugins.quality.internal.findbugs;
+ 
++/*
+ import edu.umd.cs.findbugs.FindBugs;
+ import edu.umd.cs.findbugs.FindBugs2;
+ import edu.umd.cs.findbugs.IFindBugsEngine;
+ import edu.umd.cs.findbugs.TextUICommandLine;
++*/
+ 
+ import java.io.IOException;
+ import java.io.Serializable;
+@@ -36,7 +38,7 @@
+             final List<String> args = spec.getArguments();
+             String[] strArray = new String[args.size()];
+             args.toArray(strArray);
+-
++/*
+             Thread.currentThread().setContextClassLoader(FindBugs2.class.getClassLoader());
+             FindBugs2 findBugs2 = new FindBugs2();
+             TextUICommandLine commandLine = new TextUICommandLine();
+@@ -44,15 +46,19 @@
+             findBugs2.execute();
+ 
+             return createFindbugsResult(findBugs2);
++*/
++            return null;
+         } finally {
+             Thread.currentThread().setContextClassLoader(contextClassLoader);
+         }
+     }
+ 
++/*
+     FindBugsResult createFindbugsResult(IFindBugsEngine findBugs) {
+             int bugCount = findBugs.getBugCount();
+             int missingClassCount = findBugs.getMissingClassCount();
+             int errorCount = findBugs.getErrorCount();
+             return new FindBugsResult(bugCount, missingClassCount, errorCount);
+         }
+-}
+\ No newline at end of file
++*/
++}
