@@ -15,13 +15,13 @@
  */
 package org.gradle.integtests.resolve.maven
 
+import org.gradle.integtests.fixtures.MavenFileModule
 import org.gradle.integtests.resolve.AbstractDependencyResolutionTest
-import spock.lang.Issue
-import org.gradle.integtests.fixtures.MavenModule
 import spock.lang.FailsWith
+import spock.lang.Issue
 
 class MavenPomPackagingResolveIntegrationTest extends AbstractDependencyResolutionTest {
-    MavenModule projectA
+    MavenFileModule projectA
 
     def setup() {
         server.start()
@@ -138,7 +138,7 @@ task retrieve(type: Sync) {
         file('libs/projectA-1.0.custom').assertIsCopyOf(projectA.artifactFile)
 
         and:
-        result.output.contains("Deprecated: relying on packaging to define the extension of the main artifact is deprecated")
+        result.output.contains("Relying on packaging to define the extension of the main artifact has been deprecated")
     }
 
     def "fails and reports type-based location if neither packaging-based or type-based artifact can be located"() {

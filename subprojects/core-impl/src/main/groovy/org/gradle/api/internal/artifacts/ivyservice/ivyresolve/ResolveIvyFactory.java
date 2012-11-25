@@ -26,10 +26,11 @@ import org.gradle.api.internal.artifacts.configurations.ResolverProvider;
 import org.gradle.api.internal.artifacts.ivyservice.CacheLockingManager;
 import org.gradle.api.internal.artifacts.ivyservice.IvyFactory;
 import org.gradle.api.internal.artifacts.ivyservice.SettingsConverter;
-import org.gradle.api.internal.externalresource.ivy.ArtifactAtRepositoryKey;
-import org.gradle.api.internal.externalresource.cached.CachedExternalResourceIndex;
 import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.ModuleResolutionCache;
 import org.gradle.api.internal.artifacts.ivyservice.modulecache.ModuleDescriptorCache;
+import org.gradle.api.internal.artifacts.repositories.resolver.ExternalResourceResolver;
+import org.gradle.api.internal.externalresource.cached.CachedExternalResourceIndex;
+import org.gradle.api.internal.externalresource.ivy.ArtifactAtRepositoryKey;
 import org.gradle.internal.TimeProvider;
 import org.gradle.util.WrapUtil;
 
@@ -45,7 +46,6 @@ public class ResolveIvyFactory {
     private final CacheLockingManager cacheLockingManager;
     private final StartParameterResolutionOverride startParameterResolutionOverride;
     private final TimeProvider timeProvider;
-
 
     public ResolveIvyFactory(IvyFactory ivyFactory, ResolverProvider resolverProvider, SettingsConverter settingsConverter,
                              ModuleResolutionCache moduleResolutionCache, ModuleDescriptorCache moduleDescriptorCache,
@@ -74,26 +74,32 @@ public class ResolveIvyFactory {
         IvySettings ivySettings = settingsConverter.convertForResolve(loopbackDependencyResolver, rawResolvers);
         Ivy ivy = ivyFactory.createIvy(ivySettings);
         ResolveData resolveData = createResolveData(ivy, configuration.getName());
-
         IvyContextualiser contextualiser = new IvyContextualiser(ivy, resolveData);
         for (DependencyResolver rawResolver : rawResolvers) {
             // TODO:DAZ This could be lazily provided via the ivy context. Then we can change resolverProvider.getResolvers() -> getRepositories().
             rawResolver.setSettings(ivySettings);
-
-            ModuleVersionRepository moduleVersionRepository = new DependencyResolverAdapter(rawResolver);
+            ModuleVersionRepository moduleVersionRepository;
+            if (rawResolver instanceof ExternalResourceResolver) {
+                moduleVersionRepository = new ExternalResourceResolverAdapter((ExternalResourceResolver) rawResolver);
+            } else {
+                moduleVersionRepository = new IvyDependencyResolverAdapter(rawResolver);
+            }
             moduleVersionRepository = new CacheLockingModuleVersionRepository(moduleVersionRepository, cacheLockingManager);
             moduleVersionRepository = startParameterResolutionOverride.overrideModuleVersionRepository(moduleVersionRepository);
-            ModuleVersionRepository cachingRepository =
-                    new CachingModuleVersionRepository(moduleVersionRepository, moduleResolutionCache, moduleDescriptorCache, artifactAtRepositoryCachedResolutionIndex,
-                                                       configuration.getResolutionStrategy().getCachePolicy(), timeProvider);
-            // Need to contextualise outside of caching, since parsing of module descriptors in the cache requires ivy settings, which is provided via the context atm
-            ModuleVersionRepository ivyContextualisedRepository = contextualiser.contextualise(ModuleVersionRepository.class, cachingRepository);
+            LocalAwareModuleVersionRepository cachingRepository;
+            if (moduleVersionRepository.isLocal()) {
+                cachingRepository = new LocalModuleVersionRepository(moduleVersionRepository);
+            } else {
+                cachingRepository = new CachingModuleVersionRepository(moduleVersionRepository, moduleResolutionCache, moduleDescriptorCache, artifactAtRepositoryCachedResolutionIndex,
+                        configuration.getResolutionStrategy().getCachePolicy(), timeProvider);
+            }
+            LocalAwareModuleVersionRepository ivyContextualisedRepository = contextualiser.contextualise(LocalAwareModuleVersionRepository.class, cachingRepository);
             userResolverChain.add(ivyContextualisedRepository);
         }
 
         return new DefaultIvyAdapter(resolveData, userResolverChain);
     }
-    
+
     private ResolveData createResolveData(Ivy ivy, String configurationName) {
         ResolveOptions options = new ResolveOptions();
         options.setDownload(false);
@@ -101,5 +107,5 @@ public class ResolveIvyFactory {
         return new ResolveData(ivy.getResolveEngine(), options);
     }
 
-    
+
 }

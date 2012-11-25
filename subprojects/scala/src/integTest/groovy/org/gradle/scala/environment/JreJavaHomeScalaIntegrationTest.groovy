@@ -26,11 +26,11 @@ import spock.lang.Unroll
 class JreJavaHomeScalaIntegrationTest extends AbstractIntegrationSpec {
 
 
-    @IgnoreIf({ AvailableJavaHomes.bestJreAlternative == null})
+    @IgnoreIf({ AvailableJavaHomes.bestJre == null})
     @Unroll
     def "scala java cross compilation works in forking mode = #forkMode when JAVA_HOME is set to JRE"() {
         given:
-        def jreJavaHome = AvailableJavaHomes.bestJreAlternative
+        def jreJavaHome = AvailableJavaHomes.bestJre
         file("src/main/scala/org/test/JavaClazz.java") << """
                     package org.test;
                     public class JavaClazz {
@@ -49,9 +49,9 @@ class JreJavaHomeScalaIntegrationTest extends AbstractIntegrationSpec {
                     }
 
                     dependencies {
-                        scalaTools 'org.scala-lang:scala-compiler:2.8.1'
-                        scalaTools 'org.scala-lang:scala-library:2.8.1'
-                        compile    'org.scala-lang:scala-library:2.8.1'
+                        scalaTools 'org.scala-lang:scala-compiler:2.9.2'
+                        scalaTools 'org.scala-lang:scala-library:2.9.2'
+                        compile    'org.scala-lang:scala-library:2.9.2'
                     }
 
                     compileScala{
@@ -80,9 +80,9 @@ class JreJavaHomeScalaIntegrationTest extends AbstractIntegrationSpec {
                     }
 
                     dependencies {
-                        scalaTools 'org.scala-lang:scala-compiler:2.8.1'
-                        scalaTools 'org.scala-lang:scala-library:2.8.1'
-                        compile    'org.scala-lang:scala-library:2.8.1'
+                        scalaTools 'org.scala-lang:scala-compiler:2.9.2'
+                        scalaTools 'org.scala-lang:scala-library:2.9.2'
+                        compile    'org.scala-lang:scala-library:2.9.2'
                     }
                     """
         def envVars = System.getenv().findAll { it.key != 'JAVA_HOME' || it.key != 'Path'}

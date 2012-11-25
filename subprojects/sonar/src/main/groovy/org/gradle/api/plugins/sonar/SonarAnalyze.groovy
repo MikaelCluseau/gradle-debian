@@ -23,7 +23,7 @@ import org.gradle.util.ClasspathUtil
 import org.gradle.api.plugins.sonar.model.SonarRootModel
 
 /**
- * Analyzes a project hierachy and writes the results to the
+ * Analyzes a project hierarchy and writes the results to the
  * Sonar database.
  */
 class SonarAnalyze extends ConventionTask {
@@ -40,7 +40,7 @@ class SonarAnalyze extends ConventionTask {
         def classLoader = bootstrapper.createClassLoader(
                 [findGradleSonarJar()] as URL[], SonarAnalyze.classLoader,
                         "groovy", "org.codehaus.groovy", "org.slf4j", "org.apache.log4j", "org.apache.commons.logging",
-                                "org.gradle.api.plugins.sonar.model")
+                                "org.gradle.api.plugins.sonar.model", "ch.qos.logback")
 
         def analyzerClass = classLoader.loadClass("org.gradle.api.plugins.sonar.internal.SonarCodeAnalyzer")
         def analyzer = analyzerClass.newInstance()

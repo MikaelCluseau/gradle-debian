@@ -32,6 +32,7 @@ import java.io.OutputStream;
  * Enables configuring the build run / model request with options like the Java home or jvm arguments.
  * Those settings might not be supported by the target Gradle version. Refer to Javadoc for those methods
  * to understand what kind of exception throw and when is it thrown.
+ * @since 1.0-milestone-7
  */
 public interface LongRunningOperation {
 
@@ -41,6 +42,7 @@ public interface LongRunningOperation {
      *
      * @param outputStream The output stream.
      * @return this
+     * @since 1.0-milestone-7
      */
     LongRunningOperation setStandardOutput(OutputStream outputStream);
 
@@ -50,6 +52,7 @@ public interface LongRunningOperation {
      *
      * @param outputStream The output stream.
      * @return this
+     * @since 1.0-milestone-7
      */
     LongRunningOperation setStandardError(OutputStream outputStream);
 
@@ -65,7 +68,7 @@ public interface LongRunningOperation {
      *
      * @param inputStream The input stream
      * @return this
-     * @since 1.0-milestone-8
+     * @since 1.0-milestone-7
      */
     LongRunningOperation setStandardInput(InputStream inputStream);
 
@@ -113,14 +116,14 @@ public interface LongRunningOperation {
      * Only the build arguments that configure the build execution are supported.
      * They are modelled in the Gradle API via {@link org.gradle.StartParameter}.
      * Examples of supported build arguments: '--info', '-u', '-p'.
-     * The command line instructions that are actually separate commands (like '-?', '-v') are not supported.
+     * The command line instructions that are actually separate commands (like '-?' and '-v') are not supported.
      * Some other instructions like '--daemon' are also not supported - the tooling API always runs with the daemon.
      * <p>
-     * If you specify unknown or unsupported command line option the {@link org.gradle.tooling.exceptions.UnsupportedBuildArgumentException}
-     * will be thrown but only at the time when you execute the operation, i.e. {@link BuildLauncher#run()} or {@link ModelBuilder#get()}.
+     * If an unknown or unsupported command line option is specified, {@link org.gradle.tooling.exceptions.UnsupportedBuildArgumentException}
+     * will be thrown at the time the operation is executed via {@link BuildLauncher#run()} or {@link ModelBuilder#get()}.
      * <p>
      * For the list of all Gradle command line options please refer to the user guide
-     * or take a look at the output of the 'gradle -?' command. Supported arguments are those modelled by
+     * or take a look at the output of the 'gradle -?' command. Supported arguments are those modeled by
      * {@link org.gradle.StartParameter}.
      * <p>
      * The arguments can potentially override some other settings you have configured.
@@ -142,6 +145,7 @@ public interface LongRunningOperation {
      *
      * @param listener The listener
      * @return this
+     * @since 1.0-milestone-7
      */
     LongRunningOperation addProgressListener(ProgressListener listener);
 

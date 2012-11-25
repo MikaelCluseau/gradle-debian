@@ -26,12 +26,13 @@ import org.gradle.api.reporting.ReportingExtension
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.bundling.Jar
-import org.gradle.api.tasks.compile.Compile
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.util.HelperUtil
 import org.gradle.util.TemporaryFolder
 import org.junit.Rule
 import org.junit.Test
+
 import static org.gradle.util.Matchers.*
 import static org.gradle.util.WrapUtil.toLinkedSet
 import static org.gradle.util.WrapUtil.toSet
@@ -141,7 +142,7 @@ class JavaPluginTest {
         assertThat(task.destinationDir, equalTo(project.sourceSets.main.output.resourcesDir))
 
         task = project.tasks[JavaPlugin.COMPILE_JAVA_TASK_NAME]
-        assertThat(task, instanceOf(Compile))
+        assertThat(task, instanceOf(JavaCompile))
         assertThat(task, dependsOn())
         assertThat(task.classpath, sameInstance(project.sourceSets.main.compileClasspath))
         assertThat(task.destinationDir, equalTo(project.sourceSets.main.output.classesDir))
@@ -158,7 +159,7 @@ class JavaPluginTest {
         assertThat(task.destinationDir, equalTo(project.sourceSets.test.output.resourcesDir))
 
         task = project.tasks[JavaPlugin.COMPILE_TEST_JAVA_TASK_NAME]
-        assertThat(task, instanceOf(Compile))
+        assertThat(task, instanceOf(JavaCompile))
         assertThat(task, dependsOn(JavaPlugin.CLASSES_TASK_NAME))
         assertThat(task.classpath, sameInstance(project.sourceSets.test.compileClasspath))
         assertThat(task.destinationDir, equalTo(project.sourceSets.test.output.classesDir))
@@ -167,13 +168,6 @@ class JavaPluginTest {
         task = project.tasks[JavaPlugin.TEST_CLASSES_TASK_NAME]
         assertThat(task, instanceOf(DefaultTask))
         assertThat(task, dependsOn(JavaPlugin.COMPILE_TEST_JAVA_TASK_NAME, JavaPlugin.PROCESS_TEST_RESOURCES_TASK_NAME))
-
-        task = project.tasks[JavaPlugin.TEST_TASK_NAME]
-        assertThat(task, instanceOf(org.gradle.api.tasks.testing.Test))
-        assertThat(task, dependsOn(JavaPlugin.TEST_CLASSES_TASK_NAME, JavaPlugin.CLASSES_TASK_NAME))
-        assertThat(task.classpath, equalTo(project.sourceSets.test.runtimeClasspath))
-        assertThat(task.testClassesDir, equalTo(project.sourceSets.test.output.classesDir))
-        assertThat(task.workingDir, equalTo(project.projectDir))
 
         task = project.tasks[JavaPlugin.JAR_TASK_NAME]
         assertThat(task, instanceOf(Jar))
@@ -217,6 +211,39 @@ class JavaPluginTest {
         task = project.tasks[JavaBasePlugin.BUILD_DEPENDENTS_TASK_NAME]
         assertThat(task, instanceOf(DefaultTask))
         assertThat(task, dependsOn(JavaBasePlugin.BUILD_TASK_NAME))
+    }
+
+    @Test void "configures test task"() {
+        javaPlugin.apply(project)
+
+        //when
+        def task = project.tasks[JavaPlugin.TEST_TASK_NAME]
+
+        //then
+        assert task instanceof org.gradle.api.tasks.testing.Test
+        assertThat(task, dependsOn(JavaPlugin.TEST_CLASSES_TASK_NAME, JavaPlugin.CLASSES_TASK_NAME))
+        assert task.classpath == project.sourceSets.test.runtimeClasspath
+        assert task.testClassesDir == project.sourceSets.test.output.classesDir
+        assert task.workingDir == project.projectDir
+        assert task.testReport //by default (JUnit), the report is 'on'
+    }
+
+    @Test void "configures test task for testNG"() {
+        javaPlugin.apply(project)
+        def task = project.tasks[JavaPlugin.TEST_TASK_NAME]
+
+        //when
+        task.useTestNG()
+
+        //then
+        assert !task.testReport //for TestNG, the report is 'off' by default for now
+
+        //when
+        task.testReport = true
+        task.useTestNG()
+
+        //then
+        assert task.testReport
     }
 
     @Test public void appliesMappingsToTasksAddedByTheBuildScript() {

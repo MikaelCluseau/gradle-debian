@@ -22,18 +22,22 @@ import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.internal.ConventionMapping;
 import org.gradle.api.internal.IConventionAware;
 import org.gradle.api.internal.plugins.ProcessResources;
+import org.gradle.api.internal.project.ProjectInternal;
+import org.gradle.api.internal.tasks.testing.testng.TestNGTestFramework;
 import org.gradle.api.reporting.ReportingExtension;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.compile.AbstractCompile;
-import org.gradle.api.tasks.compile.Compile;
+import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestDescriptor;
 import org.gradle.api.tasks.testing.TestListener;
 import org.gradle.api.tasks.testing.TestResult;
+import org.gradle.internal.reflect.Instantiator;
 import org.gradle.util.WrapUtil;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.util.concurrent.Callable;
 
@@ -50,11 +54,18 @@ public class JavaBasePlugin implements Plugin<Project> {
     public static final String VERIFICATION_GROUP = "verification";
     public static final String DOCUMENTATION_GROUP = "documentation";
 
+    private final Instantiator instantiator;
+
+    @Inject
+    public JavaBasePlugin(Instantiator instantiator) {
+        this.instantiator = instantiator;
+    }
+
     public void apply(Project project) {
         project.getPlugins().apply(BasePlugin.class);
         project.getPlugins().apply(ReportingBasePlugin.class);
 
-        JavaPluginConvention javaConvention = new JavaPluginConvention(project);
+        JavaPluginConvention javaConvention = new JavaPluginConvention((ProjectInternal) project, instantiator);
         project.getConvention().getPlugins().put("java", javaConvention);
 
         configureCompileDefaults(project, javaConvention);
@@ -122,7 +133,7 @@ public class JavaBasePlugin implements Plugin<Project> {
                 });
 
                 String compileTaskName = sourceSet.getCompileJavaTaskName();
-                Compile compileJava = project.getTasks().add(compileTaskName, Compile.class);
+                JavaCompile compileJava = project.getTasks().add(compileTaskName, JavaCompile.class);
                 configureForSourceSet(sourceSet, compileJava);
 
                 Task classes = project.getTasks().add(sourceSet.getClassesTaskName());
@@ -169,8 +180,8 @@ public class JavaBasePlugin implements Plugin<Project> {
                 });
             }
         });
-        project.getTasks().withType(Compile.class, new Action<Compile>() {
-            public void execute(final Compile compile) {
+        project.getTasks().withType(JavaCompile.class, new Action<JavaCompile>() {
+            public void execute(final JavaCompile compile) {
                 ConventionMapping conventionMapping = compile.getConventionMapping();
                 conventionMapping.map("dependencyCacheDir", new Callable<Object>() {
                     public Object call() throws Exception {
@@ -301,7 +312,7 @@ public class JavaBasePlugin implements Plugin<Project> {
         return value;
     }
 
-    private void configureTestDefaults(Test test, Project project, final JavaPluginConvention convention) {
+    private void configureTestDefaults(final Test test, Project project, final JavaPluginConvention convention) {
         test.getConventionMapping().map("testResultsDir", new Callable<Object>() {
             public Object call() throws Exception {
                 return convention.getTestResultsDir();
@@ -313,5 +324,11 @@ public class JavaBasePlugin implements Plugin<Project> {
             }
         });
         test.workingDir(project.getProjectDir());
+        //TODO SF move coverage from below to the JavaBasePluginSpec
+        test.getConventionMapping().map("testReport", new Callable<Object>() {
+            public Object call() throws Exception {
+                return !(test.getTestFramework() instanceof TestNGTestFramework);
+            }
+        });
     }
 }

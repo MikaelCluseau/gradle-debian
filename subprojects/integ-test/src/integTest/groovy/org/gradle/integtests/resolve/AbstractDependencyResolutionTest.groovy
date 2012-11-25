@@ -17,23 +17,51 @@
 package org.gradle.integtests.resolve
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
+import org.gradle.integtests.fixtures.MavenFileRepository
+import org.gradle.integtests.fixtures.MavenHttpRepository
+import org.gradle.test.fixtures.ivy.IvyFileRepository
+import org.gradle.test.fixtures.ivy.IvyHttpRepository
+import org.gradle.test.fixtures.server.http.HttpServer
+import org.gradle.util.GradleVersion
 import org.junit.Rule
-import org.gradle.integtests.fixtures.HttpServer
-import org.gradle.integtests.fixtures.IvyRepository
-import org.gradle.integtests.fixtures.MavenRepository
+
+import static org.gradle.test.matchers.UserAgentMatcher.matchesNameAndVersion
 
 abstract class AbstractDependencyResolutionTest extends AbstractIntegrationSpec {
     @Rule public final HttpServer server = new HttpServer()
 
     def "setup"() {
+        server.expectUserAgent(matchesNameAndVersion("Gradle", GradleVersion.current().getVersion()))
         requireOwnUserHomeDir()
     }
 
-    IvyRepository ivyRepo(def dir = 'ivy-repo') {
-        return new IvyRepository(distribution.testFile(dir))
+    IvyFileRepository ivyRepo(def dir = 'ivy-repo') {
+        return ivy(dir)
     }
 
-    MavenRepository mavenRepo() {
-        return new MavenRepository(file('repo'))
+    IvyHttpRepository getIvyHttpRepo() {
+        return new IvyHttpRepository(server, "/repo", ivyRepo)
+    }
+
+    IvyHttpRepository ivyHttpRepo(String name) {
+        assert !name.startsWith("/")
+        return new IvyHttpRepository(server, "/${name}", ivyRepo(name))
+    }
+
+    MavenFileRepository mavenRepo(String name = "repo") {
+        return maven(name)
+    }
+
+    MavenHttpRepository getMavenHttpRepo() {
+        return new MavenHttpRepository(server, "/repo", mavenRepo)
+    }
+
+    MavenHttpRepository mavenHttpRepo(String name) {
+        assert !name.startsWith("/")
+        return new MavenHttpRepository(server, "/${name}", mavenRepo(name))
+    }
+
+    MavenHttpRepository mavenHttpRepo(String contextPath, MavenFileRepository backingRepo) {
+        return new MavenHttpRepository(server, contextPath, backingRepo)
     }
 }

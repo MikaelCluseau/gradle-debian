@@ -106,7 +106,6 @@ public class DefaultGradleLauncherFactory implements GradleLauncherFactory {
         ListenerManager listenerManager = serviceRegistry.get(ListenerManager.class);
         LoggingManagerInternal loggingManager = serviceRegistry.newInstance(LoggingManagerInternal.class);
         loggingManager.setLevel(startParameter.getLogLevel());
-        loggingManager.colorStdOutAndStdErr(startParameter.isColorOutput());
 
         //this hooks up the ListenerManager and LoggingConfigurer so you can call Gradle.addListener() with a StandardOutputListener.
         loggingManager.addStandardOutputListener(listenerManager.getBroadcaster(StandardOutputListener.class));
@@ -142,6 +141,7 @@ public class DefaultGradleLauncherFactory implements GradleLauncherFactory {
                 serviceRegistry.get(ExceptionAnalyser.class),
                 loggingManager,
                 listenerManager.getBroadcaster(ModelConfigurationListener.class),
+                listenerManager.getBroadcaster(TasksCompletionListener.class),
                 gradle.getServices().get(BuildExecuter.class));
     }
 

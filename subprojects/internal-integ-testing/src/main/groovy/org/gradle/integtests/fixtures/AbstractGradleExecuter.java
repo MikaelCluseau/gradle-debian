@@ -15,7 +15,11 @@
  */
 package org.gradle.integtests.fixtures;
 
+import groovy.lang.Closure;
+import org.gradle.api.Action;
+import org.gradle.api.internal.ClosureBackedAction;
 import org.gradle.internal.jvm.Jvm;
+import org.gradle.listener.ActionBroadcast;
 import org.gradle.util.TextUtil;
 
 import java.io.ByteArrayInputStream;
@@ -27,6 +31,15 @@ import java.util.*;
 import static java.util.Arrays.asList;
 
 public abstract class AbstractGradleExecuter implements GradleExecuter {
+
+    // If no explicit timeout is specified, this will be used.
+    // This is to avoid daemons “accidentally” launched hanging around for a long time.
+    private static final int DEFAULT_DAEMON_IDLE_TIMEOUT_SECS = 10;
+
+    // Specified in the build config to point under /build
+    // This is primarily to avoid filling ~/.gradle on CI builds
+    private static final String DEFAULT_DAEMON_REGISTRY_DIR_PROPERTY = "org.gradle.integtest.daemon.registry";
+
     private final List<String> args = new ArrayList<String>();
     private final List<String> tasks = new ArrayList<String>();
     private File workingDir;
@@ -37,6 +50,7 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
     private Map<String, String> environmentVars = new HashMap<String, String>();
     private List<File> initScripts = new ArrayList<File>();
     private String executable;
+    private File gradleUserHomeDir;
     private File userHomeDir;
     private File javaHome;
     private File buildScript;
@@ -44,8 +58,12 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
     private File settingsFile;
     private InputStream stdin;
     private String defaultCharacterEncoding;
+    private Integer daemonIdleTimeoutSecs;
+    private File daemonBaseDir;
     //gradle opts make sense only for forking executer but having them here makes more sense
     protected final List<String> gradleOpts = new ArrayList<String>();
+    protected boolean noDefaultJvmArgs;
+    private final ActionBroadcast<GradleExecuter> beforeExecute = new ActionBroadcast<GradleExecuter>();
 
     public GradleExecuter reset() {
         args.clear();
@@ -60,12 +78,23 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         dependencyList = false;
         searchUpwards = false;
         executable = null;
-        userHomeDir = null;
+        gradleUserHomeDir = null;
         javaHome = null;
         environmentVars.clear();
         stdin = null;
         defaultCharacterEncoding = null;
+        daemonIdleTimeoutSecs = null;
+        daemonBaseDir = null;
+        noDefaultJvmArgs = false;
         return this;
+    }
+
+    public void beforeExecute(Action<? super GradleExecuter> action) {
+        beforeExecute.add(action);
+    }
+
+    public void beforeExecute(Closure action) {
+        beforeExecute.add(new ClosureBackedAction<GradleExecuter>(action));
     }
 
     public GradleExecuter inDirectory(File directory) {
@@ -109,7 +138,10 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         if (dependencyList) {
             executer.withDependencyList();
         }
-        executer.withUserHomeDir(userHomeDir);
+        executer.withGradleUserHomeDir(gradleUserHomeDir);
+        if (userHomeDir != null) {
+            executer.withUserHomeDir(userHomeDir);
+        }
         if (stdin != null) {
             executer.withStdIn(stdin);
         }
@@ -117,15 +149,20 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
             executer.withDefaultCharacterEncoding(defaultCharacterEncoding);
         }
         executer.withGradleOpts(gradleOpts.toArray(new String[gradleOpts.size()]));
+        if (daemonIdleTimeoutSecs != null) {
+            executer.withDaemonIdleTimeoutSecs(daemonIdleTimeoutSecs);
+        }
+        if (daemonBaseDir != null) {
+            executer.withDaemonBaseDir(daemonBaseDir);
+        }
+        if (noDefaultJvmArgs) {
+            executer.withNoDefaultJvmArgs();
+        }
     }
 
     public GradleExecuter usingBuildScript(File buildScript) {
         this.buildScript = buildScript;
         return this;
-    }
-
-    public File getBuildScript() {
-        return buildScript;
     }
 
     public GradleExecuter usingProjectDirectory(File projectDir) {
@@ -138,12 +175,13 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         return this;
     }
 
-    public File getSettingsFile() {
-        return settingsFile;
-    }
-
     public GradleExecuter usingInitScript(File initScript) {
         initScripts.add(initScript);
+        return this;
+    }
+
+    public GradleExecuter withGradleUserHomeDir(File userHomeDir) {
+        this.gradleUserHomeDir = userHomeDir;
         return this;
     }
 
@@ -231,6 +269,11 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         return this;
     }
 
+    public GradleExecuter withArgument(String arg) {
+        this.args.add(arg);
+        return this;
+    }
+
     public GradleExecuter withEnvironmentVars(Map<String, ?> environment) {
         environmentVars.clear();
         for (Map.Entry<String, ?> entry : environment.entrySet()) {
@@ -255,6 +298,29 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         tasks.clear();
         tasks.addAll(names);
         return this;
+    }
+
+    public GradleExecuter withDaemonIdleTimeoutSecs(int secs) {
+        daemonIdleTimeoutSecs = secs;
+        return this;
+    }
+
+    public GradleExecuter withNoDefaultJvmArgs() {
+        noDefaultJvmArgs = true;
+        return this;
+    }
+
+    protected Integer getDaemonIdleTimeoutSecs() {
+        return daemonIdleTimeoutSecs;
+    }
+
+    public GradleExecuter withDaemonBaseDir(File daemonBaseDir) {
+        this.daemonBaseDir = daemonBaseDir;
+        return this;
+    }
+
+    protected File getDaemonBaseDir() {
+        return daemonBaseDir;
     }
 
     protected List<String> getAllArgs() {
@@ -287,16 +353,34 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
         if (!searchUpwards) {
             allArgs.add("--no-search-upward");
         }
-        if (userHomeDir != null) {
+        if (gradleUserHomeDir != null) {
             allArgs.add("--gradle-user-home");
-            allArgs.add(userHomeDir.getAbsolutePath());
+            allArgs.add(gradleUserHomeDir.getAbsolutePath());
         }
+
+        // Prevent from running with the default idle timeout as it causes CI chaos
+        int effectiveDaemonIdleTimeoutSecs = daemonIdleTimeoutSecs == null ? DEFAULT_DAEMON_IDLE_TIMEOUT_SECS : daemonIdleTimeoutSecs;
+        allArgs.add("-Dorg.gradle.daemon.idletimeout=" + effectiveDaemonIdleTimeoutSecs * 1000);
+
+        // Prevent from running with the default daemon dir (~/.gradle/daemon) as it fills up on the CI server
+        String effectiveDaemonBaseDir = null;
+        if (daemonBaseDir == null) {
+            effectiveDaemonBaseDir = System.getProperty(DEFAULT_DAEMON_REGISTRY_DIR_PROPERTY);
+        } else {
+            effectiveDaemonBaseDir = daemonBaseDir.getAbsolutePath();
+        }
+        if (effectiveDaemonBaseDir != null) {
+            args.add("-Dorg.gradle.daemon.registry.base=" + effectiveDaemonBaseDir);
+        }
+
         allArgs.addAll(args);
         allArgs.addAll(tasks);
         return allArgs;
     }
 
     public final GradleHandle start() {
+        fireBeforeExecute();
+        assertCanExecute();
         try {
             return doStart();
         } finally {
@@ -305,6 +389,8 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
     }
 
     public final ExecutionResult run() {
+        fireBeforeExecute();
+        assertCanExecute();
         try {
             return doRun();
         } finally {
@@ -313,11 +399,17 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
     }
 
     public final ExecutionFailure runWithFailure() {
+        fireBeforeExecute();
+        assertCanExecute();
         try {
             return doRunWithFailure();
         } finally {
             reset();
         }
+    }
+
+    private void fireBeforeExecute() {
+        beforeExecute.execute(this);
     }
 
     protected GradleHandle doStart() {
@@ -334,7 +426,5 @@ public abstract class AbstractGradleExecuter implements GradleExecuter {
     public AbstractGradleExecuter withGradleOpts(String ... gradleOpts) {
         this.gradleOpts.addAll(asList(gradleOpts));
         return this;
-//        throw new UnsupportedOperationException("This executor: " + this.getClass().getSimpleName()
-//                + " does not support the gradle opts");
     }
 }

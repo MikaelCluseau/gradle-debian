@@ -15,10 +15,10 @@
  */
 package org.gradle.api.internal.artifacts;
 
+import org.gradle.api.artifacts.Module;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
-import org.gradle.api.artifacts.ModuleVersionSelector;
 
-public class DefaultModuleVersionIdentifier implements ModuleVersionIdentifier, ModuleVersionSelector {
+public class DefaultModuleVersionIdentifier implements ModuleVersionIdentifier {
     private final String group;
     private final String name;
     private final String version;
@@ -73,5 +73,13 @@ public class DefaultModuleVersionIdentifier implements ModuleVersionIdentifier, 
     @Override
     public int hashCode() {
         return group.hashCode() ^ name.hashCode() ^ version.hashCode();
+    }
+
+    public static ModuleVersionIdentifier newId(Module module) {
+        return new DefaultModuleVersionIdentifier(module.getGroup(), module.getName(), module.getVersion());
+    }
+
+    public static ModuleVersionIdentifier newId(String group, String name, String version) {
+        return new DefaultModuleVersionIdentifier(group, name, version);
     }
 }

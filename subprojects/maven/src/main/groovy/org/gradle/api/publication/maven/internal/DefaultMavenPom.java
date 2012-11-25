@@ -22,16 +22,19 @@ import org.apache.maven.model.Model;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.api.Action;
-import org.gradle.api.UncheckedIOException;
 import org.gradle.api.XmlProvider;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.maven.Conf2ScopeMappingContainer;
 import org.gradle.api.artifacts.maven.MavenPom;
+import org.gradle.api.internal.ErroringAction;
+import org.gradle.api.internal.IoActions;
 import org.gradle.api.internal.XmlTransformer;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.listener.ActionBroadcast;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.List;
 
@@ -68,7 +71,7 @@ public class DefaultMavenPom implements MavenPom {
         this.configurations = configurations;
         return this;
     }
-    
+
     public DefaultMavenPom setGroupId(String groupId) {
         getModel().setGroupId(groupId);
         return this;
@@ -188,44 +191,23 @@ public class DefaultMavenPom implements MavenPom {
     }
 
     public DefaultMavenPom writeTo(Object path) {
-        OutputStream stream = null;
-
-        try {
-            File file = fileResolver.resolve(path);
-            if (file.getParentFile() != null) {
-                file.getParentFile().mkdirs();
+        IoActions.writeFile(fileResolver.resolve(path), new Action<BufferedWriter>() {
+            public void execute(BufferedWriter writer) {
+                writeTo(writer);
             }
-            stream = new FileOutputStream(file);
-            getEffectivePom().writeNonEffectivePom(stream);
-            return this;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } finally {
-            IOUtils.closeQuietly(stream);
-        }
+        });
+        return this;
     }
 
     private void writeNonEffectivePom(final Writer pomWriter) {
         try {
-            final StringWriter stringWriter = new StringWriter();
-            mavenProject.writeModel(stringWriter);
-            withXmlActions.transform(stringWriter.toString(), pomWriter);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            withXmlActions.transform(pomWriter, "UTF-8", new ErroringAction<Writer>() {
+                protected void doExecute(Writer writer) throws IOException{
+                    mavenProject.writeModel(writer);
+                }
+            });
         } finally {
             IOUtils.closeQuietly(pomWriter);
-        }
-    }
-
-    private void writeNonEffectivePom(OutputStream stream) {
-        try {
-            final StringWriter stringWriter = new StringWriter();
-            mavenProject.writeModel(stringWriter);
-            withXmlActions.transform(stringWriter.toString(), stream);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } finally {
-            IOUtils.closeQuietly(stream);
         }
     }
 

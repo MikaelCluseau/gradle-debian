@@ -17,7 +17,11 @@ package org.gradle.api.internal.artifacts.ivyservice;
 
 import org.gradle.api.artifacts.*;
 import org.gradle.api.internal.artifacts.ArtifactDependencyResolver;
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier;
+import org.gradle.api.internal.artifacts.ResolverResults;
 import org.gradle.api.internal.artifacts.configurations.ConfigurationInternal;
+import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.ResolutionResultBuilder;
+import org.gradle.api.internal.artifacts.result.DefaultResolutionResult;
 import org.gradle.api.specs.Spec;
 
 import java.io.File;
@@ -25,7 +29,23 @@ import java.util.Collections;
 import java.util.Set;
 
 public class ShortcircuitEmptyConfigsArtifactDependencyResolver implements ArtifactDependencyResolver {
-    private final ResolvedConfiguration emptyConfig = new ResolvedConfiguration() {
+    private final ArtifactDependencyResolver dependencyResolver;
+
+    public ShortcircuitEmptyConfigsArtifactDependencyResolver(ArtifactDependencyResolver dependencyResolver) {
+        this.dependencyResolver = dependencyResolver;
+    }
+
+    public ResolverResults resolve(ConfigurationInternal configuration) {
+        if (configuration.getAllDependencies().isEmpty()) {
+            ModuleVersionIdentifier id = DefaultModuleVersionIdentifier.newId(configuration.getModule());
+            DefaultResolutionResult emptyResult = new ResolutionResultBuilder().start(id).getResult();
+            return new ResolverResults(new EmptyResolvedConfiguration(), emptyResult);
+        }
+        return dependencyResolver.resolve(configuration);
+    }
+
+    private static class EmptyResolvedConfiguration implements ResolvedConfiguration {
+
         public boolean hasError() {
             return false;
         }
@@ -68,17 +88,5 @@ public class ShortcircuitEmptyConfigsArtifactDependencyResolver implements Artif
         public Set<ResolvedArtifact> getResolvedArtifacts() {
             return Collections.emptySet();
         }
-    };
-    private final ArtifactDependencyResolver dependencyResolver;
-
-    public ShortcircuitEmptyConfigsArtifactDependencyResolver(ArtifactDependencyResolver dependencyResolver) {
-        this.dependencyResolver = dependencyResolver;
-    }
-
-    public ResolvedConfiguration resolve(ConfigurationInternal configuration) {
-        if (configuration.getAllDependencies().isEmpty()) {
-            return emptyConfig;
-        }
-        return dependencyResolver.resolve(configuration);
     }
 }
