@@ -6,7 +6,7 @@ JARS := announce antlr code-quality cpp ear ide javascript jetty maven osgi plug
 export JAVA_HOME=/usr/lib/jvm/default-java
 export GRADLE_OPTS=-Dfile.encoding=UTF-8 -Xmx512m
 export GRADLE_USER_HOME=$(CURDIR)/.gradlehome
-DEB_GRADLE_OPTS := --project-prop notSnapshot=true --project-prop version=$(UPSTREAM_VERSION) --stacktrace --offline
+DEB_GRADLE_OPTS := --project-prop notSnapshot=true --project-prop version=$(UPSTREAM_VERSION) --offline
 
 %:
 	dh $@ --with javahelper

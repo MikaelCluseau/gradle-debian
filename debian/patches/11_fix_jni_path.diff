@@ -4,28 +4,25 @@ Author: Damien Raude-Morvan <drazzib@debian.org
 Forwarded: not-needed
 Last-Update: 2012-08-18
 
---- a/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
-+++ b/subprojects/core/src/main/groovy/org/gradle/logging/LoggingServiceRegistry.java
-@@ -123,7 +123,7 @@
-         TerminalDetector terminalDetector;
-         if (detectConsole) {
-             StartParameter startParameter = new StartParameter();
--            JnaBootPathConfigurer jnaConfigurer = new JnaBootPathConfigurer(startParameter.getGradleUserHomeDir());
-+            JnaBootPathConfigurer jnaConfigurer = new JnaBootPathConfigurer(new java.io.File("/usr/lib"));
-             terminalDetector = new TerminalDetectorFactory().create(jnaConfigurer);
-         } else {
-             terminalDetector = new NoOpTerminalDetector();
 --- a/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/jna/JnaBootPathConfigurer.java
 +++ b/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/jna/JnaBootPathConfigurer.java
-@@ -45,8 +45,9 @@
-     }
- 
-     public void configure() throws NativeIntegrationUnavailableException {
--        File tmpDir = new File(storageDir, "jna");
+@@ -40,7 +40,7 @@
+     public void configure(File storageDir) {
+         String nativePrefix = OperatingSystem.current().getNativePrefix();
+         File tmpDir = new File(storageDir, String.format("jna/%s", nativePrefix));
 -        tmpDir.mkdirs();
-+        //File tmpDir = new File(storageDir, "jna");
-+        File tmpDir = new File(storageDir, "jni");
 +        //tmpDir.mkdirs();
          String jnaLibName = OperatingSystem.current().isMacOsX() ? "libjnidispatch.jnilib" : System.mapLibraryName("jnidispatch");
          File libFile = new File(tmpDir, jnaLibName);
          if (!libFile.exists()) {
+--- a/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/services/NativeServices.java
++++ b/subprojects/native/src/main/java/org/gradle/internal/nativeplatform/services/NativeServices.java
+@@ -48,7 +48,7 @@
+      * of a native service. Also initializes the Native-Platform library using the passed user home directory.
+      */
+     public static void initialize(File userHomeDir) {
+-        File nativeDir = new File(userHomeDir, "native");
++        File nativeDir = new File("/usr/lib");
+         if (USE_NATIVE_PLATFORM) {
+             try {
+                 net.rubygrapefruit.platform.Native.init(nativeDir);

@@ -7,18 +7,18 @@ Last-Update: 2012-09-03
 
 --- a/gradle/integTest.gradle
 +++ b/gradle/integTest.gradle
-@@ -19,7 +19,7 @@
+@@ -13,7 +13,7 @@
  }
  
  dependencies {
 -    integTestCompile project(":internalIntegTesting")
 +    //integTestCompile project(":internalIntegTesting")
- }
  
- plugins.withType(org.gradle.plugins.ide.idea.IdeaPlugin) { // lazy as plugin not applied yet
+     //so that implicit help tasks are available:
+     integTestRuntime project(':diagnostics')
 --- a/settings.gradle
 +++ b/settings.gradle
-@@ -40,7 +40,7 @@
+@@ -42,7 +42,7 @@
  include 'ear'
  include 'native'
  include 'internalTesting'
@@ -26,10 +26,10 @@ Last-Update: 2012-09-03
 +//include 'internalIntegTesting'
  include 'performance'
  include 'javascript'
- include 'migration'
+ include 'buildComparison'
 --- a/subprojects/core/core.gradle
 +++ b/subprojects/core/core.gradle
-@@ -52,7 +52,7 @@
+@@ -55,7 +55,7 @@
      testFixturesCompile project(":internalTesting")
      testFixturesRuntime project(':coreImpl')
  
@@ -38,10 +38,14 @@ Last-Update: 2012-09-03
  
      //reports 'css3-pie:css3-pie:1.0beta3'
  }
-@@ -98,4 +98,4 @@
-     def generate() {
-         propertiesFile.withOutputStream { pluginProperties.save(it, 'plugin definitions') }
-     }
--}
-\ No newline at end of file
-+}
+--- a/subprojects/performance/performance.gradle
++++ b/subprojects/performance/performance.gradle
+@@ -7,7 +7,7 @@
+ dependencies {
+     junit 'junit:junit:4.10'
+     groovy libraries.groovy
+-    testFixturesCompile project(':internalIntegTesting')
++    //testFixturesCompile project(':internalIntegTesting')
+ }
+ 
+ useTestFixtures()

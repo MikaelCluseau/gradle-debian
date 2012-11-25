@@ -2,32 +2,35 @@ Author: Damien Raude-Morvan <drazzib@debian.org>
 Forwarded: not-needed
 Last-Update: 2012-08-18
 
---- a/build.gradle
-+++ b/build.gradle
-@@ -224,7 +224,7 @@
-     testResultsDir = file("${buildDir}/test-results")
-     projects = subprojects
- }
--
-+/*
- task determineCommitId {
-     ext.commitId = null
- 
-@@ -269,14 +269,15 @@
-         }
+--- a/gradle/buildReceipt.gradle
++++ b/gradle/buildReceipt.gradle
+@@ -32,7 +32,7 @@
      }
  }
-+*/
+ 
+-task determineCommitId {
++/*task determineCommitId {
+     ext.commitId = null
+ 
+     doLast {
+@@ -93,9 +93,9 @@
+             throw new InvalidUserDataException("Could not determine commit id")
+         }
+     }
+-}
++}*/
  
 -task createBuildReceipt(dependsOn: determineCommitId) {
-+task createBuildReceipt {
-     ext.receiptFile = file("$buildDir/build-receipt.properties")
++task createBuildReceipt() {
+     ext.receiptFile = file("$buildDir/$buildReceiptFileName")
      outputs.file receiptFile
      outputs.upToDateWhen { false }
-     doLast {
+@@ -107,7 +107,7 @@
+             hostName = "unknown"
+         }
          def data = [
--            commitId:  determineCommitId.commitId,
-+            commitId:  "UNKNOWN",
-             versionNumber: version,
-             buildTimestamp: buildTimestamp,
-             username: System.properties["user.name"],
+-                commitId:  determineCommitId.commitId,
++                commitId: "UNKNOWN",
+                 versionNumber: version,
+                 buildTimestamp: buildTimestamp,
+                 username: System.properties["user.name"],

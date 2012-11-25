@@ -6,31 +6,20 @@ Author: Damien Raude-Morvan <drazzib@debian.org>
 Forwarded: no
 Last-Update: 2012-08-18
 
---- a/build.gradle
-+++ b/build.gradle
-@@ -101,7 +101,7 @@
-         groovy: 'org.codehaus.groovy:groovy-all:debian@jar',
-         jaxen: 'jaxen:jaxen:debian@jar',
-         jcip: "net.jcip:jcip:debian",
--        jna: 'net.java.dev.jna:jna:3.2.7@jar',
-+        jna: 'net.java.dev.jna:jna:debian@jar',
-         junit: 'junit:junit4:4.x',
-         xmlunit: 'xmlunit:xmlunit:debian',
-         nekohtml: dependencies.module('net.sourceforge.nekohtml:nekohtml:debian') {
 --- a/subprojects/native/native.gradle
 +++ b/subprojects/native/native.gradle
-@@ -10,10 +10,13 @@
-     compile libraries.commons_io
+@@ -9,10 +9,13 @@
      compile libraries.slf4j_api
      compile libraries.jna
+     compile libraries.nativePlatform
 -    compile module('org.jruby.ext.posix:jna-posix:1.0.3') {
 +    compile module('org.jruby.ext.posix:jnr-posix:debian') {
          dependency libraries.jna
-+	dependency 'org.jruby.extras:constantine:debian'
-+	dependency 'org.jruby.extras:jaffl:debian'
-+	dependency 'org.jruby.extras:jffi:debian'
      }
 -    compile module('org.fusesource.jansi:jansi:1.2.1') {
++    compile 'org.jruby.extras:constantine:debian'
++    compile 'org.jruby.extras:jaffl:debian'
++    compile 'org.jruby.extras:jffi:debian'
 +    compile module('org.fusesource.jansi:jansi:debian') {
          dependency libraries.jna
      }
@@ -47,7 +36,7 @@ Last-Update: 2012-08-18
  import org.slf4j.Logger;
  import org.slf4j.LoggerFactory;
 @@ -61,7 +59,7 @@
-         if (operatingSystem.isLinux() || operatingSystem.isMacOsX()) {
+         if (libC != null && (operatingSystem.isLinux() || operatingSystem.isMacOsX())) {
              FilePathEncoder filePathEncoder = createEncoder(libC);
              serviceRegistry.add(Chmod.class, new LibcChmod(libC, filePathEncoder));
 -            serviceRegistry.add(Stat.class, new LibCStat(libC, operatingSystem, (BaseNativePOSIX) PosixUtil.current(), filePathEncoder));

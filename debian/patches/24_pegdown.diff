@@ -15,8 +15,8 @@ Last-Update: 2012-08-18
  
 -    compile "org.pegdown:pegdown:1.1.0"
      compile "org.jsoup:jsoup:1.6.3"
-     compile "com.googlecode.jarjar:jarjar:1.3"
- }
+ 
+     //below dependency was deployed to the repo.gradle.org
 --- a/buildSrc/src/main/groovy/org/gradle/plugins/pegdown/PegDown.groovy
 +++ b/buildSrc/src/main/groovy/org/gradle/plugins/pegdown/PegDown.groovy
 @@ -21,9 +21,9 @@
@@ -62,15 +62,15 @@ Last-Update: 2012-08-18
      void options(String... options) {
 --- a/subprojects/docs/docs.gradle
 +++ b/subprojects/docs/docs.gradle
-@@ -23,7 +23,6 @@
- import org.gradle.internal.os.OperatingSystem
+@@ -22,7 +22,6 @@
+ import org.gradle.build.docs.dsl.source.ExtractDslMetaDataTask
  
  apply plugin: 'base'
 -apply plugin: 'pegdown'
  apply plugin: 'jsoup'
+ apply plugin: 'javascript-base'
  
- configurations {
-@@ -62,7 +61,7 @@
+@@ -87,7 +86,7 @@
      builtBy 'distDocs'
  }
  outputs.docs = files(docsDir) {
@@ -79,24 +79,29 @@ Last-Update: 2012-08-18
  }
  
  tasks.withType(Docbook2Xhtml) {
-@@ -336,10 +335,9 @@
-     from project.outputs.docs
+@@ -352,10 +351,10 @@
+     group = 'documentation'
  }
  
 -import org.gradle.plugins.pegdown.PegDown
++//import org.gradle.plugins.pegdown.PegDown
  import org.gradle.plugins.jsoup.Jsoup
  
--task editReleaseNotes() << {
-+/* task editReleaseNotes() << {
-     Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
- }
- 
-@@ -370,7 +368,7 @@
- 
- task viewReleaseNotes(dependsOn: releaseNotes) << {
-     Class.forName("java.awt.Desktop").newInstance().browse(new File(releaseNotes.destinationDir, releaseNotes.fileName).toURI())
+-task editReleaseNotes() {
++/*task editReleaseNotes() {
+     group = "release notes"
+     doLast {
+         Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
+@@ -394,10 +393,10 @@
+     doLast {
+         Class.forName("java.awt.Desktop").newInstance().browse(new File(releaseNotes.destinationDir, releaseNotes.fileName).toURI())
+     }
 -}
 +}*/
  
- class Xhtml2Pdf extends DefaultTask {
-     @InputFile
+ task docs {
+-    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml, releaseNotes
++    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
+     description = 'Generates all documentation'
+     group = 'documentation'
+ }

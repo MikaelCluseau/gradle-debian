@@ -6,19 +6,18 @@ Last-Update: 2012-08-18
 
 --- a/build.gradle
 +++ b/build.gradle
-@@ -496,7 +496,8 @@
- }
- 
- def pluginProjects() {
--    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript'].collect {
-+    //['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript'].collect {
-+    ['plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven', 'ide', 'announce', 'scala', 'signing', 'cpp', 'ear', 'javascript'].collect {
+@@ -82,7 +82,7 @@
+     publishedProjects = [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices'), project(':messaging')]
+     pluginProjects = [
+         'plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven',
+-        'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript', 'buildComparison',
++        'ide', 'announce', 'scala', 'signing', 'cpp', 'ear', 'javascript', 'buildComparison',
+         'diagnostics', 'reporting', 'publish', 'ivy'
+     ].collect {
          project(it)
-     }
- }
 --- a/settings.gradle
 +++ b/settings.gradle
-@@ -34,7 +34,7 @@
+@@ -36,7 +36,7 @@
  include 'toolingApi'
  include 'docs'
  include 'integTest'
@@ -29,7 +28,7 @@ Last-Update: 2012-08-18
  include 'ear'
 --- a/subprojects/docs/src/docs/dsl/dsl.xml
 +++ b/subprojects/docs/src/docs/dsl/dsl.xml
-@@ -271,9 +271,11 @@
+@@ -300,9 +300,11 @@
              <tr>
                  <td>org.gradle.plugins.signing.Sign</td>
              </tr>
@@ -41,8 +40,8 @@ Last-Update: 2012-08-18
              <tr>
                  <td>org.gradle.api.tasks.Sync</td>
              </tr>
-@@ -410,4 +412,4 @@
-         </para>
+@@ -409,4 +411,4 @@
+         </table>
      </section>
  
 -</book>
@@ -64,7 +63,7 @@ Last-Update: 2012-08-18
 +</chapter>
 --- a/subprojects/docs/src/docs/userguide/userguide.xml
 +++ b/subprojects/docs/src/docs/userguide/userguide.xml
-@@ -69,7 +69,7 @@
+@@ -60,7 +60,7 @@
      <xi:include href='findBugsPlugin.xml'/>
      <xi:include href='jdependPlugin.xml'/>
      <xi:include href='pmdPlugin.xml'/>

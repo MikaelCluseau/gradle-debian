@@ -4,52 +4,146 @@ Last-Update: 2012-08-18
 
 --- a/subprojects/core-impl/core-impl.gradle
 +++ b/subprojects/core-impl/core-impl.gradle
-@@ -20,7 +20,7 @@
-     compile libraries.nekohtml
+@@ -22,14 +22,14 @@
  
      testCompile libraries.junit
--
-+/*
-     compile files(["$buildDir/libs/jarjar/jarjar-maven-settings-3.0.4.jar",
-             "$buildDir/libs/jarjar/jarjar-maven-settings-builder-3.0.4.jar",
-             "$buildDir/libs/jarjar/jarjar-plexus-cipher-1.4.jar",
-@@ -30,18 +30,19 @@
-             "$buildDir/libs/jarjar/jarjar-plexus-utils-2.0.6.jar"]) {
-         builtBy tasks.withType(JarJar)
-     }
-+*/
  
--    mvn3Input libraries.maven3_settings_builder
-+    compile libraries.maven3_settings_builder
+-    compile fileTree("$buildDir/libs/jarjar") {
++    /*compile fileTree("$buildDir/libs/jarjar") {
+         builtBy 'jarJarMaven3'
+-    }
++    }*/
+ 
+-    mvn3Input libraries.maven3
++    compile libraries.maven3
  }
--configurations.mvn3Input.files.each{libFile->
-+/*configurations.mvn3Input.files.each{libFile->
-    task "jarjar-${libFile.name}"(type: JarJar) {
-         inputFile = libFile
-         outputFile = file("$buildDir/libs/jarjar/jarjar-${libFile.name}")
-         rule('org.**', 'jarjar.org.@1')
-     }
+ 
+-task jarJarMaven3(type: JarJar) {
++/*task jarJarMaven3(type: JarJar) {
+     inputJars = configurations.mvn3Input
+     outputDir = file("$buildDir/libs/jarjar")
+ 
+@@ -41,14 +41,14 @@
+     rule('org.sonatype.**', 'org.gradle.mvn3.org.sonatype.@1')
+ 
+     avoidConflictingPlexusComponents(it)
 -}
 +}*/
  
--def allJarJars = tasks.withType(JarJar)
--ideaModule.dependsOn allJarJars // I expected that buildable file collections links the ideaModule to the allJarJars already.
-+//def allJarJars = tasks.withType(JarJar)
-+//ideaModule.dependsOn allJarJars // I expected that buildable file collections links the ideaModule to the allJarJars already.
+-classpathManifest.dependsOn jarJarMaven3 //see GRADLE-2521
++//classpathManifest.dependsOn jarJarMaven3 //see GRADLE-2521
  
--useTestFixtures()
-\ No newline at end of file
-+useTestFixtures()
+ //adding explicit task dependencies due to http://issues.gradle.org/browse/GRADLE-2481
+ def allJarJars = tasks.withType(JarJar)
+-ideaModule.dependsOn allJarJars
+-eclipseClasspath.dependsOn allJarJars
++//ideaModule.dependsOn allJarJars
++//eclipseClasspath.dependsOn allJarJars
+ useTestFixtures()
+ 
+ def avoidConflictingPlexusComponents(JarJar task) {
 --- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultLocalMavenRepositoryLocator.java
 +++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultLocalMavenRepositoryLocator.java
 @@ -15,8 +15,8 @@
   */
  package org.gradle.api.internal.artifacts.mvnsettings;
  
--import jarjar.org.apache.maven.settings.Settings;
--import jarjar.org.apache.maven.settings.building.*;
+-import org.gradle.mvn3.org.apache.maven.settings.Settings;
+-import org.gradle.mvn3.org.apache.maven.settings.building.*;
++import org.apache.maven.settings.Settings;
++import org.apache.maven.settings.building.*;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
+--- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultMavenSettingsProvider.java
++++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/DefaultMavenSettingsProvider.java
+@@ -15,8 +15,8 @@
+  */
+ package org.gradle.api.internal.artifacts.mvnsettings;
+ 
+-import org.gradle.mvn3.org.apache.maven.settings.Settings;
+-import org.gradle.mvn3.org.apache.maven.settings.building.*;
 +import org.apache.maven.settings.Settings;
 +import org.apache.maven.settings.building.*;
  
- import org.slf4j.Logger;
- import org.slf4j.LoggerFactory;
+ /**
+  * @author Szczepan Faber/Steve Ebersole
+--- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/MavenSettingsProvider.java
++++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/mvnsettings/MavenSettingsProvider.java
+@@ -15,8 +15,8 @@
+  */
+ package org.gradle.api.internal.artifacts.mvnsettings;
+ 
+-import org.gradle.mvn3.org.apache.maven.settings.Settings;
+-import org.gradle.mvn3.org.apache.maven.settings.building.SettingsBuildingException;
++import org.apache.maven.settings.Settings;
++import org.apache.maven.settings.building.SettingsBuildingException;
+ 
+ public interface MavenSettingsProvider {
+     Settings buildSettings() throws SettingsBuildingException;
+--- a/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/Maven2Gradle.groovy
++++ b/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/Maven2Gradle.groovy
+@@ -18,7 +18,7 @@
+ 
+ package org.gradle.api.plugins.maven.internal
+ 
+-import org.gradle.mvn3.org.apache.maven.project.MavenProject
++import org.apache.maven.project.MavenProject
+ import org.gradle.util.GFileUtils
+ 
+ /**
+@@ -549,4 +549,4 @@
+   private boolean elementHasText(it) {
+     return it.text().length() != 0
+   }
+-}
+\ No newline at end of file
++}
+--- a/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/MavenProjectXmlWriter.java
++++ b/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/MavenProjectXmlWriter.java
+@@ -16,8 +16,8 @@
+ 
+ package org.gradle.api.plugins.maven.internal;
+ 
+-import org.gradle.mvn3.org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+-import org.gradle.mvn3.org.apache.maven.project.MavenProject;
++import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
++import org.apache.maven.project.MavenProject;
+ 
+ import java.io.ByteArrayOutputStream;
+ import java.io.IOException;
+--- a/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/MavenProjectsCreator.java
++++ b/subprojects/maven/src/main/groovy/org/gradle/api/plugins/maven/internal/MavenProjectsCreator.java
+@@ -17,19 +17,19 @@
+ package org.gradle.api.plugins.maven.internal;
+ 
+ import com.google.common.collect.ImmutableList;
+-import org.gradle.mvn3.org.apache.maven.execution.*;
+-import org.gradle.mvn3.org.apache.maven.model.building.ModelBuildingRequest;
+-import org.gradle.mvn3.org.apache.maven.project.*;
+-import org.gradle.mvn3.org.apache.maven.settings.Settings;
+-import org.gradle.mvn3.org.codehaus.plexus.ContainerConfiguration;
+-import org.gradle.mvn3.org.codehaus.plexus.DefaultContainerConfiguration;
+-import org.gradle.mvn3.org.codehaus.plexus.DefaultPlexusContainer;
+-import org.gradle.mvn3.org.codehaus.plexus.PlexusContainerException;
+-import org.gradle.mvn3.org.codehaus.plexus.classworlds.ClassWorld;
+-import org.gradle.mvn3.org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+-import org.gradle.mvn3.org.codehaus.plexus.configuration.PlexusConfigurationException;
+-import org.gradle.mvn3.org.sonatype.aether.RepositorySystemSession;
+-import org.gradle.mvn3.org.sonatype.aether.util.DefaultRepositorySystemSession;
++import org.apache.maven.execution.*;
++import org.apache.maven.model.building.ModelBuildingRequest;
++import org.apache.maven.project.*;
++import org.apache.maven.settings.Settings;
++import org.codehaus.plexus.ContainerConfiguration;
++import org.codehaus.plexus.DefaultContainerConfiguration;
++import org.codehaus.plexus.DefaultPlexusContainer;
++import org.codehaus.plexus.PlexusContainerException;
++import org.codehaus.plexus.classworlds.ClassWorld;
++import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
++import org.codehaus.plexus.configuration.PlexusConfigurationException;
++import org.sonatype.aether.RepositorySystemSession;
++import org.sonatype.aether.util.DefaultRepositorySystemSession;
+ import org.gradle.api.GradleException;
+ import org.gradle.api.Transformer;
+ import org.gradle.util.CollectionUtils;
