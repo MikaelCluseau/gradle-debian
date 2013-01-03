@@ -47,6 +47,7 @@ Build-Depends: ant (>= 1.8),
                libjcip-annotations-java,
                libjetty-extra-java,
                libjetty-java,
+               libjmock2-java,
                libjna-java,
                libjnr-posix-java (>= 1.1.8~0),
                libjsch-java,
@@ -71,6 +72,7 @@ Build-Depends: ant (>= 1.8),
                maven (>= 3.0.4-4),
                testng,
                unzip
+Build-Conflicts: groovy (>= 2.0.0~)
 Standards-Version: 3.9.3
 Homepage: http://gradle.org/
 Vcs-Git: git://git.debian.org/git/pkg-java/gradle.git
