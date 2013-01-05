@@ -1,0 +1,50 @@
+Description: No Zinc Compiler (https://github.com/typesafehub/zinc) in Debian.
+ Zinc depends on SBT compiler and SBT is not yet in Debian
+ See SBT ITP : http://bugs.debian.org/639910
+Author: Damien Raude-Morvan <drazzib@debian.org>
+Last-Update: 2013-01-05
+Forwarded: not-needed
+--- a/subprojects/scala/scala.gradle
++++ b/subprojects/scala/scala.gradle
+@@ -23,11 +23,14 @@
+     compile project(":plugins")
+ 
+     // keep in sync with ScalaBasePlugin code
+-    provided("com.typesafe.zinc:zinc:0.2.0")
++    // provided("com.typesafe.zinc:zinc:0.2.0")
+ 
+     testCompile libraries.slf4j_api
+ }
+ 
++// No Zinc compiler
++sourceSets.main.groovy.excludes = ['**/org/gradle/api/internal/tasks/scala/jdk6/**']
++
+ useTestFixtures(project: ":plugins") // includes core test fixtures
+ 
+ if (!javaVersion.java6Compatible) {
+--- a/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
++++ b/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
+@@ -101,11 +101,11 @@
+             compile.scalaClasspath = project.configurations[SCALA_TOOLS_CONFIGURATION_NAME]
+             compile.conventionMapping.zincClasspath = {
+                 def config = project.configurations[ZINC_CONFIGURATION_NAME]
+-                if (!compile.scalaCompileOptions.useAnt && config.dependencies.empty) {
+-                    project.dependencies {
+-                        zinc("com.typesafe.zinc:zinc:0.2.0")
+-                    }
+-                }
++                //if (!compile.scalaCompileOptions.useAnt && config.dependencies.empty) {
++                    //project.dependencies {
++                    //    zinc("com.typesafe.zinc:zinc:0.2.0")
++                    //}
++                //}
+                 config
+             }
+         }
+@@ -118,4 +118,4 @@
+             scalaDoc.scalaClasspath = project.configurations[SCALA_TOOLS_CONFIGURATION_NAME]
+         }
+     }
+-}
+\ No newline at end of file
++}
