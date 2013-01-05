@@ -20,7 +20,7 @@ Last-Update: 2012-08-18
          }
 --- a/subprojects/docs/docs.gradle
 +++ b/subprojects/docs/docs.gradle
-@@ -40,7 +40,7 @@
+@@ -40,23 +40,23 @@
  }
  
  configurations {
@@ -28,8 +28,16 @@ Last-Update: 2012-08-18
 +    //userGuideStyleSheets
      userGuideTask
      jquery
-     fonts
-@@ -53,7 +53,7 @@
+-    fonts
++    //fonts
+ }
+ 
+ dependencies {
+-    userGuideTask 'xalan:xalan:2.7.1', 'xerces:xercesImpl:2.9.1'
+-    userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
++    userGuideTask 'xalan:xalan2:2.7.1', 'xerces:xercesImpl:2.9.1'
++    userGuideTask module('xhtmlrenderer:core-renderer:R8rc1') {
+         dependency 'itext:itext:2.0.8@jar'
      }
      userGuideTask 'xslthl:xslthl:2.0.1@jar'
  
@@ -37,7 +45,20 @@ Last-Update: 2012-08-18
 +    //userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
      jquery "jquery:jquery.min:1.8.0@js"
  
-     fonts \
+-    fonts \
++    /*fonts \
+         "lato:regular:6:v0SdcGFAl2aezM9Vq_aFTQ@ttf",
+         "lato:regular-italic:6:LqowQDslGv4DmUBAfWa2Vw@ttf",
+         "lato:bold:6:DvlFBScY1r-FMtZSYIYoYw@ttf",
+@@ -64,7 +64,7 @@
+         "ubuntumono:regular:3:ViZhet7Ak-LRXZMXzuAfkZ0EAVxt0G0biEntp43Qt6E@ttf",
+         "ubuntumono:regular-italic:3:KAKuHXAHZOeECOWAHsRKA-LrC4Du4e_yfTJ8Ol60xk0@ttf",
+         "ubuntumono:bold:3:ceqTZGKHipo8pJj4molytp_TkvowlIOtbR7ePgFOpF4@ttf",
+-        "ubuntumono:bold-italic:3:n_d8tv_JOIiYyMXR4eaV9WsGzsqhEorxQDpu60nfWEc@ttf"
++        "ubuntumono:bold-italic:3:n_d8tv_JOIiYyMXR4eaV9WsGzsqhEorxQDpu60nfWEc@ttf"*/
+ }
+ 
+ ext {
 @@ -91,7 +91,7 @@
  }
  
@@ -46,6 +67,22 @@ Last-Update: 2012-08-18
 +    //dependsOn userguideStyleSheets
      classpath = configurations.userGuideTask
      stylesheetsDir = userguideStyleSheets.destinationDir
+ }
+@@ -121,12 +121,12 @@
+         [it.name, it.bytes.encodeBase64().toString()]
+     }
+ 
+-    def fonts = configurations.fonts.resolvedConfiguration.resolvedArtifacts.collectEntries {
++    /*def fonts = configurations.fonts.resolvedConfiguration.resolvedArtifacts.collectEntries {
+         def id = it.moduleVersion.id
+         ["${id.group}-${id.name}".toString(), it.file.bytes.encodeBase64().toString()]
+-    }
++    }*/
+ 
+-    ext.tokens = images + fonts
++    ext.tokens = images // + fonts
+     css.inputs.property 'tokens', tokens
+     css.filter org.apache.tools.ant.filters.ReplaceTokens, tokens: tokens
  }
 @@ -166,10 +166,10 @@
          include '*.xsl'

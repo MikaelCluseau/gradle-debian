@@ -1,2 +1,3 @@
 build/distributions/bin/gradle-*/lib/gradle-core-*.jar
+build/distributions/bin/gradle-*/lib/gradle-wrapper-*.jar
 build/distributions/bin/gradle-*/lib/plugins/gradle-core-impl-*.jar

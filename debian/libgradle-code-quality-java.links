@@ -1,3 +1,0 @@
-usr/share/java/checkstyle.jar                    usr/share/gradle/lib/plugins/checkstyle.jar
-usr/share/java/CodeNarc.jar                      usr/share/gradle/lib/plugins/CodeNarc.jar
-usr/share/java/GMetrics.jar                      usr/share/gradle/lib/plugins/GMetrics.jar

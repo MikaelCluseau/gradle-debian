@@ -1,7 +1,18 @@
 gradle (1.3-1) UNRELEASED; urgency=low
 
   * New upstream release.
+  * Merge all plugins packages into gradle-plugins: there is not real value
+    in providing all those small packages since libgradle-core-java Depends
+    on most of plugins dependencies.
   * d/control: Build-Depends on libasm4-java instead of libasm3-java.
+  * d/control: Add Build-Depends on libnative-platform-java and
+    libnative-platform-jni.
+  * d/control: Build-Depends on libjarjar-java (>= 1.4+svn142-1) to build
+    Gradle with jarjar which handle correctly updating the fully qualified
+    class names in the jar's resources. Otherwise, we get errors during plexus
+    startup.
+  * d/rules: Add support for DEB_BUILD_OPTIONS parallel=n using new Gradle
+    parallel feature.
 
  -- Damien Raude-Morvan <drazzib@debian.org>  Fri, 04 Jan 2013 00:13:00 +0100
 

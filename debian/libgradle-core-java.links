@@ -1,5 +1,5 @@
 # gradle-core
-usr/share/java/asm3-all.jar                      usr/share/gradle/lib/asm3-all.jar
+usr/share/java/asm4-all.jar                      usr/share/gradle/lib/asm4-all.jar
 usr/share/java/ant.jar                           usr/share/gradle/lib/ant.jar
 usr/share/java/commons-collections3.jar          usr/share/gradle/lib/commons-collections3.jar
 usr/share/java/commons-io.jar                    usr/share/gradle/lib/commons-io.jar
@@ -11,6 +11,7 @@ usr/share/java/guava.jar                         usr/share/gradle/lib/guava.jar
 usr/share/java/jcip.jar                          usr/share/gradle/lib/jcip.jar
 usr/share/java/jul-to-slf4j.jar                  usr/share/gradle/lib/jul-to-slf4j.jar
 usr/share/java/jarjar.jar                        usr/share/gradle/lib/jarjar.jar
+usr/share/java/atinject-jsr330-api.jar           usr/share/gradle/lib/atinject-jsr330-api.jar
 usr/share/java/groovy-all.jar                    usr/share/gradle/lib/groovy-all.jar
 usr/share/java/slf4j-api.jar                     usr/share/gradle/lib/slf4j-api.jar
 usr/share/java/log4j-over-slf4j.jar              usr/share/gradle/lib/log4j-over-slf4j.jar
@@ -26,7 +27,6 @@ usr/share/java/httpclient.jar                    usr/share/gradle/lib/plugins/ht
 # slf4j-api
 usr/share/java/maven-ant-tasks.jar               usr/share/gradle/lib/plugins/maven-ant-tasks.jar
 usr/share/java/nekohtml.jar                      usr/share/gradle/lib/plugins/nekohtml.jar
-usr/share/java/maven-settings-builder-3.x.jar    usr/share/gradle/lib/plugins/maven-settings-builder-3.x.jar
 # groovy-all
 # jcl-over-slf4j
 usr/share/java/jcifs.jar                         usr/share/gradle/lib/plugins/jcifs.jar
@@ -35,11 +35,7 @@ usr/share/java/httpcore.jar                      usr/share/gradle/lib/plugins/ht
 # jsch
 usr/share/java/xercesImpl.jar                    usr/share/gradle/lib/plugins/xercesImpl.jar
 usr/share/java/jaxp-1.4.jar                      usr/share/gradle/lib/plugins/jaxp-1.4.jar
-usr/share/java/plexus-utils2.jar                 usr/share/gradle/lib/plugins/plexus-utils2.jar
-usr/share/java/plexus-cipher.jar                 usr/share/gradle/lib/plugins/plexus-cipher.jar
-usr/share/java/plexus-interpolation.jar          usr/share/gradle/lib/plugins/plexus-interpolation.jar
-usr/share/java/maven-settings-3.x.jar            usr/share/gradle/lib/plugins/maven-settings-3.x.jar
 usr/share/java/plexus-component-annotations-1.5.jar  usr/share/gradle/lib/plugins/plexus-component-annotations-1.5.jar
-usr/share/java/plexus-sec-dispatcher.jar         usr/share/gradle/lib/plugins/plexus-sec-dispatcher.jar
 usr/share/java/pmaven-common.jar                 usr/share/gradle/lib/plugins/pmaven-common.jar
 usr/share/java/pmaven-groovy.jar                 usr/share/gradle/lib/plugins/pmaven-groovy.jar
+usr/share/java/xbean-reflect.jar                 usr/share/gradle/lib/plugins/xbean-reflect.jar

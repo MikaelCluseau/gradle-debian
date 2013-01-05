@@ -2,11 +2,19 @@
 
 VERSION := $(shell dpkg-parsechangelog | grep ^Version: | sed 's/^Version: \(.\+\)-.\+$$/\1/')
 UPSTREAM_VERSION := $(shell echo $(VERSION) | sed 's/~m/-milestone-/')
-JARS := announce antlr code-quality cpp ear ide javascript jetty maven osgi plugins scala signing
+PLUGINS_JARS := announce antlr build-comparison code-quality cpp diagnostics ear ide ivy javascript jetty maven osgi plugins publish reporting scala signing
 export JAVA_HOME=/usr/lib/jvm/default-java
 export GRADLE_OPTS=-Dfile.encoding=UTF-8 -Xmx512m
 export GRADLE_USER_HOME=$(CURDIR)/.gradlehome
+# Only for debug purpose
+# export JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
 DEB_GRADLE_OPTS := --project-prop notSnapshot=true --project-prop version=$(UPSTREAM_VERSION) --stacktrace --offline
+
+# Support for DEB_BUILD_OPTIONS parallel=n
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMTHREADS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	DEB_GRADLE_OPTS += --parallel --parallel-threads=$(NUMTHREADS)
+endif
 
 %:
 	dh $@ --with javahelper
@@ -15,8 +23,8 @@ override_dh_auto_build:
 	find /usr/share/gradle -type l ! -exec test -r {} \; -print
 	mkdir $(CURDIR)/.gradlehome
 	gradle $(DEB_GRADLE_OPTS) assemble
-	unzip build/distributions/gradle-*-bin.zip -d build/distributions/bin
-	unzip build/distributions/gradle-*-all.zip -d build/distributions/all
+	unzip -q -n build/distributions/gradle-*-bin.zip -d build/distributions/bin
+	unzip -q -n build/distributions/gradle-*-all.zip -d build/distributions/all
 	pod2man -c '' -r '' debian/gradle.pod > build/gradle.1
 	./debian/gradle.sed -i build/distributions/bin/gradle-*/bin/gradle
 
@@ -28,17 +36,16 @@ override_dh_auto_clean:
 override_dh_link:
 	dh_link
 	# plugins symlinks
-	for j in $(JARS); do \
-		dh_link -plibgradle-$$j-java usr/share/java/gradle-$$j.jar \
+	for j in $(PLUGINS_JARS); do \
+		dh_link -plibgradle-plugins-java usr/share/java/gradle-$$j.jar \
 		usr/share/gradle/lib/plugins/gradle-$$j-$(VERSION).jar; \
 	done ;
 	dh_link -plibgradle-core-java usr/share/java/gradle-core-impl.jar \
-		usr/share/gradle/lib/plugins/gradle-core-impl-$(VERSION).jar; \
-	# core and wrapper jars symlinks
-	for j in core wrapper; do \
-		dh_link -pgradle usr/share/java/gradle-$$j.jar \
-		usr/share/gradle/lib/gradle-$$j-$(VERSION).jar; \
-	done ;
+		usr/share/gradle/lib/plugins/gradle-core-impl-$(VERSION).jar
+	dh_link -plibgradle-core-java usr/share/java/gradle-wrapper.jar \
+		usr/share/gradle/lib/gradle-wrapper-$(VERSION).jar
+	dh_link -pgradle usr/share/java/gradle-core.jar \
+		usr/share/gradle/lib/gradle-core-$(VERSION).jar
 
 override_jh_installlibs:
 	jh_installlibs --upstream-version=$(UPSTREAM_VERSION)

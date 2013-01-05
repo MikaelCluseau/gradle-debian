@@ -22,12 +22,7 @@ Version: $VERSION
 Architecture: all
 Maintainer: Debian Java Maintainers <pkg-java-maintainers@lists.alioth.debian.org>
 Depends: default-jre-headless
-Provides: libgradle-code-quality-java,
- libgradle-ide-java,
- libgradle-ear-java,
- libgradle-maven-java,
- libgradle-wrapper-java,
- libgradle-scala-java
+Provides: libgradle-plugins-java
 Section: java
 Priority: optional
 Homepage: http://gradle.org/

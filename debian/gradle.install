@@ -1,5 +1,5 @@
-
 build/distributions/bin/gradle-*/bin/gradle                    usr/share/gradle/bin
+
 build/distributions/bin/gradle-*/lib/gradle-base-services-*.jar     usr/share/gradle/lib
 build/distributions/bin/gradle-*/lib/gradle-cli-*.jar           usr/share/gradle/lib
 build/distributions/bin/gradle-*/lib/gradle-launcher-*.jar      usr/share/gradle/lib

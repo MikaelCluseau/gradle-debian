@@ -1,0 +1,1 @@
+build/distributions/bin/gradle-*/lib/plugins/jarjar-*.jar /usr/share/gradle/lib/plugins/

@@ -1,3 +1,34 @@
+# gradle-antlr
+usr/share/java/ant-antlr.jar                     usr/share/gradle/lib/plugins/ant-antlr.jar
+usr/share/java/antlr.jar                         usr/share/gradle/lib/plugins/antlr.jar
+
+# gradle-codequality
+usr/share/java/checkstyle.jar                    usr/share/gradle/lib/plugins/checkstyle.jar
+usr/share/java/CodeNarc.jar                      usr/share/gradle/lib/plugins/CodeNarc.jar
+usr/share/java/GMetrics.jar                      usr/share/gradle/lib/plugins/GMetrics.jar
+
+# gradle-js 
+usr/share/java/js.jar                      usr/share/gradle/lib/plugins/js.jar
+usr/share/java/gson.jar                          usr/share/gradle/lib/plugins/gson.jar
+
+# gradle-jetty
+usr/share/java/jetty.jar                         usr/share/gradle/lib/plugins/jetty.jar
+usr/share/java/jetty-util.jar                    usr/share/gradle/lib/plugins/jetty-util.jar
+usr/share/java/servlet-api-2.5.jar               usr/share/gradle/lib/plugins/servlet-api-2.5.jar
+usr/share/java/jetty-plus.jar                    usr/share/gradle/lib/plugins/jetty-plus.jar
+usr/share/java/jsp-api-2.1.jar                   usr/share/gradle/lib/plugins/jsp-api-2.1.jar
+usr/share/java/jetty-annotations.jar             usr/share/gradle/lib/plugins/jetty-annotations.jar
+usr/share/java/jetty-naming.jar                  usr/share/gradle/lib/plugins/jetty-naming.jar
+usr/share/java/eclipse-ecj.jar                   usr/share/gradle/lib/plugins/eclipse-ecj.jar
+
+# gradle-osgi
+usr/share/java/bndlib.jar                        usr/share/gradle/lib/plugins/bndlib.jar
+
+#gradle-plugins
 usr/share/java/junit4.jar                        usr/share/gradle/lib/plugins/junit4.jar
 usr/share/java/testng.jar                        usr/share/gradle/lib/plugins/testng.jar
 usr/share/java/commons-cli.jar                   usr/share/gradle/lib/plugins/commons-cli.jar
+
+# gradle-signing
+usr/share/java/bcpg.jar                          usr/share/gradle/lib/plugins/bcpg.jar
+usr/share/java/bcprov.jar                        usr/share/gradle/lib/plugins/bcprov.jar

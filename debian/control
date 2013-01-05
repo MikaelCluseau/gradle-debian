@@ -32,16 +32,12 @@ Build-Depends: ant (>= 1.8),
                libdom4j-java,
                libecj-java,
                libgoogle-gson-java,
-               libgradle-code-quality-java,
-               libgradle-ear-java,
-               libgradle-ide-java,
-               libgradle-maven-java,
-               libgradle-scala-java,
-               libgradle-wrapper-java,
+               libgradle-plugins-java,
                libguava-java,
                libhttpclient-java (>= 4.2.1),
                libjansi-java,
-               libjarjar-java,
+               libjarjar-java (>= 1.4+svn142),
+               libjaffl-java (>= 0.5.9-2),
                libjaxen-java,
                libjcifs-java,
                libjcip-annotations-java,
@@ -49,10 +45,11 @@ Build-Depends: ant (>= 1.8),
                libjetty-java,
                libjmock2-java,
                libjna-java,
-               libjnr-posix-java (>= 1.1.8~0),
+               libjnr-posix-java (>= 1.1.8),
                libjsch-java,
                liblogback-java (>= 1:0.9.28),
                libmaven-ant-tasks-java,
+               libnative-platform-java,
                libnekohtml-java,
                libplexus-cipher-java,
                libplexus-containers1.5-java,
@@ -87,22 +84,11 @@ Depends: ant (>= 1.8),
          libgradle-plugins-java (= ${binary:Version}),
          libjaxen-java,
          libjna-java,
-         libjnr-posix-java (>= 1.1.8-1),
+         libjnr-posix-java (>= 1.1.8),
+         libjaffl-java (>= 0.5.9-2),
+         libnative-platform-java,
          libwagon-java,
          ${misc:Depends}
-Recommends: libgradle-announce-java (= ${binary:Version}),
-            libgradle-antlr-java (= ${binary:Version}),
-            libgradle-code-quality-java (= ${binary:Version}),
-            libgradle-cpp-java (= ${binary:Version}),
-            libgradle-ear-java (= ${binary:Version}),
-            libgradle-ide-java (= ${binary:Version}),
-            libgradle-javascript-java (= ${binary:Version}),
-            libgradle-jetty-java (= ${binary:Version}),
-            libgradle-maven-java (= ${binary:Version}),
-            libgradle-osgi-java (= ${binary:Version}),
-            libgradle-scala-java (= ${binary:Version}),
-            libgradle-signing-java (= ${binary:Version}),
-            libgradle-wrapper-java (= ${binary:Version})
 Description: Groovy based build system
  Gradle is a build system written in Groovy. It uses Groovy
  also as the language for its build scripts. It has a powerful
@@ -142,6 +128,8 @@ Depends: ant,
          libxml-commons-external-java,
          maven (>= 3.0.4-4),
          ${misc:Depends}
+Breaks: libgradle-wrapper-java (<< 1.3~)
+Replaces: libgradle-wrapper-java (<< 1.3~)
 Recommends: gradle (= ${binary:Version})
 Suggests: gradle-doc (= ${binary:Version})
 Description: Groovy based build system - Core library
@@ -154,164 +142,57 @@ Description: Groovy based build system - Core library
  .
  This package contains the Gradle Core API library.
 
-Package: libgradle-announce-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - Announce plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle announce plugin and
- enables you to publish messages on succeeded tasks to your favourite
- platforms. It supports Twitter, Ubuntu Notify, Snarl and Growl.
-
-Package: libgradle-antlr-java
-Architecture: all
-Depends: ant-optional (>= 1.8),
-         libantlr-java,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - ANTLR plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle ANTLR plugin that extends the Java
- plugin to add support for generating parsers using ANTLR.
-
-Package: libgradle-code-quality-java
-Architecture: all
-Depends: checkstyle (>= 5.1),
-         libcodenarc-groovy-java (>= 0.17),
-         libgmetrics-groovy-java,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - Code quality plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle code quality plugin that adds
- tasks which perform code quality checks and generate reports from these
- checks. The following tools are supported: CodeNarc and checkstyle.
-
-Package: libgradle-ide-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-ear-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         libgradle-scala-java (= ${binary:Version}),
-         ${misc:Depends}
-Recommends: eclipse-jdt
-Suggests: eclipse
-Breaks: libgradle-eclipse-java (<< 1.0~), libgradle-idea-java (<< 1.0~)
-Replaces: libgradle-eclipse-java (<< 1.0~), libgradle-idea-java (<< 1.0~)
-Description: Groovy based build system - IDE support plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains plugins that provide integration with
- common used IDEs like Eclipse and IDEA IntelliJ.
-
-Package: libgradle-jetty-java
-Architecture: all
-Depends: libecj-java,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         libjetty-extra-java,
-         libjetty-java,
-         libservlet2.5-java,
-         ${misc:Depends}
-Description: Groovy based build system - Jetty plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle Jetty plugin that extends the
- War plugin to add tasks which allow you to deploy your web application
- to a Jetty web container embedded in the build.
-
-Package: libgradle-maven-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Suggests: maven
-Description: Groovy based build system - Maven plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle Maven plugin. With Gradle you can deploy
- to remote Maven repositories or install to your local Maven repository. This
- includes all Maven metadata manipulation and works also for Maven snapshots.
-
-Package: libgradle-osgi-java
-Architecture: all
-Depends: bnd,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - OSGi plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle OSGi plugin. If the Java plugins is
- applied, the OSGi plugin replaces the manifest object of the default jar
- with an OsgiManifest object. The replaced manifest is merged into the new
- one. The OSGi plugin makes heavy use of Peter Kriens BND tool.
-
 Package: libgradle-plugins-java
 Architecture: all
 Depends: libcommons-cli-java,
          libgradle-core-java (= ${binary:Version}),
          ${misc:Depends}
-Suggests: junit4, testng
-Description: Groovy based build system - Core plugins
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle core plugins.
-
-Package: libgradle-scala-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
+Recommends: ant-optional (>= 1.8),
+            bnd,
+            checkstyle (>= 5.1),
+            junit4,
+            libantlr-java,
+            libbcpg-java,
+            libbcprov-java,
+            libcodenarc-groovy-java (>= 0.17),
+            libecj-java,
+            libgmetrics-groovy-java,
+            libgoogle-gson-java,
+            libjetty-extra-java,
+            libjetty-java,
+            librhino-java,
+            libservlet2.5-java,
+            testng
 Suggests: scala
-Description: Groovy based build system - Scala plugin
+Breaks: libgradle-announce-java (<< 1.3~),
+        libgradle-antlr-java (<< 1.3~),
+        libgradle-code-quality-java (<< 1.3~),
+        libgradle-cpp-java (<< 1.3~),
+        libgradle-ear-java (<< 1.3~),
+        libgradle-eclipse-java (<< 1.0~),
+        libgradle-ide-java (<< 1.3~),
+        libgradle-idea-java (<< 1.0~),
+        libgradle-javascript-java (<< 1.3~),
+        libgradle-jetty-java (<< 1.3~),
+        libgradle-maven-java (<< 1.3~),
+        libgradle-osgi-java (<< 1.3~),
+        libgradle-scala-java (<< 1.3~),
+        libgradle-signing-java (<< 1.3~)
+Replaces: libgradle-announce-java (<< 1.3~),
+          libgradle-antlr-java (<< 1.3~),
+          libgradle-code-quality-java (<< 1.3~),
+          libgradle-cpp-java (<< 1.3~),
+          libgradle-ear-java (<< 1.3~),
+          libgradle-eclipse-java (<< 1.0~),
+          libgradle-ide-java (<< 1.3~),
+          libgradle-idea-java (<< 1.0~),
+          libgradle-javascript-java (<< 1.3~),
+          libgradle-jetty-java (<< 1.3~),
+          libgradle-maven-java (<< 1.3~),
+          libgradle-osgi-java (<< 1.3~),
+          libgradle-scala-java (<< 1.3~),
+          libgradle-signing-java (<< 1.3~)
+Description: Groovy based build system - All plugins
  Gradle is a build system written in Groovy. It uses Groovy
  also as the language for its build scripts. It has a powerful
  multi-project build support. It has a layer on top of Ivy
@@ -319,94 +200,37 @@ Description: Groovy based build system - Scala plugin
  gives you always the choice between the flexibility of Ant
  and the convenience of a build-by-convention behavior.
  .
- This package contains the Gradle Scala plugin that extends the
- Java Plugin to add support for Scala projects. It can deal with Scala-only
- projects and with mixed Java/Scala projects. It can even deal with Java-only
- projects. The Scala plugin supports joint compilation of Java and Scala
- source. This means your project can contain Scala classes which use Java
- classes, and vice versa.
-
-Package: libgradle-cpp-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-ide-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - C++ plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- Adds C++ source compilation capabilities to a project.
-
-Package: libgradle-ear-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - EAR plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- Adds support for building J2EE applications.
-
-Package: libgradle-javascript-java
-Architecture: all
-Depends: libgoogle-gson-java,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         librhino-java,
-         ${misc:Depends}
-Description: Groovy based build system - Javascript plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- Adds the ability to check and minify Javascript files.
-
-Package: libgradle-signing-java
-Architecture: all
-Depends: libbcpg-java,
-         libbcprov-java,
-         libgradle-core-java (= ${binary:Version}),
-         libgradle-maven-java (= ${binary:Version}),
-         libgradle-plugins-java (= ${binary:Version}),
-         ${misc:Depends}
-Description: Groovy based build system - Signing plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- Adds the ability to digitally sign built files and artifacts.
-
-Package: libgradle-wrapper-java
-Architecture: all
-Depends: libgradle-core-java (= ${binary:Version}), ${misc:Depends}
-Description: Groovy based build system - Wrapper plugin
- Gradle is a build system written in Groovy. It uses Groovy
- also as the language for its build scripts. It has a powerful
- multi-project build support. It has a layer on top of Ivy
- that provides a build-by-convention integration for Ivy. It
- gives you always the choice between the flexibility of Ant
- and the convenience of a build-by-convention behavior.
- .
- This package contains the Gradle Wrapper plugin that provides tasks
- that can download the gradle source distribution or check out Gradle from
- SVN. This is useful in those cases when Gradle is needed to build
- a project, but Gradle is not installed.
+ This package contains the Gradle Plugins :
+ * announce plugin: enables you to publish messages on succeeded
+   tasks to your favourite platforms.
+   It supports Twitter, Ubuntu Notify, Snarl and Growl.
+ * ANTLR plugin that extends the Java plugin to add support for
+   generating parsers using ANTLR
+ * code-quality plugin that adds
+   tasks which perform code quality checks and generate reports from these
+   checks. The following tools are supported: CodeNarc and checkstyle
+ * ide plugins that provide integration with
+   common used IDEs like Eclipse and IDEA IntelliJ.
+ * jetty plugin that extends the
+   War plugin to add tasks which allow you to deploy your web application
+   to a Jetty web container embedded in the build.
+ * maven plugin. With Gradle you can deploy
+   to remote Maven repositories or install to your local Maven repository. This
+   includes all Maven metadata manipulation and works also for Maven snapshots
+ * osgi plugin: if the Java plugins is
+   applied, the OSGi plugin replaces the manifest object of the default jar
+   with an OsgiManifest object. The replaced manifest is merged into the new
+   one. The OSGi plugin makes heavy use of Peter Kriens BND tool
+ * scala plugin that extends the
+   Java Plugin to add support for Scala projects. It can deal with Scala-only
+   projects and with mixed Java/Scala projects. It can even deal with Java-only
+   projects. The Scala plugin supports joint compilation of Java and Scala
+   source. This means your project can contain Scala classes which use Java
+   classes, and vice versa.
+ * cpp plugin: C++ source compilation capabilities to a project.
+ * ear plugin: Adds support for building J2EE applications.
+ * javascript plugin: Adds the ability to check and minify Javascript files.
+ * signing plugin: Adds the ability to digitally sign built files and artifacts.
 
 Package: gradle-doc
 Architecture: all
