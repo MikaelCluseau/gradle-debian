@@ -20,7 +20,7 @@
 package org.gradle.testing.testng
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.JUnitTestExecutionResult
+import org.gradle.integtests.fixtures.DefaultTestExecutionResult
 import org.gradle.integtests.fixtures.TestNGExecutionResult
 
 public class TestNGProducesOldReportsIntegrationTest extends AbstractIntegrationSpec {
@@ -28,7 +28,7 @@ public class TestNGProducesOldReportsIntegrationTest extends AbstractIntegration
         executer.allowExtraLogging = false
     }
 
-    def "produces only the old reports by default"() {
+    def "always produces the new xml reports"() {
         given:
         file("src/test/java/org/MixedMethodsTest.java") << """package org;
 import org.testng.*;
@@ -50,22 +50,19 @@ repositories { mavenCentral() }
 dependencies { testCompile 'org.testng:testng:6.3.1' }
 
 test {
+    testReport = false
     useTestNG()
 }
 """
         when:
-        executer.withTasks('test').runWithFailure()
+        executer.withTasks('test').runWithFailure().assertTestsFailed()
 
         then:
-        !new JUnitTestExecutionResult(file(".")).hasJUnitXmlResults()
-
-        def testNG = new TestNGExecutionResult(file("."))
-        testNG.hasTestNGXmlResults()
-        testNG.hasHtmlResults()
-        testNG.hasJUnitResultsGeneratedByTestNG()
+        !new TestNGExecutionResult(file(".")).hasTestNGXmlResults()
+        new DefaultTestExecutionResult(file(".")).hasJUnitXmlResults()
     }
 
-    def "can generate only the new reports"() {
+    def "can generate the old xml reports"() {
         given:
         file("src/test/java/org/SomeTest.java") << """package org;
 import org.testng.annotations.*;
@@ -80,40 +77,9 @@ apply plugin: 'java'
 repositories { mavenCentral() }
 dependencies { testCompile 'org.testng:testng:6.3.1' }
 test {
-  testReport = true
-  useTestNG()
-}
-"""
-        when:
-        executer.withTasks('test').run()
-
-        then:
-        new JUnitTestExecutionResult(file(".")).hasJUnitXmlResults()
-
-        def testNG = new TestNGExecutionResult(file("."))
-        !testNG.hasTestNGXmlResults()
-        !testNG.hasJUnitResultsGeneratedByTestNG()
-        testNG.hasHtmlResults()
-    }
-
-    def "can prevent generating the old and new reports"() {
-        given:
-        file("src/test/java/org/SomeTest.java") << """package org;
-import org.testng.annotations.*;
-
-public class SomeTest {
-    @Test public void passing() {}
-}
-"""
-        def buildFile = file('build.gradle')
-        buildFile << """
-apply plugin: 'java'
-repositories { mavenCentral() }
-dependencies { testCompile 'org.testng:testng:6.3.1' }
-test {
-  useTestNG {
-    useDefaultListeners = false
-    testReport = false
+  testReport = false
+  useTestNG(){
+    useDefaultListeners = true
   }
 }
 """
@@ -121,11 +87,11 @@ test {
         executer.withTasks('test').run()
 
         then:
-        !new JUnitTestExecutionResult(file(".")).hasJUnitXmlResults()
+        new DefaultTestExecutionResult(file(".")).hasJUnitXmlResults()
 
         def testNG = new TestNGExecutionResult(file("."))
-        !testNG.hasTestNGXmlResults()
-        !testNG.hasHtmlResults()
-        !testNG.hasJUnitResultsGeneratedByTestNG()
+        testNG.hasTestNGXmlResults()
+        testNG.hasJUnitResultsGeneratedByTestNG()
+        testNG.hasHtmlResults()
     }
 }

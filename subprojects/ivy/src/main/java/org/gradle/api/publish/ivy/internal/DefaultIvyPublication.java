@@ -19,17 +19,21 @@ package org.gradle.api.publish.ivy.internal;
 import org.gradle.api.Action;
 import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Module;
+import org.gradle.api.artifacts.PublishArtifact;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.artifacts.configurations.DependencyMetaDataProvider;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.file.collections.DefaultConfigurableFileCollection;
 import org.gradle.api.internal.tasks.TaskResolver;
 import org.gradle.api.publish.ivy.IvyModuleDescriptor;
-import org.gradle.api.tasks.TaskDependency;
 import org.gradle.internal.reflect.Instantiator;
 
-import java.util.HashSet;
+import java.io.File;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Callable;
 
 import static org.gradle.util.CollectionUtils.*;
 
@@ -41,17 +45,18 @@ public class DefaultIvyPublication implements IvyPublicationInternal {
     private final Set<? extends Configuration> configurations;
     private final FileResolver fileResolver;
     private final TaskResolver taskResolver;
+    private PublishArtifact descriptorArtifact;
 
     public DefaultIvyPublication(
             String name, Instantiator instantiator, Set<? extends Configuration> configurations,
             DependencyMetaDataProvider dependencyMetaDataProvider, FileResolver fileResolver, TaskResolver taskResolver
     ) {
         this.name = name;
-        this.descriptor = instantiator.newInstance(DefaultIvyModuleDescriptor.class);
         this.configurations = configurations;
         this.dependencyMetaDataProvider = dependencyMetaDataProvider;
         this.fileResolver = fileResolver;
         this.taskResolver = taskResolver;
+        this.descriptor = instantiator.newInstance(DefaultIvyModuleDescriptor.class, this);
     }
 
     public String getName() {
@@ -67,30 +72,55 @@ public class DefaultIvyPublication implements IvyPublicationInternal {
     }
 
     public FileCollection getPublishableFiles() {
-        return new DefaultConfigurableFileCollection(
-                "publication artifacts", fileResolver, taskResolver,
-                collect(configurations, new Transformer<FileCollection, Configuration>() {
+        ConfigurableFileCollection files = new DefaultConfigurableFileCollection("publication artifacts", fileResolver, taskResolver);
+        files.from(new Callable<Set<FileCollection>>() {
+            public Set<FileCollection> call() throws Exception {
+                return collect(getConfigurations(), new Transformer<FileCollection, Configuration>() {
                     public FileCollection transform(Configuration configuration) {
                         return configuration.getAllArtifacts().getFiles();
                     }
-                }));
-    }
-
-    public TaskDependency getBuildDependencies() {
-        return getPublishableFiles().getBuildDependencies();
+                });
+            }
+        });
+        if (descriptorArtifact != null) {
+            files.from(new Callable<File>() {
+                public File call() throws Exception {
+                    return getDescriptorFile();
+                }
+            });
+            files.builtBy(descriptorArtifact);
+        }
+        return files;
     }
 
     public IvyNormalizedPublication asNormalisedPublication() {
-        return new IvyNormalizedPublication(dependencyMetaDataProvider.getModule(), getFlattenedConfigurations(), descriptor.getFile(), descriptor.getTransformer());
+        return new IvyNormalizedPublication(getModule(), getFlattenedConfigurations(), getDescriptorFile());
+    }
+
+    public Module getModule() {
+        return dependencyMetaDataProvider.getModule();
     }
 
     public Class<IvyNormalizedPublication> getNormalisedPublicationType() {
         return IvyNormalizedPublication.class;
     }
 
+    public Set<? extends Configuration> getConfigurations() {
+        return configurations;
+    }
+
+    public void setDescriptorArtifact(PublishArtifact descriptorArtifact) {
+        this.descriptorArtifact = descriptorArtifact;
+    }
+
+    private File getDescriptorFile() {
+        return descriptorArtifact.getFile();
+    }
+
     // Flattens each of the given configurations to include any parents, visible or not.
     private Set<Configuration> getFlattenedConfigurations() {
-        return inject(new HashSet<Configuration>(), configurations, new Action<InjectionStep<Set<Configuration>, Configuration>>() {
+        Set<Configuration> flattenedConfigurations = new TreeSet<Configuration>(new Namer.Comparator<Configuration>(new Configuration.Namer()));
+        return inject(flattenedConfigurations, configurations, new Action<InjectionStep<Set<Configuration>, Configuration>>() {
             public void execute(InjectionStep<Set<Configuration>, Configuration> step) {
                 step.getTarget().addAll(step.getItem().getHierarchy());
             }

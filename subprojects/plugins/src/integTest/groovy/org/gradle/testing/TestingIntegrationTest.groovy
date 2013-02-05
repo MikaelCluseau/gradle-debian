@@ -16,7 +16,7 @@
 package org.gradle.testing
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.JUnitTestExecutionResult
+import org.gradle.integtests.fixtures.DefaultTestExecutionResult
 import spock.lang.Issue
 import spock.lang.Timeout
 import spock.lang.Unroll
@@ -33,7 +33,7 @@ class TestingIntegrationTest extends AbstractIntegrationSpec {
         buildFile << """
             apply plugin: 'java'
             repositories { mavenCentral() }
-            dependencies { testCompile "junit:junit:4.8.2" }
+            dependencies { testCompile "junit:junit:4.11" }
         """
 
         and:
@@ -77,7 +77,7 @@ class TestingIntegrationTest extends AbstractIntegrationSpec {
 
         where:
         framework   | dependency                | superClass
-        "useJUnit"  | "junit:junit:4.10"        | "org.junit.runner.Result"
+        "useJUnit"  | "junit:junit:4.11"        | "org.junit.runner.Result"
         "useTestNG" | "org.testng:testng:6.3.1" | "org.testng.Converter"
     }
 
@@ -97,7 +97,7 @@ class TestingIntegrationTest extends AbstractIntegrationSpec {
                 }
 
                 dependencies{
-	                othertestsCompile "junit:junit:4.10"
+	                othertestsCompile "junit:junit:4.11"
                 }
 
                 task othertestsTest(type:Test){
@@ -126,7 +126,7 @@ class TestingIntegrationTest extends AbstractIntegrationSpec {
         when:
         run "othertestsTest"
         then:
-        def result = new JUnitTestExecutionResult(distribution.testDir)
+        def result = new DefaultTestExecutionResult(testDirectory)
         result.assertTestClassesExecuted("TestCaseExtendsAbstractClass")
     }
 }

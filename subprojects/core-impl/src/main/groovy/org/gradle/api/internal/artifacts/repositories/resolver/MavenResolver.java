@@ -20,24 +20,23 @@ import org.apache.ivy.core.module.descriptor.DefaultArtifact;
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor;
 import org.apache.ivy.core.module.id.ArtifactRevisionId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
-import org.apache.ivy.core.resolve.ResolveData;
 import org.apache.ivy.plugins.matcher.PatternMatcher;
 import org.apache.ivy.plugins.resolver.util.ResolvedResource;
 import org.apache.ivy.plugins.resolver.util.ResourceMDParser;
-import org.apache.ivy.util.Message;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionDescriptor;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ModuleSource;
+import org.gradle.api.internal.artifacts.repositories.cachemanager.EnhancedArtifactDownloadReport;
 import org.gradle.api.internal.artifacts.repositories.transport.RepositoryTransport;
 import org.gradle.api.internal.externalresource.local.LocallyAvailableResourceFinder;
 import org.gradle.api.internal.resource.ResourceNotFoundException;
 import org.gradle.api.resources.ResourceException;
 import org.gradle.util.DeprecationLogger;
+import org.gradle.util.WrapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class MavenResolver extends ExternalResourceResolver implements PatternBasedResolver {
     private static final Logger LOGGER = LoggerFactory.getLogger(MavenResolver.class);
@@ -61,7 +60,6 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
         this.transport = transport;
         this.root = transport.convertToPath(rootUri);
 
-        setDescriptor(DESCRIPTOR_OPTIONAL);
         super.setM2compatible(true);
 
         // SNAPSHOT revisions are changing revisions
@@ -69,6 +67,62 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
         setChangingPattern(".*-SNAPSHOT");
 
         updatePatterns();
+    }
+
+    public void getDependency(DependencyDescriptor dd, BuildableModuleVersionDescriptor result) {
+        if (isSnapshotVersion(dd)) {
+            getSnapshotDependency(dd, result);
+        } else {
+            super.getDependency(dd, result);
+        }
+    }
+
+    private void getSnapshotDependency(DependencyDescriptor dd, BuildableModuleVersionDescriptor result) {
+        final ModuleRevisionId dependencyRevisionId = dd.getDependencyRevisionId();
+        final String uniqueSnapshotVersion = findUniqueSnapshotVersion(dependencyRevisionId);
+        if (uniqueSnapshotVersion != null) {
+            DependencyDescriptor enrichedDependencyDescriptor = enrichDependencyDescriptorWithSnapshotVersionInfo(dd, dependencyRevisionId, uniqueSnapshotVersion);
+            super.getDependency(enrichedDependencyDescriptor, result);
+            if (result.getState() == BuildableModuleVersionDescriptor.State.Resolved) {
+                result.resolved(result.getDescriptor(), result.isChanging(), new TimestampedModuleSource(uniqueSnapshotVersion));
+            }
+        } else {
+            super.getDependency(dd, result);
+        }
+    }
+
+    private DependencyDescriptor enrichDependencyDescriptorWithSnapshotVersionInfo(DependencyDescriptor dd, ModuleRevisionId dependencyRevisionId, String uniqueSnapshotVersion) {
+        Map<String, String> extraAttributes = new HashMap<String, String>(1);
+        extraAttributes.put("timestamp", uniqueSnapshotVersion);
+        final ModuleRevisionId newModuleRevisionId = ModuleRevisionId.newInstance(dependencyRevisionId.getOrganisation(), dependencyRevisionId.getName(), dependencyRevisionId.getRevision(), extraAttributes);
+        return dd.clone(newModuleRevisionId);
+    }
+
+    private boolean isSnapshotVersion(DependencyDescriptor dd) {
+        return dd.getDependencyRevisionId().getRevision().endsWith("SNAPSHOT");
+    }
+
+    protected EnhancedArtifactDownloadReport download(Artifact artifact, ModuleSource moduleSource) {
+        EnhancedArtifactDownloadReport artifactDownloadReport;
+
+        if (moduleSource instanceof TimestampedModuleSource) {
+            TimestampedModuleSource timestampedModuleSource = (TimestampedModuleSource) moduleSource;
+            String timestampedVersion = timestampedModuleSource.getTimestampedVersion();
+            artifactDownloadReport = downloadTimestampedVersion(artifact, timestampedVersion);
+        } else {
+            artifactDownloadReport = download(artifact);
+        }
+        return artifactDownloadReport;
+    }
+
+    private EnhancedArtifactDownloadReport downloadTimestampedVersion(Artifact artifact, String timestampedVersion) {
+        final ModuleRevisionId artifactModuleRevisionId = artifact.getModuleRevisionId();
+        final ModuleRevisionId moduleRevisionId = ModuleRevisionId.newInstance(artifactModuleRevisionId.getOrganisation(),
+                artifactModuleRevisionId.getName(),
+                artifactModuleRevisionId.getRevision(),
+                WrapUtil.toMap("timestamp", timestampedVersion));
+        final Artifact artifactWithResolvedModuleRevisionId = DefaultArtifact.cloneWithAnotherMrid(artifact, moduleRevisionId);
+        return download(artifactWithResolvedModuleRevisionId);
     }
 
     public void addArtifactLocation(URI baseUri, String pattern) {
@@ -92,7 +146,7 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
         if (isUsepoms()) {
             setIvyPatterns(Collections.singletonList(getWholePattern()));
         } else {
-            setIvyPatterns(Collections.EMPTY_LIST);
+            setIvyPatterns(Collections.<String>emptyList());
         }
 
         List<String> artifactPatterns = new ArrayList<String>();
@@ -103,63 +157,15 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
         setArtifactPatterns(artifactPatterns);
     }
 
-    public ResolvedResource findIvyFileRef(DependencyDescriptor dd, ResolveData data) {
+    public ResolvedResource findIvyFileRef(DependencyDescriptor dd) {
         if (isUsepoms()) {
             ModuleRevisionId moduleRevisionId = dd.getDependencyRevisionId();
-
-            if (moduleRevisionId.getRevision().endsWith("SNAPSHOT")) {
-                ResolvedResource resolvedResource = findSnapshotDescriptor(dd, data, moduleRevisionId, true);
-                if (resolvedResource != null) {
-                    return resolvedResource;
-                }
-            }
-
-            Artifact pomArtifact = DefaultArtifact.newPomArtifact(moduleRevisionId, data.getDate());
-            ResourceMDParser parser = getRMDParser(dd, data);
-            return findResourceUsingPatterns(moduleRevisionId, getIvyPatterns(), pomArtifact, parser, data.getDate(), true);
+            //we might need a own implementation of DefaultArtifact here as there is no way to pass extraAttributes AND isMetaData to DefaultArtifact
+            Artifact pomArtifact = new DefaultArtifact(moduleRevisionId, null, moduleRevisionId.getName(), "pom", "pom", moduleRevisionId.getExtraAttributes());
+            ResourceMDParser parser = getRMDParser(dd);
+            return findResourceUsingPatterns(moduleRevisionId, getIvyPatterns(), pomArtifact, parser, null, true);
         }
 
-        return null;
-    }
-
-    private ResolvedResource findSnapshotDescriptor(DependencyDescriptor dd, ResolveData data, ModuleRevisionId moduleRevisionId, boolean forDownload) {
-        String rev = findUniqueSnapshotVersion(moduleRevisionId);
-        if (rev != null) {
-            // here it would be nice to be able to store the resolved snapshot version, to avoid
-            // having to follow the same process to download artifacts
-            LOGGER.debug("[{}] {}", rev, moduleRevisionId);
-
-            // replace the revision token in file name with the resolved revision
-            String pattern = getWholePattern().replaceFirst("\\-\\[revision\\]", "-" + rev);
-            Artifact pomArtifact = DefaultArtifact.newPomArtifact(moduleRevisionId, data.getDate());
-            ResourcePattern resourcePattern = toResourcePattern(pattern);
-            return findResourceUsingPattern(moduleRevisionId, resourcePattern, pomArtifact, getRMDParser(dd, data), data.getDate(), forDownload);
-        }
-        return null;
-    }
-
-    protected ResolvedResource getArtifactRef(Artifact artifact, Date date, boolean forDownload) {
-        ModuleRevisionId moduleRevisionId = artifact.getModuleRevisionId();
-
-        if (moduleRevisionId.getRevision().endsWith("SNAPSHOT")) {
-            ResolvedResource resolvedResource = findSnapshotArtifact(artifact, date, moduleRevisionId, forDownload);
-            if (resolvedResource != null) {
-                return resolvedResource;
-            }
-        }
-        ResourceMDParser parser = getDefaultRMDParser(artifact.getModuleRevisionId().getModuleId());
-        return findResourceUsingPatterns(moduleRevisionId, getArtifactPatterns(), artifact, parser, date, forDownload);
-    }
-
-    private ResolvedResource findSnapshotArtifact(Artifact artifact, Date date, ModuleRevisionId moduleRevisionId, boolean forDownload) {
-        String rev = findUniqueSnapshotVersion(moduleRevisionId);
-        if (rev != null) {
-            // replace the revision token in file name with the resolved revision
-            // TODO:DAZ We're not using all available artifact patterns here, only the "main" pattern. This means that snapshot artifacts will not be resolved in additional artifact urls.
-            String pattern = getWholePattern().replaceFirst("\\-\\[revision\\]", "-" + rev);
-            ResourcePattern resourcePattern = toResourcePattern(pattern);
-            return findResourceUsingPattern(moduleRevisionId, resourcePattern, artifact, getDefaultRMDParser(artifact.getModuleRevisionId().getModuleId()), date, forDownload);
-        }
         return null;
     }
 
@@ -189,12 +195,6 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
             }
         }
         return new MavenMetadata();
-    }
-
-    public void dumpSettings() {
-        super.dumpSettings();
-        Message.debug("\t\troot: " + root);
-        Message.debug("\t\tpattern: " + pattern);
     }
 
     // A bunch of configuration properties that we don't (yet) support in our model via the DSL. Users can still tweak these on the resolver using mavenRepo().
@@ -252,6 +252,18 @@ public class MavenResolver extends ExternalResourceResolver implements PatternBa
     public void setM2compatible(boolean compatible) {
         if (!compatible) {
             throw new IllegalArgumentException("Cannot set m2compatible = false on mavenRepo.");
+        }
+    }
+
+    protected static class TimestampedModuleSource implements ModuleSource {
+        public String getTimestampedVersion() {
+            return timestampedVersion;
+        }
+
+        private final String timestampedVersion;
+
+        public TimestampedModuleSource(String uniqueSnapshotVersion) {
+            this.timestampedVersion = uniqueSnapshotVersion;
         }
     }
 }

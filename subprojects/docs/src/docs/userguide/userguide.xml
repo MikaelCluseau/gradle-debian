@@ -69,6 +69,7 @@
     <xi:include href='announcePlugin.xml'/>
     <xi:include href='buildAnnouncementsPlugin.xml'/>
     <xi:include href='applicationPlugin.xml'/>
+    <xi:include href='javaLibraryDistributionPlugin.xml'/>
     <xi:include href='bootstrapPlugin.xml'/>
 	<xi:include href='depMngmt.xml'/>
     <xi:include href='artifactMngmt.xml'/>
@@ -85,6 +86,7 @@
     <xi:include href='embedding.xml'/>
     <xi:include href='comparingBuilds.xml'/>
     <xi:include href='publishingIvy.xml'/>
+    <xi:include href='publishingMaven.xml'/>
     <!-- this is generated -->
     <xi:include href='../../../build/src/samplesList.xml'/>
     <xi:include href='potentialTraps.xml'/>

@@ -8,7 +8,7 @@ version = '1.0'
 group = 'org.gradle.test'
 
 dependencies {
-   compile 'junit:junit:4.8.2', project(':subproject')
+   compile 'junit:junit:4.11', project(':subproject')
 }
 
 repositories {
@@ -34,10 +34,10 @@ publishing {
 // END SNIPPET input
     repositories {
         ivy {
-            url "http://mycompany.com/repo" // change to point to your repo
+            url "file://$buildDir/repo" // change to point to your repo, e.g. http://my.org/repo
             credentials {
-                username "user1"
-                password "secret"
+                username 'user1'
+                password 'secret'
             }
         }
     }
@@ -58,3 +58,8 @@ publishing {
 // END SNIPPET repositories
 // END SNIPPET descriptor-mod
 // END SNIPPET input
+// START SNIPPET generate
+generateIvyModuleDescriptor {
+    destination = file('generated-ivy.xml')
+}
+// END SNIPPET generate

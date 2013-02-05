@@ -17,12 +17,12 @@
 package org.gradle.api.publish.ivy
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.ProgressLoggingFixture
+import org.gradle.integtests.fixtures.executer.ProgressLoggingFixture
+import org.gradle.test.fixtures.file.TestFile
 import org.gradle.test.fixtures.ivy.IvyFileModule
 import org.gradle.test.fixtures.server.http.HttpServer
 import org.gradle.util.GradleVersion
 import org.gradle.util.Jvm
-import org.gradle.util.TestFile
 import org.gradle.util.TextUtil
 import org.hamcrest.Matchers
 import org.junit.Rule
@@ -169,7 +169,7 @@ credentials {
 
         and:
         failure.assertHasDescription('Execution failed for task \':publishIvyPublicationToIvyRepository\'.')
-        failure.assertHasCause('Could not publish configurations: [archives, compile, default, runtime]')
+        failure.assertHasCause('Failed to publish publication \'ivy\' to repository \'ivy\'')
         failure.assertThatCause(Matchers.containsString('Received status code 401 from server: Unauthorized'))
 
         where:
@@ -206,7 +206,7 @@ credentials {
 
         and:
         failure.assertHasDescription('Execution failed for task \':publishIvyPublicationToIvyRepository\'.')
-        failure.assertHasCause('Could not publish configurations: [archives, compile, default, runtime]')
+        failure.assertHasCause('Failed to publish publication \'ivy\' to repository \'ivy\'')
         failure.assertThatCause(Matchers.containsString('Received status code 500 from server: broken'))
 
         when:
@@ -217,7 +217,7 @@ credentials {
 
         and:
         failure.assertHasDescription('Execution failed for task \':publishIvyPublicationToIvyRepository\'.')
-        failure.assertHasCause('Could not publish configurations: [archives, compile, default, runtime]')
+        failure.assertHasCause('Failed to publish publication \'ivy\' to repository \'ivy\'')
         failure.assertHasCause("org.apache.http.conn.HttpHostConnectException: Connection to ${repositoryUrl} refused")
     }
 

@@ -16,16 +16,25 @@
 
 package org.gradle.api.publish.ivy.internal;
 
-import org.gradle.api.Buildable;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Module;
+import org.gradle.api.artifacts.PublishArtifact;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.publish.ivy.IvyPublication;
 
-public interface IvyPublicationInternal extends IvyPublication, Buildable {
+import java.util.Set;
+
+public interface IvyPublicationInternal extends IvyPublication {
 
     IvyModuleDescriptorInternal getDescriptor();
 
     FileCollection getPublishableFiles();
 
+    Module getModule();
+
     IvyNormalizedPublication asNormalisedPublication();
 
+    Set<? extends Configuration> getConfigurations();
+
+    void setDescriptorArtifact(PublishArtifact descriptorArtifact);
 }

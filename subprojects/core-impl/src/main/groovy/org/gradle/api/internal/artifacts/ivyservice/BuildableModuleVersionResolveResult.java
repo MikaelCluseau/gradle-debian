@@ -18,22 +18,23 @@ package org.gradle.api.internal.artifacts.ivyservice;
 
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 
 public interface BuildableModuleVersionResolveResult extends ModuleVersionResolveResult {
     /**
      * Marks the module version as resolved, with the given meta-data and artifact resolver.
      */
-    void resolved(ModuleRevisionId moduleRevisionId, ModuleDescriptor descriptor, ArtifactResolver artifactResolver);
+    void resolved(ModuleVersionIdentifier moduleRevisionId, ModuleDescriptor descriptor, ArtifactResolver artifactResolver);
 
     /**
      * Marks the resolve as failed with the given exception.
      */
-    void failed(ModuleVersionResolveException failure);
+    BuildableModuleVersionResolveResult failed(ModuleVersionResolveException failure);
 
     /**
      * Marks the module version as not found.
      */
-    void notFound(ModuleRevisionId moduleRevisionId);
+    void notFound(ModuleVersionIdentifier moduleVersionIdentifier);
 
     /**
      * Replaces the meta-data in the result. Result must already be resolved.

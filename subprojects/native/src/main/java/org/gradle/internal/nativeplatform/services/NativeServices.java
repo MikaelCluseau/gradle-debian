@@ -20,6 +20,7 @@ import net.rubygrapefruit.platform.NativeException;
 import net.rubygrapefruit.platform.NativeIntegrationUnavailableException;
 import net.rubygrapefruit.platform.Terminals;
 import org.gradle.internal.SystemProperties;
+import org.gradle.internal.jvm.Jvm;
 import org.gradle.internal.nativeplatform.*;
 import org.gradle.internal.nativeplatform.console.ConsoleDetector;
 import org.gradle.internal.nativeplatform.console.NativePlatformConsoleDetector;
@@ -81,13 +82,19 @@ public class NativeServices extends DefaultServiceRegistry {
         return FileSystems.getDefault();
     }
 
+    protected Jvm createJvm() {
+        return Jvm.current();
+    }
+
     protected ProcessEnvironment createProcessEnvironment() {
+        ProcessEnvironment environment;
+
         OperatingSystem operatingSystem = get(OperatingSystem.class);
         try {
             if (operatingSystem.isUnix()) {
-                return new LibCBackedProcessEnvironment(get(LibC.class));
+                environment = new LibCBackedProcessEnvironment(get(LibC.class));
             } else if (operatingSystem.isWindows()) {
-                return new WindowsProcessEnvironment();
+                environment = new WindowsProcessEnvironment();
             } else {
                 return new UnsupportedEnvironment();
             }
@@ -96,6 +103,8 @@ public class NativeServices extends DefaultServiceRegistry {
             LOGGER.debug("Unable to load native library. Continuing with fallback. Failure: {}", format(e));
             return new UnsupportedEnvironment();
         }
+
+        return environment;
     }
 
     protected ConsoleDetector createConsoleDetector() {

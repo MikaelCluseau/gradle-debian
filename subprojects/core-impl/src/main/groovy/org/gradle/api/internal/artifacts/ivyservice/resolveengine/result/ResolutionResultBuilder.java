@@ -55,14 +55,15 @@ public class ResolutionResultBuilder implements ResolvedConfigurationListener {
     public void resolvedConfiguration(ModuleVersionIdentifier id, Collection<? extends InternalDependencyResult> dependencies) {
         for (InternalDependencyResult d : dependencies) {
             DefaultResolvedModuleVersionResult from = modules.get(id);
+            DependencyResult dependency;
             if (d.getFailure() != null) {
-                from.addDependency(dependencyResultFactory.createUnresolvedDependency(d.getRequested(), from, d.getFailure()));
+                dependency = dependencyResultFactory.createUnresolvedDependency(d.getRequested(), from, d.getReason(), d.getFailure());
             } else {
                 DefaultResolvedModuleVersionResult selected = modules.get(d.getSelected().getSelectedId());
-                DependencyResult dependency = dependencyResultFactory.createResolvedDependency(d.getRequested(), from, selected);
-                from.addDependency(dependency);
+                dependency = dependencyResultFactory.createResolvedDependency(d.getRequested(), from, selected);
                 selected.addDependent((ResolvedDependencyResult) dependency);
             }
+            from.addDependency(dependency);
         }
     }
 

@@ -18,10 +18,15 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve
 import org.apache.ivy.core.module.descriptor.Artifact
 import org.apache.ivy.core.module.descriptor.DefaultModuleDescriptor
 import org.apache.ivy.core.module.descriptor.DependencyDescriptor
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor
 import org.apache.ivy.core.module.id.ModuleRevisionId
 import org.apache.ivy.plugins.version.VersionMatcher
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier
 import org.gradle.api.internal.artifacts.ivyservice.*
 import spock.lang.Specification
+
+import static org.gradle.api.internal.artifacts.DefaultModuleVersionSelector.newSelector
+import static org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier.newId
 
 class LazyDependencyToModuleResolverTest extends Specification {
     final DependencyToModuleResolver target = Mock()
@@ -36,7 +41,9 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def idResolveResult = resolver.resolve(dependency)
 
         then:
-        idResolveResult.id == dependency.dependencyRevisionId
+        idResolveResult.id.group == module.moduleRevisionId.organisation
+        idResolveResult.id.name == module.moduleRevisionId.name
+        idResolveResult.id.version == module.moduleRevisionId.revision
 
         and:
         0 * target._
@@ -45,17 +52,19 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def moduleResolveResult = idResolveResult.resolve()
 
         then:
-        moduleResolveResult.id == module.moduleRevisionId
+        moduleResolveResult.id.group == module.moduleRevisionId.organisation
+        moduleResolveResult.id.name == module.moduleRevisionId.name
+        moduleResolveResult.id.version == module.moduleRevisionId.revision
+
         moduleResolveResult.descriptor == module
 
-        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(module.moduleRevisionId, module, Mock(ArtifactResolver))}
+        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(moduleIdentifier(module), module, Mock(ArtifactResolver))}
         0 * target._
     }
 
     def "resolves module for dynamic version dependency immediately"() {
         def dependency = dependency()
         def module = module()
-
         given:
         matcher.isDynamic(_) >> true
 
@@ -64,10 +73,12 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def id = idResolveResult.id
 
         then:
-        id == module.moduleRevisionId
+        id.group == module.moduleRevisionId.organisation
+        id.name == module.moduleRevisionId.name
+        id.version == module.moduleRevisionId.revision
 
         and:
-        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(module.moduleRevisionId, module, Mock(ArtifactResolver))}
+        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(moduleIdentifier(module), module, Mock(ArtifactResolver))}
         0 * target._
 
         when:
@@ -75,6 +86,10 @@ class LazyDependencyToModuleResolverTest extends Specification {
 
         then:
         0 * target._
+    }
+
+    def moduleIdentifier(ModuleDescriptor moduleDescriptor) {
+        return new DefaultModuleVersionIdentifier(moduleDescriptor.moduleRevisionId.organisation, moduleDescriptor.moduleRevisionId.name, moduleDescriptor.moduleRevisionId.revision)
     }
 
     def "does not resolve module more than once"() {
@@ -98,7 +113,7 @@ class LazyDependencyToModuleResolverTest extends Specification {
 
     def "collects failure to resolve module"() {
         def dependency = dependency()
-        def failure = new ModuleVersionResolveException("broken")
+        def failure = new ModuleVersionResolveException(newSelector("a", "b", "c"), "broken")
 
         when:
         def idFailureResult = resolver.resolve(dependency)
@@ -138,10 +153,10 @@ class LazyDependencyToModuleResolverTest extends Specification {
 
         then:
         resolveResult.failure instanceof ModuleVersionNotFoundException
-        resolveResult.failure.message == "Could not find group:group, module:module, version:1.0."
+        resolveResult.failure.message == "Could not find group:module:1.0."
 
         and:
-        1 * target.resolve(dependency, _) >> { args -> args[1].failed(new ModuleVersionNotFoundException("broken"))}
+        1 * target.resolve(dependency, _) >> { args -> args[1].failed(new ModuleVersionNotFoundException(newId("org", "a", "1.2")))}
     }
 
     def "collects and wraps unexpected module resolve failure"() {
@@ -153,7 +168,7 @@ class LazyDependencyToModuleResolverTest extends Specification {
 
         then:
         resolveResult.failure instanceof ModuleVersionResolveException
-        resolveResult.failure.message == "Could not resolve group:group, module:module, version:1.0."
+        resolveResult.failure.message == "Could not resolve group:module:1.0."
 
         and:
         1 * target.resolve(dependency, _) >> { throw failure }
@@ -170,10 +185,10 @@ class LazyDependencyToModuleResolverTest extends Specification {
 
         then:
         idResolveResult.failure instanceof ModuleVersionNotFoundException
-        idResolveResult.failure.message == "Could not find any version that matches group:group, module:module, version:1.0."
+        idResolveResult.failure.message == "Could not find any version that matches group:module:1.0."
 
         and:
-        1 * target.resolve(dependency, _) >> { args -> args[1].failed(new ModuleVersionNotFoundException("missing"))}
+        1 * target.resolve(dependency, _) >> { args -> args[1].failed(new ModuleVersionNotFoundException(newId("org", "a", "1.2")))}
 
         when:
         idResolveResult.id
@@ -205,7 +220,7 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def resolveResult = resolver.resolve(dependency).resolve()
 
         then:
-        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(module.moduleRevisionId, module, targetResolver)}
+        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(moduleIdentifier(module), module, targetResolver)}
 
         when:
         resolveResult.artifactResolver.resolve(artifact, result)
@@ -220,6 +235,7 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def dependency = dependency()
         def artifact = artifact()
         def module = module()
+
         ArtifactResolver targetResolver = Mock()
         BuildableArtifactResolveResult result = Mock()
         def failure = new RuntimeException("broken")
@@ -228,7 +244,7 @@ class LazyDependencyToModuleResolverTest extends Specification {
         def resolveResult = resolver.resolve(dependency).resolve()
 
         then:
-        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(module.moduleRevisionId, module, targetResolver)}
+        1 * target.resolve(dependency, _) >> { args -> args[1].resolved(moduleIdentifier(module), module, targetResolver)}
 
         when:
         resolveResult.artifactResolver.resolve(artifact, result)

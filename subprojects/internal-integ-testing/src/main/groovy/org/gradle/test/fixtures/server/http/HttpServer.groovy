@@ -15,7 +15,9 @@
  */
 package org.gradle.test.fixtures.server.http
 
+import org.gradle.api.artifacts.repositories.PasswordCredentials
 import org.gradle.test.matchers.UserAgentMatcher
+import org.gradle.util.GFileUtils
 import org.gradle.util.hash.HashUtil
 import org.hamcrest.Matcher
 import org.junit.rules.ExternalResource
@@ -118,6 +120,10 @@ class HttpServer extends ExternalResource {
             server.removeConnector(connector)
             throw e
         }
+        def localPort = connector.localPort
+        if (localPort <= 0) {
+            throw new AssertionError("SocketConnector.localPort returned $localPort after starting server");
+        }
     }
 
     void stop() {
@@ -164,6 +170,7 @@ class HttpServer extends ExternalResource {
                 e.assertMet()
             }
         } finally {
+            realm = null
             failure = null
             expectedUserAgent = null
             expections.clear()
@@ -233,22 +240,21 @@ class HttpServer extends ExternalResource {
      * Adds a broken resource at the given URL.
      */
     void addBroken(String path) {
-        allow(path, true, null, new Action() {
-            String getDisplayName() {
-                return "return 500 broken"
-            }
+        allow(path, true, null, broken())
+    }
 
-            void handle(HttpServletRequest request, HttpServletResponse response) {
-                response.sendError(500, "broken")
-            }
-        })
+    /**
+     * Allows one GET request, which fails with a 500 status code
+     */
+    void expectGetBroken(String path) {
+        expect(path, false, ['GET'], broken())
     }
 
     /**
      * Allows one GET request for the given URL, which return 404 status code
      */
-    void expectGetMissing(String path) {
-        expect(path, false, ['GET'], notFound())
+    void expectGetMissing(String path, PasswordCredentials passwordCredentials = null) {
+        expect(path, false, ['GET'], notFound(), passwordCredentials)
     }
 
     /**
@@ -256,6 +262,13 @@ class HttpServer extends ExternalResource {
      */
     void expectHeadMissing(String path) {
         expect(path, false, ['HEAD'], notFound())
+    }
+
+    /**
+     * Allows one HEAD request for the given URL, which returns a 500 status code
+     */
+    void expectHeadBroken(String path) {
+        expect(path, false, ['HEAD'], broken())
     }
 
     private Action notFound() {
@@ -266,6 +279,18 @@ class HttpServer extends ExternalResource {
 
             void handle(HttpServletRequest request, HttpServletResponse response) {
                 response.sendError(404, "not found")
+            }
+        }
+    }
+
+    private Action broken() {
+        new Action() {
+            String getDisplayName() {
+                return "return 500 broken"
+            }
+
+            void handle(HttpServletRequest request, HttpServletResponse response) {
+                response.sendError(500, "broken")
             }
         }
     }
@@ -423,8 +448,8 @@ class HttpServer extends ExternalResource {
     /**
      * Allows one PUT request for the given URL. Writes the request content to the given file.
      */
-    void expectPut(String path, File destFile, int statusCode = HttpStatus.ORDINAL_200_OK) {
-        expect(path, false, ['PUT'], new Action() {
+    void expectPut(String path, File destFile, int statusCode = HttpStatus.ORDINAL_200_OK, PasswordCredentials credentials = null) {
+        def action = new Action() {
             String getDisplayName() {
                 return "write request to $destFile.name and return status $statusCode"
             }
@@ -437,10 +462,13 @@ class HttpServer extends ExternalResource {
                         return;
                     }
                 }
+                GFileUtils.mkdirs(destFile.parentFile)
                 destFile.bytes = request.inputStream.bytes
                 response.setStatus(statusCode)
             }
-        })
+        }
+
+        expect(path, false, ['PUT'], action, credentials)
     }
 
     /**
@@ -506,7 +534,11 @@ class HttpServer extends ExternalResource {
         }
     }
 
-    private void expect(String path, boolean recursive, Collection<String> methods, Action action) {
+    private void expect(String path, boolean recursive, Collection<String> methods, Action action, PasswordCredentials credentials = null) {
+        if (credentials != null) {
+            action = withAuthentication(path, credentials.username, credentials.password, action)
+        }
+
         ExpectOne expectation = new ExpectOne(action, methods, path)
         expections << expectation
         add(path, recursive, methods, new AbstractHandler() {

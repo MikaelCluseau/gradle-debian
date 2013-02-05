@@ -38,7 +38,7 @@ public class CommandLineTaskConfigurer {
 
     public List<String> configureTasks(Collection<Task> tasks, List<String> arguments) {
         assert !tasks.isEmpty();
-        if (!shouldConfigureWith(arguments)) {
+        if (arguments.isEmpty()) {
             return arguments;
         }
         return configureTasksNow(tasks, arguments);
@@ -64,7 +64,7 @@ public class CommandLineTaskConfigurer {
                 }
             }
 
-            ParsedCommandLine parsed = null;
+            ParsedCommandLine parsed;
             try {
                 parsed = parser.parse(arguments);
             } catch (CommandLineArgumentException e) {
@@ -95,14 +95,5 @@ public class CommandLineTaskConfigurer {
         }
         Class<?> type = method.getParameterTypes()[0];
         return type == Boolean.class || type == Boolean.TYPE;
-    }
-
-    private boolean shouldConfigureWith(List<String> arguments) {
-        for (String a : arguments) {
-            if (a.startsWith("--")) {
-                return true;
-            }
-        }
-        return false;
     }
 }

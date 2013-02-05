@@ -16,14 +16,14 @@
 package org.gradle.integtests.publish.ivy
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.ProgressLoggingFixture
+import org.gradle.integtests.fixtures.executer.ProgressLoggingFixture
 import org.gradle.test.fixtures.server.sftp.SFTPServer
 import org.junit.Rule
 
 class IvySFtpPublishIntegrationTest extends AbstractIntegrationSpec {
 
     @Rule
-    public final SFTPServer sftpServer = new SFTPServer(distribution.temporaryFolder)
+    public final SFTPServer sftpServer = new SFTPServer(this)
     @Rule
     ProgressLoggingFixture progressLogging
 
@@ -86,7 +86,7 @@ class IvySFtpPublishIntegrationTest extends AbstractIntegrationSpec {
 
         then:
         failure.assertHasDescription('Execution failed for task \':uploadArchives\'.')
-        failure.assertHasCause('Could not publish configuration: [archives]')
+        failure.assertHasCause('Could not publish configuration \'archives\'')
         failure.assertHasCause("java.io.IOException: Auth fail")
     }
 }

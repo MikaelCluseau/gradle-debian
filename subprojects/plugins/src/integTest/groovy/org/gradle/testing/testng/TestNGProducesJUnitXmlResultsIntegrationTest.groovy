@@ -18,11 +18,9 @@
 package org.gradle.testing.testng
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.JUnitTestExecutionResult
-import spock.lang.Unroll
+import org.gradle.integtests.fixtures.DefaultTestExecutionResult
 
 import static org.hamcrest.Matchers.*
-import static org.hamcrest.core.IsNot.not
 
 public class TestNGProducesJUnitXmlResultsIntegrationTest extends
         AbstractIntegrationSpec {
@@ -30,22 +28,23 @@ public class TestNGProducesJUnitXmlResultsIntegrationTest extends
         executer.allowExtraLogging = false
     }
 
-    @Unroll("#testConfiguration")
     def "produces JUnit xml results"() {
         expect:
-        assertProducesXmlResults(testConfiguration)
+        assertProducesXmlResults "useTestNG()"
+    }
 
-        where:
-        testConfiguration << [
-                "useTestNG()",
-                "useTestNG(); forkEvery 1",
-                "useTestNG(); maxParallelForks 2"
-        ]
+    def "produces JUnit xml results when running tests in parallel"() {
+        expect:
+        assertProducesXmlResults "useTestNG(); maxParallelForks 2"
+    }
+
+    def "produces JUnit xml results with aggressive forking"() {
+        expect:
+        assertProducesXmlResults "useTestNG(); forkEvery 1"
     }
 
     def assertProducesXmlResults(String testConfiguration) {
         file("src/test/java/org/MixedMethodsTest.java") << """package org;
-import org.testng.*;
 import org.testng.annotations.*;
 import static org.testng.Assert.*;
 
@@ -72,9 +71,7 @@ public class MixedMethodsTest {
 }
 """
         file("src/test/java/org/PassingTest.java") << """package org;
-import org.testng.*;
 import org.testng.annotations.*;
-import static org.testng.Assert.*;
 
 public class PassingTest {
     @Test public void passing() {
@@ -84,7 +81,6 @@ public class PassingTest {
 }
 """
         file("src/test/java/org/FailingTest.java") << """package org;
-import org.testng.*;
 import org.testng.annotations.*;
 import static org.testng.Assert.*;
 
@@ -99,13 +95,28 @@ public class FailingTest {
 }
 """
         file("src/test/java/org/NoOutputsTest.java") << """package org;
-import org.testng.*;
 import org.testng.annotations.*;
-import static org.testng.Assert.*;
 
 public class NoOutputsTest {
     @Test(enabled=false) public void skipped() {}
     @Test public void passing() {}
+}
+"""
+
+        file("src/test/java/org/EncodingTest.java") << """package org;
+import org.testng.annotations.*;
+
+public class EncodingTest {
+    @Test public void encodesCdata() {
+        System.out.println("< html allowed, cdata closing token ]]> encoded!");
+        System.out.print("no EOL, ");
+        System.out.println("non-ascii char: ż");
+        System.out.println("xml entity: &amp;");
+        System.err.println("< html allowed, cdata closing token ]]> encoded!");
+    }
+    @Test public void encodesAttributeValues() {
+        throw new RuntimeException("html: <> cdata: ]]> non-ascii: ż");
+    }
 }
 """
 
@@ -116,17 +127,16 @@ repositories { mavenCentral() }
 dependencies { testCompile 'org.testng:testng:6.3.1' }
 
 test {
-    testReport = true
     $testConfiguration
 }
 """
         //when
-        executer.withTasks('test').runWithFailure()
+        executer.withTasks('test').runWithFailure().assertTestsFailed()
 
         //then
-        def junitResult = new JUnitTestExecutionResult(file("."));
+        def junitResult = new DefaultTestExecutionResult(file("."));
         junitResult
-            .assertTestClassesExecuted("org.FailingTest","org.PassingTest", "org.MixedMethodsTest", "org.NoOutputsTest")
+            .assertTestClassesExecuted("org.FailingTest","org.PassingTest", "org.MixedMethodsTest", "org.NoOutputsTest", "org.EncodingTest")
 
         junitResult.testClass("org.MixedMethodsTest")
             .assertTestCount(4, 2, 0)
@@ -160,5 +170,15 @@ test {
             .assertTestsExecuted("passing").assertTestPassed("passing")
             .assertStdout(equalTo(""))
             .assertStderr(equalTo(""))
+
+        junitResult.testClass("org.EncodingTest")
+            .assertTestCount(2, 1, 0)
+            .assertTestPassed("encodesCdata")
+            .assertTestFailed("encodesAttributeValues", equalTo('java.lang.RuntimeException: html: <> cdata: ]]> non-ascii: ż'))
+            .assertStdout(equalTo("""< html allowed, cdata closing token ]]> encoded!
+no EOL, non-ascii char: ż
+xml entity: &amp;
+"""))
+            .assertStderr(equalTo("< html allowed, cdata closing token ]]> encoded!\n"))
     }
 }

@@ -16,8 +16,8 @@
 
 package org.gradle.test.fixtures.ivy
 
+import org.gradle.test.fixtures.file.TestFile
 import org.gradle.test.fixtures.server.http.HttpServer
-import org.gradle.util.TestFile
 
 class IvyHttpModule extends AbstractIvyModule {
     private final IvyFileModule backingModule
@@ -88,8 +88,16 @@ class IvyHttpModule extends AbstractIvyModule {
         server.expectGetMissing("$prefix/$ivyFile.name")
     }
 
+    void expectIvyGetBroken() {
+        server.expectGetBroken("$prefix/$ivyFile.name")
+    }
+
     void expectIvyHead() {
         server.expectHead("$prefix/$ivyFile.name", ivyFile)
+    }
+
+    void expectIvyHeadBroken() {
+        server.expectHeadBroken("$prefix/$ivyFile.name")
     }
 
     void expectIvySha1Get() {
@@ -104,8 +112,20 @@ class IvyHttpModule extends AbstractIvyModule {
         server.expectGet("$prefix/$jarFile.name", jarFile)
     }
 
+    void expectJarGetMissing() {
+        server.expectGetMissing("$prefix/$jarFile.name")
+    }
+
+    void expectJarGetBroken() {
+        server.expectGetBroken("$prefix/$jarFile.name")
+    }
+
     void expectJarHead() {
         server.expectHead("$prefix/$jarFile.name", jarFile)
+    }
+
+    void expectJarHeadMissing() {
+        server.expectHeadMissing("$prefix/$jarFile.name")
     }
 
     void expectJarSha1Get() {
@@ -121,12 +141,29 @@ class IvyHttpModule extends AbstractIvyModule {
         server.expectGet("$prefix/$artifactFile.name", artifactFile)
     }
 
+    void expectArtifactGet(Map options) {
+        def mappedOptions = [name: options.name ?: module, type: options.type ?: 'jar', classifier: options.classifier ?: null]
+        def artifactFile = backingModule.file(mappedOptions)
+        server.expectGet("$prefix/$artifactFile.name", artifactFile)
+    }
+
     void expectPut(String username, String password, File dir, String... artifactNames) {
         artifactNames.each {
             server.expectPut("$prefix/$it", username, password, new File(dir, it))
         }
     }
 
+    void expectArtifactHead(Map options) {
+        def mappedOptions = [name: options.name ?: module, type: options.type ?: 'jar', classifier: options.classifier ?: null]
+        def artifactFile = backingModule.file(mappedOptions)
+        server.expectHead("$prefix/$artifactFile.name", artifactFile)
+    }
+
+    void expectArtifactSha1Get(Map options) {
+        def mappedOptions = [name: options.name ?: module, type: options.type ?: 'jar', classifier: options.classifier ?: null]
+        def artifactFile = backingModule.file(mappedOptions)
+        server.expectGet("$prefix/${artifactFile.name}.sha1", backingModule.sha1File(artifactFile))
+    }
 }
 
 

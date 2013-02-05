@@ -16,19 +16,21 @@
 
 package org.gradle.api.publish.ivy.tasks;
 
-import org.gradle.api.Buildable;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Incubating;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.internal.artifacts.repositories.IvyArtifactRepositoryInternal;
+import org.gradle.api.internal.artifacts.ArtifactPublicationServices;
+import org.gradle.api.internal.artifacts.ArtifactPublisher;
+import org.gradle.api.publish.internal.PublishOperation;
 import org.gradle.api.publish.ivy.IvyPublication;
 import org.gradle.api.publish.ivy.internal.IvyNormalizedPublication;
 import org.gradle.api.publish.ivy.internal.IvyPublicationInternal;
 import org.gradle.api.publish.ivy.internal.IvyPublisher;
 import org.gradle.api.tasks.TaskAction;
 
+import javax.inject.Inject;
 import java.util.concurrent.Callable;
 
 /**
@@ -40,23 +42,19 @@ import java.util.concurrent.Callable;
 public class PublishToIvyRepository extends DefaultTask {
 
     private IvyPublicationInternal publication;
-    private IvyArtifactRepositoryInternal repository;
+    private IvyArtifactRepository repository;
 
-    public PublishToIvyRepository() {
+    private final ArtifactPublicationServices publicationServices;
+
+    @Inject
+    public PublishToIvyRepository(ArtifactPublicationServices publicationServices) {
+        this.publicationServices = publicationServices;
+
         // Allow the publication to participate in incremental build
         getInputs().files(new Callable<FileCollection>() {
             public FileCollection call() throws Exception {
                 IvyPublicationInternal publicationInternal = getPublicationInternal();
                 return publicationInternal == null ? null : publicationInternal.getPublishableFiles();
-            }
-        });
-
-        // Allow the publication to have its dependencies fulfilled
-        // There may be dependencies that aren't about creating files and not covered above
-        dependsOn(new Callable<Buildable>() {
-            public Buildable call() throws Exception {
-                IvyPublicationInternal publicationInternal = getPublicationInternal();
-                return publicationInternal == null ? null : publicationInternal;
             }
         });
 
@@ -120,27 +118,7 @@ public class PublishToIvyRepository extends DefaultTask {
      * @param repository The repository to publish to
      */
     public void setRepository(IvyArtifactRepository repository) {
-        this.repository = toRepositoryInternal(repository);
-    }
-
-    private IvyArtifactRepositoryInternal getRepositoryInternal() {
-        return toRepositoryInternal(getRepository());
-    }
-
-    private static IvyArtifactRepositoryInternal toRepositoryInternal(IvyArtifactRepository repository) {
-        if (repository == null) {
-            return null;
-        } else if (repository instanceof IvyArtifactRepositoryInternal) {
-            return (IvyArtifactRepositoryInternal) repository;
-        } else {
-            throw new InvalidUserDataException(
-                    String.format(
-                            "repository objects must implement the '%s' interface, implementation '%s' does not",
-                            IvyArtifactRepositoryInternal.class.getName(),
-                            repository.getClass().getName()
-                    )
-            );
-        }
+        this.repository = repository;
     }
 
     @TaskAction
@@ -150,18 +128,24 @@ public class PublishToIvyRepository extends DefaultTask {
             throw new InvalidUserDataException("The 'publication' property is required");
         }
 
-        IvyArtifactRepositoryInternal repositoryInternal = getRepositoryInternal();
-        if (repositoryInternal == null) {
+        IvyArtifactRepository repository = getRepository();
+        if (repository == null) {
             throw new InvalidUserDataException("The 'repository' property is required");
         }
 
-        doPublish(publicationInternal, repositoryInternal);
+        doPublish(publicationInternal, repository);
     }
 
-    private void doPublish(IvyPublicationInternal publication, IvyArtifactRepositoryInternal repository) {
-        IvyPublisher publisher = repository.createPublisher();
-        IvyNormalizedPublication normalizedPublication = publication.asNormalisedPublication();
-        publisher.publish(normalizedPublication);
+    private void doPublish(final IvyPublicationInternal publication, final IvyArtifactRepository repository) {
+        new PublishOperation(publication, repository) {
+            @Override
+            protected void publish() throws Exception {
+                ArtifactPublisher artifactPublisher = publicationServices.createArtifactPublisher();
+                IvyNormalizedPublication normalizedPublication = publication.asNormalisedPublication();
+                IvyPublisher publisher = new IvyPublisher(artifactPublisher);
+                publisher.publish(normalizedPublication, repository);
+            }
+        }.run();
     }
 
 }

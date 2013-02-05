@@ -23,6 +23,7 @@ import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.internal.java.JavaLibrary;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.artifacts.publish.ArchivePublishArtifact;
 import org.gradle.api.internal.plugins.DefaultArtifactPublicationSet;
@@ -68,6 +69,7 @@ public class JavaPlugin implements Plugin<Project> {
 
         configureSourceSets(javaConvention);
         configureConfigurations(project);
+        configureComponent(project);
 
         configureJavaDoc(javaConvention);
         configureTest(project, javaConvention);
@@ -158,6 +160,11 @@ public class JavaPlugin implements Plugin<Project> {
         configurations.getByName(TEST_RUNTIME_CONFIGURATION_NAME).extendsFrom(runtimeConfiguration, compileTestsConfiguration);
 
         configurations.getByName(Dependency.DEFAULT_CONFIGURATION).extendsFrom(runtimeConfiguration);
+    }
+
+
+    private void configureComponent(Project project) {
+        project.getComponents().add(new JavaLibrary(project.getConfigurations().getByName(RUNTIME_CONFIGURATION_NAME)));
     }
 
     /**

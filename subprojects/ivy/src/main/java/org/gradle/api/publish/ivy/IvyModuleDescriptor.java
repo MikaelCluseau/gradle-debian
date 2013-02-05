@@ -21,8 +21,6 @@ import org.gradle.api.Incubating;
 import org.gradle.api.XmlProvider;
 import org.gradle.api.internal.HasInternalProtocol;
 
-import java.io.File;
-
 /**
  * The descriptor of any Ivy publication.
  * <p>
@@ -64,26 +62,11 @@ public interface IvyModuleDescriptor {
      * For details on the structure of the XML to be modified, see <a href="http://ant.apache.org/ivy/history/latest-milestone/ivyfile.html">the
      * Ivy Module Descriptor reference</a>.
      *
+     *
      * @param action The configuration action.
      * @see IvyPublication
      * @see XmlProvider
      */
-    void withXml(Action<XmlProvider> action);
-
-    /**
-     * The generated descriptor file.
-     *
-     * This file will only exist <b>after</b> the publishing task that publishing the publication this descriptor is part of.
-     *
-     * @return The generated descriptor file
-     */
-    File getFile();
-
-    /**
-     * Sets where the descriptor file should be generated.
-     *
-     * @param descriptorFile The new location to generate the descriptor to
-     */
-    void setFile(File descriptorFile);
+    void withXml(Action<? super XmlProvider> action);
 
 }
