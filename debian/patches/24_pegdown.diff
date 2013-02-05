@@ -11,7 +11,7 @@ Last-Update: 2012-08-18
 +++ b/buildSrc/build.gradle
 @@ -40,7 +40,6 @@
      testCompile 'junit:junit4:4.x@jar'
-     testCompile 'org.spockframework:spock-core:0.6-groovy-1.8@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
+     testCompile 'org.spockframework:spock-core:0.7-groovy-1.8@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
  
 -    compile "org.pegdown:pegdown:1.1.0"
      compile "org.jsoup:jsoup:1.6.3"
@@ -62,24 +62,15 @@ Last-Update: 2012-08-18
      void options(String... options) {
 --- a/subprojects/docs/docs.gradle
 +++ b/subprojects/docs/docs.gradle
-@@ -22,7 +22,6 @@
- import org.gradle.build.docs.dsl.source.ExtractDslMetaDataTask
+@@ -25,7 +25,6 @@
+ import org.apache.tools.ant.filters.ReplaceTokens
  
  apply plugin: 'base'
 -apply plugin: 'pegdown'
  apply plugin: 'jsoup'
  apply plugin: 'javascript-base'
  
-@@ -87,7 +86,7 @@
-     builtBy 'distDocs'
- }
- outputs.docs = files(docsDir) {
--    builtBy 'javadoc', 'groovydoc', 'userguide', 'dslHtml', 'releaseNotes'
-+    builtBy 'javadoc', 'groovydoc', 'userguide', 'dslHtml'
- }
- 
- tasks.withType(Docbook2Xhtml) {
-@@ -352,10 +351,10 @@
+@@ -364,10 +363,10 @@
      group = 'documentation'
  }
  
@@ -92,16 +83,20 @@ Last-Update: 2012-08-18
      group = "release notes"
      doLast {
          Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
-@@ -394,10 +393,10 @@
-     doLast {
-         Class.forName("java.awt.Desktop").newInstance().browse(new File(releaseNotes.destinationDir, releaseNotes.fileName).toURI())
-     }
+@@ -412,14 +411,14 @@
+     systemProperty "org.gradle.docs.releasenotes.source", releaseNotesMarkdown.source.singleFile
+     systemProperty "org.gradle.docs.releasenotes.rendered", new File(releaseNotes.destinationDir, releaseNotes.fileName)
+ 
 -}
 +}*/
  
+ if (project.hasProperty('noDocsTests')) {
+     gradle.startParameter.excludedTaskNames << test.path
+ }
+ 
  task docs {
--    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml, releaseNotes
-+    dependsOn javadoc, groovydoc, userguide, distDocs, samplesDocs, dslHtml
+-    dependsOn javadocAll, groovydocAll, userguide, distDocs, samplesDocs, dslHtml, releaseNotes
++    dependsOn javadocAll, groovydocAll, userguide, distDocs, samplesDocs, dslHtml
      description = 'Generates all documentation'
      group = 'documentation'
  }

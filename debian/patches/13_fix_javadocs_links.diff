@@ -6,7 +6,7 @@ Last-Update: 2012-08-18
 
 --- a/subprojects/docs/docs.gradle
 +++ b/subprojects/docs/docs.gradle
-@@ -265,8 +265,10 @@
+@@ -275,8 +275,10 @@
      classpath = configurations.userGuideTask
  }
  
@@ -17,9 +17,9 @@ Last-Update: 2012-08-18
 +//def groovyApiUrl = "http://groovy.codehaus.org/gapi/"
 +def groovyApiUrl = "file:///usr/share/doc/groovy-doc/gapi/"
  
- task javadoc(type: Javadoc) {
+ task javadocAll(type: Javadoc) {
      ext.stylesheetFile = file("src/docs/css/javadoc.css")
-@@ -288,8 +290,7 @@
+@@ -298,8 +300,7 @@
      include 'org/gradle/testfixtures/**'
      include 'org/gradle/tooling/**'
      exclude '**/internal/**'

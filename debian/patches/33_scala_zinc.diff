@@ -24,26 +24,26 @@ Forwarded: not-needed
  if (!javaVersion.java6Compatible) {
 --- a/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
 +++ b/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
-@@ -101,11 +101,11 @@
-             compile.scalaClasspath = project.configurations[SCALA_TOOLS_CONFIGURATION_NAME]
+@@ -119,11 +119,11 @@
+             compile.conventionMapping.scalaClasspath = { getScalaClasspath(compile.classpath) }
              compile.conventionMapping.zincClasspath = {
                  def config = project.configurations[ZINC_CONFIGURATION_NAME]
 -                if (!compile.scalaCompileOptions.useAnt && config.dependencies.empty) {
 -                    project.dependencies {
--                        zinc("com.typesafe.zinc:zinc:0.2.0")
+-                        zinc("com.typesafe.zinc:zinc:$DEFAULT_ZINC_VERSION")
 -                    }
 -                }
 +                //if (!compile.scalaCompileOptions.useAnt && config.dependencies.empty) {
-+                    //project.dependencies {
-+                    //    zinc("com.typesafe.zinc:zinc:0.2.0")
-+                    //}
++                //    project.dependencies {
++                //        zinc("com.typesafe.zinc:zinc:$DEFAULT_ZINC_VERSION")
++                //    }
 +                //}
                  config
              }
          }
-@@ -118,4 +118,4 @@
-             scalaDoc.scalaClasspath = project.configurations[SCALA_TOOLS_CONFIGURATION_NAME]
+@@ -159,4 +159,4 @@
          }
+         null
      }
 -}
 \ No newline at end of file

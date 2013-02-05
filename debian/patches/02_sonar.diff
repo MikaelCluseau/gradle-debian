@@ -6,7 +6,7 @@ Last-Update: 2012-08-18
 
 --- a/build.gradle
 +++ b/build.gradle
-@@ -82,7 +82,7 @@
+@@ -87,7 +87,7 @@
      publishedProjects = [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices'), project(':messaging')]
      pluginProjects = [
          'plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven',
@@ -28,7 +28,7 @@ Last-Update: 2012-08-18
  include 'ear'
 --- a/subprojects/docs/src/docs/dsl/dsl.xml
 +++ b/subprojects/docs/src/docs/dsl/dsl.xml
-@@ -300,9 +300,11 @@
+@@ -318,9 +318,11 @@
              <tr>
                  <td>org.gradle.plugins.signing.Sign</td>
              </tr>
@@ -40,7 +40,7 @@ Last-Update: 2012-08-18
              <tr>
                  <td>org.gradle.api.tasks.Sync</td>
              </tr>
-@@ -409,4 +411,4 @@
+@@ -427,4 +429,4 @@
          </table>
      </section>
  

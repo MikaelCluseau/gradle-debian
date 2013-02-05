@@ -29,9 +29,9 @@ Last-Update: 2012-09-03
  include 'buildComparison'
 --- a/subprojects/core/core.gradle
 +++ b/subprojects/core/core.gradle
-@@ -55,7 +55,7 @@
-     testFixturesCompile project(":internalTesting")
-     testFixturesRuntime project(':coreImpl')
+@@ -59,7 +59,7 @@
+ 
+     testCompile project(':coreImpl')
  
 -    integTestCompile project(":internalIntegTesting")
 +    //integTestCompile project(":internalIntegTesting")
@@ -40,12 +40,12 @@ Last-Update: 2012-09-03
  }
 --- a/subprojects/performance/performance.gradle
 +++ b/subprojects/performance/performance.gradle
-@@ -7,7 +7,7 @@
+@@ -8,7 +8,7 @@
  dependencies {
-     junit 'junit:junit:4.10'
+     junit 'junit:junit:4.11'
      groovy libraries.groovy
 -    testFixturesCompile project(':internalIntegTesting')
 +    //testFixturesCompile project(':internalIntegTesting')
+     plugin gradleApi()
  }
  
- useTestFixtures()

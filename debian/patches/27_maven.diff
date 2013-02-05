@@ -4,7 +4,7 @@ Last-Update: 2012-08-18
 
 --- a/subprojects/core-impl/core-impl.gradle
 +++ b/subprojects/core-impl/core-impl.gradle
-@@ -57,7 +57,7 @@
+@@ -58,7 +58,7 @@
      //I'm removing the components.xml file from the sec-dispatcher jar.
      //This file contains only single component so I think we can remove it.
      task.doLast {

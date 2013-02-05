@@ -5,7 +5,7 @@ Last-Update: 2012-09-03
 
 --- a/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
 +++ b/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
-@@ -271,7 +271,7 @@
+@@ -273,7 +273,7 @@
      }
  
      @Factory
@@ -14,7 +14,7 @@ Last-Update: 2012-09-03
          return new BaseMatcher<Task>() {
              public boolean matches(Object o) {
                  Task task = (Task) o;
-@@ -301,7 +301,7 @@
+@@ -303,7 +303,7 @@
      }
  
      @Factory

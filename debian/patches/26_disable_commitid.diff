@@ -32,5 +32,5 @@ Last-Update: 2012-08-18
 -                commitId:  determineCommitId.commitId,
 +                commitId: "UNKNOWN",
                  versionNumber: version,
-                 buildTimestamp: buildTimestamp,
-                 username: System.properties["user.name"],
+                 versionBase: versionBase,
+                 isSnapshot: isSnapshot,
