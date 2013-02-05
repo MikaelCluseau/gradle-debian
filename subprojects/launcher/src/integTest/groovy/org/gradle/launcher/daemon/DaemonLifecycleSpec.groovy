@@ -17,7 +17,7 @@
 package org.gradle.launcher.daemon
 
 import org.gradle.integtests.fixtures.AvailableJavaHomes
-import org.gradle.integtests.fixtures.GradleHandle
+import org.gradle.integtests.fixtures.executer.GradleHandle
 import org.gradle.internal.jvm.Jvm
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.launcher.daemon.client.DaemonDisappearedException
@@ -25,7 +25,7 @@ import org.gradle.launcher.daemon.testing.DaemonContextParser
 import org.gradle.launcher.daemon.testing.DaemonEventSequenceBuilder
 import spock.lang.IgnoreIf
 
-import static org.gradle.tests.fixtures.ConcurrentTestUtil.poll
+import static org.gradle.test.fixtures.ConcurrentTestUtil.poll
 
 /**
  * Outlines the lifecycle of the daemon given different sequences of events.
@@ -55,7 +55,7 @@ class DaemonLifecycleSpec extends DaemonIntegrationSpec {
         new DaemonEventSequenceBuilder(stateTransitionTimeout * 1000)
 
     def buildDir(buildNum) {
-        distribution.file("builds/$buildNum")
+        file("builds/$buildNum")
     }
 
     def buildDirWithScript(buildNum, buildScript) {
@@ -148,6 +148,7 @@ class DaemonLifecycleSpec extends DaemonIntegrationSpec {
         }
         executer.withArguments("--foreground", "--info", "-Dorg.gradle.daemon.idletimeout=${daemonIdleTimeout * 1000}")
         foregroundDaemons << executer.start()
+        executer.withJavaHome(null)
     }
 
     //this is a windows-safe way of killing the process

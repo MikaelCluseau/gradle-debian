@@ -29,7 +29,7 @@ import static org.junit.Assert.assertThat
 
 class ToolingApiRemoteIntegrationTest extends AbstractIntegrationSpec {
     @Rule HttpServer server = new HttpServer()
-    final ToolingApi toolingApi = new ToolingApi(distribution, distribution.userHomeDir, { getTestDir() }, false)
+    final ToolingApi toolingApi = new ToolingApi(distribution, executer.gradleUserHomeDir, temporaryFolder, false)
 
     void setup() {
         server.start()
@@ -38,7 +38,7 @@ class ToolingApiRemoteIntegrationTest extends AbstractIntegrationSpec {
     }
 
     public void "downloads distribution with valid useragent information"() {
-        assert distribution.binDistribution.exists(): "bin distribution must exist to run this test, you need to run the :binZip task"
+        assert distribution.binDistribution.exists() : "bin distribution must exist to run this test, you need to run the :binZip task"
         expect:
         server.allowGetOrHead("/dist", distribution.binDistribution)
         server.expectUserAgent(matchesNameAndVersion("Gradle Tooling API", GradleVersion.current().getVersion()))

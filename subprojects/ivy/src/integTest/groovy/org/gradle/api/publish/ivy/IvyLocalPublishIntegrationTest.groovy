@@ -19,8 +19,8 @@ package org.gradle.api.publish.ivy
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 import org.spockframework.util.TextUtil
-import spock.lang.Ignore
 import spock.lang.Issue
+import org.gradle.test.fixtures.ivy.IvyDescriptor
 
 public class IvyLocalPublishIntegrationTest extends AbstractIntegrationSpec {
     public void canPublishToLocalFileRepository() {
@@ -92,37 +92,86 @@ public class IvyLocalPublishIntegrationTest extends AbstractIntegrationSpec {
         shaOneFile.text == "00e14c6ef59816760e2c9b5a57157e8ac9de4012"
     }
 
-    @Ignore("There's no real parallel of this with the new publication mechanism. Eventually, descriptor generation will be a standalone task")
     @Issue("GRADLE-1811")
     public void canGenerateTheIvyXmlWithoutPublishing() {
-        //this is more like documenting the current behavior.
-        //Down the road we should add explicit task to create ivy.xml file
-
         given:
-        buildFile << '''
+        def module = ivyRepo.module("org.gradle", "generateIvy", "2")
+
+        settingsFile << "rootProject.name = 'generateIvy'"
+        buildFile << """
             apply plugin: 'java'
+            apply plugin: 'ivy-publish'
 
-            configurations {
-              myJars
+            version = '2'
+            group = 'org.gradle'
+
+            publishing {
+                repositories {
+                    ivy {
+                        url "${ivyRepo.uri}"
+                    }
+                }
             }
 
-            task myJar(type: Jar)
-
-            artifacts {
-              'myJars' myJar
+            generateIvyModuleDescriptor {
+                destination = 'generated-ivy.xml'
             }
-
-            task ivyXml(type: Upload) {
-              descriptorDestination = file('ivy.xml')
-              uploadDescriptor = true
-              configuration = configurations.myJars
-            }
-        '''
+        """
 
         when:
-        succeeds 'ivyXml'
+        succeeds 'generateIvyModuleDescriptor'
 
         then:
-        file('ivy.xml').assertIsFile()
+        file('generated-ivy.xml').assertIsFile()
+        IvyDescriptor ivy = new IvyDescriptor(file('generated-ivy.xml'))
+        with (ivy.artifacts['generateIvy']) {
+            name == 'generateIvy'
+            ext == 'jar'
+            conf == ['archives', 'runtime']
+        }
+
+        and:
+        module.ivyFile.assertDoesNotExist()
     }
+
+    def "can publish with non-ascii characters"() {
+        def organisation = 'group-√æず'
+        def moduleName = 'artifact-∫ʙぴ'
+        def version = 'version-₦ガき∆'
+        def description = 'description-ç√∫'
+
+        given:
+        settingsFile << "rootProject.name = '${moduleName}'"
+        buildFile << """
+            apply plugin: 'java'
+            apply plugin: 'ivy-publish'
+
+            group = '${organisation}'
+            version = '${version}'
+
+            publishing {
+                repositories {
+                    ivy { url "${ivyRepo.uri}" }
+                }
+                publications {
+                    ivy {
+                        descriptor.withXml {
+                            asNode().info[0].appendNode('description', "${description}")
+                        }
+                    }
+                }
+            }
+        """
+        when:
+        succeeds 'publish'
+
+        then:
+        def ivy = ivyRepo.module(organisation, moduleName, version).ivy
+        ivy.organisation == organisation
+        ivy.module == moduleName
+        ivy.revision == version
+        ivy.description == description
+    }
+
+
 }

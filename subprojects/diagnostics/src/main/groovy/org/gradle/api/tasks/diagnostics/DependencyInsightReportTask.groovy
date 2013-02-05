@@ -20,10 +20,10 @@ package org.gradle.api.tasks.diagnostics;
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.Incubating
+import org.gradle.api.InvalidUserDataException
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.artifacts.result.ResolutionResult
-import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.internal.tasks.CommandLineOption
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.TaskAction
@@ -39,6 +39,9 @@ import org.gradle.logging.StyledTextOutputFactory
 import javax.inject.Inject
 
 import static org.gradle.logging.StyledTextOutput.Style.Info
+import static org.gradle.logging.StyledTextOutput.Style.Failure
+import static org.gradle.logging.StyledTextOutput.Style.Identifier
+import static org.gradle.logging.StyledTextOutput.Style.Description
 
 /**
  * Generates a report that attempts to answer questions like:
@@ -143,11 +146,11 @@ public class DependencyInsightReportTask extends DefaultTask {
     @TaskAction
     public void report() {
         if (configuration == null) {
-            throw new ReportException("Dependency insight report cannot be generated because the input configuration was not specified. "
+            throw new InvalidUserDataException("Dependency insight report cannot be generated because the input configuration was not specified. "
                     + "\nIt can be specified from the command line, e.g: '$path --configuration someConf --dependency someDep'")
         }
         if (dependencySpec == null) {
-            throw new ReportException("Dependency insight report cannot be generated because the dependency to show was not specified."
+            throw new InvalidUserDataException("Dependency insight report cannot be generated because the dependency to show was not specified."
                     + "\nIt can be specified from the command line, e.g: '$path --dependency someDep'")
         }
 
@@ -155,37 +158,40 @@ public class DependencyInsightReportTask extends DefaultTask {
 
         Set<DependencyResult> selectedDependencies = new LinkedHashSet<DependencyResult>()
         result.allDependencies { DependencyResult it ->
-            //TODO SF revisit when developing unresolved dependencies story
-            if (it instanceof ResolvedDependencyResult && dependencySpec.isSatisfiedBy(it)) {
+            if (dependencySpec.isSatisfiedBy(it)) {
                 selectedDependencies << it
             }
         }
 
         if (selectedDependencies.empty) {
-            output.println("No resolved dependencies matching given input were found in $configuration")
+            output.println("No dependencies matching given input were found in $configuration")
             return
         }
 
         def sortedDeps = new DependencyInsightReporter().prepare(selectedDependencies)
 
         def nodeRenderer = new NodeRenderer() {
-            void renderNode(StyledTextOutput output, RenderableDependency node, Set<RenderableDependency> children, boolean alreadyRendered) {
-                boolean leaf = children.empty
-                output.text(leaf? DependencyInsightReportTask.this.configuration.name : node.name);
+            void renderNode(StyledTextOutput output, RenderableDependency node, boolean alreadyRendered) {
+                boolean leaf = node.children.empty
+                output.text(leaf ? DependencyInsightReportTask.this.configuration.name : node.name);
                 if (alreadyRendered && !leaf) {
                     output.withStyle(Info).text(" (*)")
                 }
             }
         }
+
         def dependencyGraphRenderer = new DependencyGraphRenderer(renderer, nodeRenderer)
 
         int i = 1
         for (RenderableDependency dependency: sortedDeps) {
             renderer.visit(new Action<StyledTextOutput>() {
                 public void execute(StyledTextOutput out) {
-                    out.withStyle(StyledTextOutput.Style.Identifier).text(dependency.name);
+                    out.withStyle(Identifier).text(dependency.name);
                     if (dependency.description) {
-                        out.withStyle(StyledTextOutput.Style.Description).text(" (" + dependency.description + ")")
+                        out.withStyle(Description).text(" ($dependency.description)")
+                    }
+                    if (!dependency.resolvable) {
+                        out.withStyle(Failure).text(" FAILED")
                     }
                 }
             }, true);

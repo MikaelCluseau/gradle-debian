@@ -39,7 +39,7 @@ public class DefaultPersistentDirectoryStore implements ReferencablePersistentCa
     }
 
     public DefaultPersistentDirectoryStore open() {
-        GFileUtils.createDirectory(dir);
+        GFileUtils.mkdirs(dir);
         cacheAccess = createCacheAccess();
         try {
             cacheAccess.open(lockMode);
@@ -120,6 +120,10 @@ public class DefaultPersistentDirectoryStore implements ReferencablePersistentCa
 
     public <K, V> PersistentIndexedCache<K, V> createCache(File cacheFile, Class<K> keyType, Serializer<V> valueSerializer) {
         return cacheAccess.newCache(cacheFile, keyType, valueSerializer);
+    }
+
+    public <K, V> PersistentIndexedCache<K, V> createCache(File cacheFile, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+        return cacheAccess.newCache(cacheFile, keySerializer, valueSerializer);
     }
 
     public <T> T useCache(String operationDisplayName, Factory<? extends T> action) {

@@ -22,7 +22,11 @@ import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleId;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
 import org.apache.ivy.plugins.version.VersionMatcher;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
+import org.gradle.api.artifacts.result.ModuleVersionSelectionReason;
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier;
 import org.gradle.api.internal.artifacts.ivyservice.*;
+import org.gradle.api.internal.artifacts.ivyservice.resolveengine.result.VersionSelectionReasons;
 
 /**
  * A {@link org.gradle.api.internal.artifacts.ivyservice.DependencyToModuleVersionIdResolver} implementation which returns lazy resolvers that don't actually retrieve module descriptors until
@@ -70,8 +74,9 @@ public class LazyDependencyToModuleResolver implements DependencyToModuleVersion
             this.dependencyDescriptor = dependencyDescriptor;
         }
 
-        public ModuleRevisionId getId() throws ModuleVersionResolveException {
-            return dependencyDescriptor.getDependencyRevisionId();
+        public ModuleVersionIdentifier getId() throws ModuleVersionResolveException {
+            final ModuleRevisionId dependencyRevisionId = dependencyDescriptor.getDependencyRevisionId();
+            return new DefaultModuleVersionIdentifier(dependencyRevisionId.getOrganisation(), dependencyRevisionId.getName(), dependencyRevisionId.getRevision());
         }
 
         public ModuleVersionResolveException getFailure() {
@@ -103,8 +108,8 @@ public class LazyDependencyToModuleResolver implements DependencyToModuleVersion
             return resolveResult;
         }
 
-        public IdSelectionReason getSelectionReason() {
-            return IdSelectionReason.requested;
+        public ModuleVersionSelectionReason getSelectionReason() {
+            return VersionSelectionReasons.REQUESTED;
         }
 
         private void checkDescriptor(ModuleDescriptor descriptor) {
@@ -115,8 +120,7 @@ public class LazyDependencyToModuleResolver implements DependencyToModuleVersion
             for (Configuration configuration : descriptor.getConfigurations()) {
                 for (String parent : configuration.getExtends()) {
                     if (descriptor.getConfiguration(parent) == null) {
-                        throw new ModuleVersionResolveException(String.format("Configuration '%s' extends unknown configuration '%s' in module descriptor for group:%s, module:%s, version:%s.",
-                                configuration.getName(), parent, id.getOrganisation(), id.getName(), id.getRevision()));
+                        throw new ModuleVersionResolveException(id, String.format("Configuration '%s' extends unknown configuration '%s' in module descriptor for %%s.", configuration.getName(), parent));
                     }
                 }
             }
@@ -132,7 +136,7 @@ public class LazyDependencyToModuleResolver implements DependencyToModuleVersion
         }
 
         protected void onUnexpectedModuleRevisionId(ModuleDescriptor descriptor) {
-            throw new ModuleVersionResolveException(String.format("Received unexpected module descriptor %s for dependency %s.", descriptor.getModuleRevisionId(), dependencyDescriptor.getDependencyRevisionId()));
+            throw new ModuleVersionResolveException(dependencyDescriptor.getDependencyRevisionId(), String.format("Received unexpected module descriptor %s for dependency %%s.", descriptor.getModuleRevisionId()));
         }
     }
 
@@ -147,13 +151,13 @@ public class LazyDependencyToModuleResolver implements DependencyToModuleVersion
         }
 
         @Override
-        public ModuleRevisionId getId() throws ModuleVersionResolveException {
+        public ModuleVersionIdentifier getId() throws ModuleVersionResolveException {
             return resolve().getId();
         }
 
         @Override
         protected ModuleVersionNotFoundException notFound(ModuleRevisionId id) {
-            return new ModuleVersionNotFoundException(String.format("Could not find any version that matches group:%s, module:%s, version:%s.", id.getOrganisation(), id.getName(), id.getRevision()));
+            return new ModuleVersionNotFoundException(id, "Could not find any version that matches %s.");
         }
 
         @Override

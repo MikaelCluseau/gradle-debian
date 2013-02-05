@@ -17,12 +17,15 @@
 package org.gradle.api.internal.artifacts.ivyservice.resolveengine.result;
 
 import org.gradle.api.artifacts.ModuleVersionSelector;
-import org.gradle.api.artifacts.result.DependencyResult;
+import org.gradle.api.artifacts.result.ModuleVersionSelectionReason;
+import org.gradle.api.artifacts.result.ResolvedDependencyResult;
 import org.gradle.api.artifacts.result.ResolvedModuleVersionResult;
+import org.gradle.api.artifacts.result.UnresolvedDependencyResult;
+import org.gradle.api.internal.artifacts.ivyservice.ModuleVersionResolveException;
 import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult;
 import org.gradle.api.internal.artifacts.result.DefaultUnresolvedDependencyResult;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,18 +36,19 @@ import static java.util.Arrays.asList;
  */
 public class CachingDependencyResultFactory {
 
-    Map<List, DefaultUnresolvedDependencyResult> unresolvedDependencies = new LinkedHashMap();
-    Map<List, DefaultResolvedDependencyResult> resolvedDependencies = new LinkedHashMap();
+    private final Map<List, DefaultUnresolvedDependencyResult> unresolvedDependencies = new HashMap<List, DefaultUnresolvedDependencyResult>();
+    private final Map<List, DefaultResolvedDependencyResult> resolvedDependencies = new HashMap<List, DefaultResolvedDependencyResult>();
 
-    public DependencyResult createUnresolvedDependency(ModuleVersionSelector requested, ResolvedModuleVersionResult from, Exception failure) {
+    public UnresolvedDependencyResult createUnresolvedDependency(ModuleVersionSelector requested, ResolvedModuleVersionResult from,
+                                                       ModuleVersionSelectionReason reason, ModuleVersionResolveException failure) {
         List<Object> key = asList(requested, from);
         if (!unresolvedDependencies.containsKey(key)) {
-            unresolvedDependencies.put(key, new DefaultUnresolvedDependencyResult(requested, failure, from));
+            unresolvedDependencies.put(key, new DefaultUnresolvedDependencyResult(requested, reason, from, failure));
         }
         return unresolvedDependencies.get(key);
     }
 
-    public DependencyResult createResolvedDependency(ModuleVersionSelector requested, ResolvedModuleVersionResult from, ResolvedModuleVersionResult selected) {
+    public ResolvedDependencyResult createResolvedDependency(ModuleVersionSelector requested, ResolvedModuleVersionResult from, ResolvedModuleVersionResult selected) {
         List<Object> key = asList(requested, from, selected);
         if (!resolvedDependencies.containsKey(key)) {
             resolvedDependencies.put(key, new DefaultResolvedDependencyResult(requested, selected, from));

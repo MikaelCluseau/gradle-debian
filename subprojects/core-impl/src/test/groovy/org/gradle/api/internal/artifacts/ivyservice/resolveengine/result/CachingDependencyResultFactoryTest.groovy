@@ -20,6 +20,8 @@ import spock.lang.Specification
 
 import static org.gradle.api.internal.artifacts.DefaultModuleVersionSelector.newSelector
 import static org.gradle.api.internal.artifacts.result.ResolutionResultDataBuilder.newModule
+import org.gradle.api.internal.artifacts.ivyservice.ModuleVersionResolveException
+import org.gradle.api.artifacts.result.ModuleVersionSelectionReason
 
 /**
  * by Szczepan Faber, created at: 10/1/12
@@ -49,14 +51,15 @@ class CachingDependencyResultFactoryTest extends Specification {
 
     def "creates and caches unresolved dependencies"() {
         def fromModule = newModule('from')
+        def selectedModule = Mock(ModuleVersionSelectionReason)
 
         when:
-        def dep = factory.createUnresolvedDependency(selector('requested'), fromModule, new RuntimeException("foo"))
-        def same = factory.createUnresolvedDependency(selector('requested'), fromModule, new RuntimeException("foo"))
+        def dep = factory.createUnresolvedDependency(selector('requested'), fromModule, selectedModule, new ModuleVersionResolveException(selector('requested'), "foo"))
+        def same = factory.createUnresolvedDependency(selector('requested'), fromModule, selectedModule, new ModuleVersionResolveException(selector('requested'), "foo"))
 
-        def differentRequested = factory.createUnresolvedDependency(selector('xxx'), fromModule, new RuntimeException("foo"))
-        def differentFrom = factory.createUnresolvedDependency(selector('requested'), newModule('xxx'), new RuntimeException("foo"))
-        def differentFailure = factory.createUnresolvedDependency(selector('requested'), fromModule, new RuntimeException("xxx"))
+        def differentRequested = factory.createUnresolvedDependency(selector('xxx'), fromModule, selectedModule, new ModuleVersionResolveException(selector('xxx'), "foo"))
+        def differentFrom = factory.createUnresolvedDependency(selector('requested'), newModule('xxx'), selectedModule, new ModuleVersionResolveException(selector('requested'), "foo"))
+        def differentFailure = factory.createUnresolvedDependency(selector('requested'), fromModule, selectedModule, new ModuleVersionResolveException(selector('requested'), "foo"))
 
         then:
         dep.is(same)

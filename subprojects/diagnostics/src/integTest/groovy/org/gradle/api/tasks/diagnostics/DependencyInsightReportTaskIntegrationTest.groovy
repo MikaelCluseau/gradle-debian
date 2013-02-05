@@ -22,7 +22,7 @@ import static org.gradle.util.TextUtil.toPlatformLineSeparators
 
 class DependencyInsightReportTaskIntegrationTest extends AbstractIntegrationSpec {
     def setup() {
-        distribution.requireOwnUserHomeDir()
+        executer.requireOwnGradleUserHomeDir()
     }
 
     def "shows basic single tree with repeated dependency"() {
@@ -56,10 +56,10 @@ class DependencyInsightReportTaskIntegrationTest extends AbstractIntegrationSpec
         then:
         output.contains(toPlatformLineSeparators("""
 org:leaf2:1.0
-+--- org:top:1.0
-|    \\--- conf
-\\--- org:middle:1.0
-     \\--- org:top:1.0 (*)
++--- org:middle:1.0
+|    \\--- org:top:1.0
+|         \\--- conf
+\\--- org:top:1.0 (*)
 
 (*) - dependencies omitted (listed previously)
 """))
@@ -152,6 +152,104 @@ org:leaf2:1.5 -> 2.5
         then:
         output.contains(toPlatformLineSeparators("""
 org:leaf:1.0 (forced)
+\\--- org:foo:1.0
+     \\--- conf
+
+org:leaf:2.0 -> 1.0
+\\--- org:bar:1.0
+     \\--- conf
+"""))
+    }
+
+    def "shows multiple outgoing dependencies"() {
+        given:
+        mavenRepo.module("org", "leaf", "1.0").publish()
+        mavenRepo.module("org", "middle", "1.0")
+                .dependsOn("org", "leaf", "1.0")
+                .dependsOn("org", "leaf", "[1.0,2.0]")
+                .dependsOn("org", "leaf", "latest.integration")
+                .publish()
+        mavenRepo.module("org", "top", "1.0")
+                .dependsOn("org", "middle", "1.0")
+                .dependsOn("org", "middle", "[1.0,2.0]")
+                .dependsOn("org", "middle", "latest.integration")
+                .publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf
+            }
+            dependencies {
+                conf 'org:top:1.0'
+                conf 'org:top:[1.0,2.0]'
+                conf 'org:top:latest.integration'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                setDependencySpec { it.requested.name == 'leaf' }
+                configuration = configurations.conf
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        // TODO - need to use a fixed ordering for dynamic requested versions
+        output.contains(toPlatformLineSeparators("""
+org:leaf:1.0
+\\--- org:middle:1.0
+     \\--- org:top:1.0
+          \\--- conf
+"""))
+        output.contains(toPlatformLineSeparators("""
+org:leaf:latest.integration -> 1.0
+\\--- org:middle:1.0
+     \\--- org:top:1.0
+          \\--- conf
+"""))
+        output.contains(toPlatformLineSeparators("""
+org:leaf:[1.0,2.0] -> 1.0
+\\--- org:middle:1.0
+     \\--- org:top:1.0
+          \\--- conf
+"""))
+    }
+
+    def "shows substituted versions"() {
+        given:
+        mavenRepo.module("org", "leaf", 1.0).publish()
+        mavenRepo.module("org", "leaf", 2.0).publish()
+
+        mavenRepo.module("org", "foo", 1.0).dependsOn('org', 'leaf', '1.0').publish()
+        mavenRepo.module("org", "bar", 1.0).dependsOn('org', 'leaf', '2.0').publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf {
+                    resolutionStrategy.eachDependency { if (it.requested.name == 'leaf') { it.useVersion('1.0') } }
+                }
+            }
+            dependencies {
+                conf 'org:foo:1.0', 'org:bar:1.0'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                configuration = configurations.conf
+                setDependencySpec { it.requested.name == 'leaf' }
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+org:leaf:1.0 (selected by rule)
 \\--- org:foo:1.0
      \\--- conf
 
@@ -318,7 +416,7 @@ org:leaf:2.0 -> 1.0
         run "insight"
 
         then:
-        output.contains("No resolved dependencies matching given input were found")
+        output.contains("No dependencies matching given input were found")
     }
 
     def "informs that nothing matches the input dependency"() {
@@ -345,10 +443,10 @@ org:leaf:2.0 -> 1.0
         run "insight"
 
         then:
-        output.contains("No resolved dependencies matching given input were found")
+        output.contains("No dependencies matching given input were found")
     }
 
-    def "deals with unresolved dependencies"() {
+    def "marks modules that can't be resolved as 'FAILED'"() {
         given:
         mavenRepo.module("org", "top").dependsOn("middle").publish()
 
@@ -372,7 +470,168 @@ org:leaf:2.0 -> 1.0
         run "insight"
 
         then:
-        output.contains("No resolved dependencies matching given input were found")
+        output.contains(toPlatformLineSeparators("""
+org:middle:1.0 FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+    }
+
+    def "marks modules that can't be resolved after forcing a different version as 'FAILED'"() {
+        given:
+        mavenRepo.module("org", "top").dependsOn("org", "middle", "1.0").publish()
+        mavenRepo.module("org", "middle", 1.0).publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf {
+                    resolutionStrategy {
+                        force "org:middle:2.0"
+                    }
+                }
+            }
+            dependencies {
+                conf 'org:top:1.0'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                setDependencySpec { it.requested.name == 'middle' }
+                configuration = configurations.conf
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+org:middle:2.0 (forced) FAILED
+
+org:middle:1.0 -> 2.0 FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+    }
+
+    def "marks modules that can't be resolved after conflict resolution as 'FAILED'"() {
+        given:
+        mavenRepo.module("org", "top").dependsOn("org", "middle", "1.0").publish()
+        mavenRepo.module("org", "middle", 1.0).publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf
+            }
+            dependencies {
+                conf 'org:top:1.0'
+                conf 'org:middle:2.0'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                setDependencySpec { it.requested.name == 'middle' }
+                configuration = configurations.conf
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+org:middle:2.0 (conflict resolution) FAILED
+\\--- conf
+
+org:middle:1.0 -> 2.0 FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+    }
+
+    def "marks modules that can't be resolved after substitution as 'FAILED'"() {
+        given:
+        mavenRepo.module("org", "top").dependsOn("org", "middle", "1.0").publish()
+        mavenRepo.module("org", "middle", "1.0").publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf {
+                    resolutionStrategy.eachDependency { if (it.requested.name == 'middle') { it.useVersion('2.0+') } }
+                }
+            }
+            dependencies {
+                conf 'org:top:1.0'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                setDependencySpec { it.requested.name == 'middle' }
+                configuration = configurations.conf
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+org:middle:2.0+ (selected by rule) FAILED
+
+org:middle:1.0 -> 2.0+ FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+    }
+
+    def "shows multiple failed outgoing dependencies"() {
+        given:
+        mavenRepo.module("org", "leaf", "1.0")
+        mavenRepo.module("org", "top", "1.0")
+                .dependsOn("org", "leaf", "1.0")
+                .dependsOn("org", "leaf", "[1.5,2.0]")
+                .dependsOn("org", "leaf", "1.6+")
+                .publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+                conf
+            }
+            dependencies {
+                conf 'org:top:1.0'
+            }
+            task insight(type: DependencyInsightReportTask) {
+                setDependencySpec { it.requested.name == 'leaf' }
+                configuration = configurations.conf
+            }
+        """
+
+        when:
+        run "insight"
+
+        then:
+        // TODO - need to use a fixed ordering for dynamic requested versions
+        output.contains(toPlatformLineSeparators("""
+org:leaf:1.0 FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+        output.contains(toPlatformLineSeparators("""
+org:leaf:1.6+ FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
+        output.contains(toPlatformLineSeparators("""
+org:leaf:[1.5,2.0] FAILED
+\\--- org:top:1.0
+     \\--- conf
+"""))
     }
 
     def "deals with dependency cycles"() {

@@ -23,10 +23,6 @@ import org.gradle.api.internal.tasks.testing.TestFramework;
 import org.gradle.api.internal.tasks.testing.WorkerTestClassProcessorFactory;
 import org.gradle.api.internal.tasks.testing.detection.ClassFileExtractionManager;
 import org.gradle.api.internal.tasks.testing.junit.JULRedirector;
-import org.gradle.api.internal.tasks.testing.junit.report.DefaultTestReport;
-import org.gradle.api.internal.tasks.testing.junit.report.TestReporter;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
 import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.testng.TestNGOptions;
 import org.gradle.internal.id.IdGenerator;
@@ -41,27 +37,22 @@ import java.util.List;
  * @author Tom Eyckmans
  */
 public class TestNGTestFramework implements TestFramework {
-
-    private final static Logger LOG = Logging.getLogger(TestNGTestFramework.class);
-
     private TestNGOptions options;
     private TestNGDetector detector;
-    private final Test testTask;
-    private TestReporter reporter;
+    final Test testTask;
 
     public TestNGTestFramework(Test testTask) {
         this.testTask = testTask;
         options = new TestNGOptions(testTask.getProject().getProjectDir());
         options.setAnnotationsOnSourceCompatibility(JavaVersion.toVersion(testTask.getProject().property("sourceCompatibility")));
         detector = new TestNGDetector(new ClassFileExtractionManager(testTask.getTemporaryDirFactory()));
-        reporter = new DefaultTestReport();
     }
 
     public WorkerTestClassProcessorFactory getProcessorFactory() {
         options.setTestResources(testTask.getTestSrcDirs());
         List<File> suiteFiles = options.getSuites(testTask.getTemporaryDir());
         return new TestClassProcessorFactoryImpl(testTask.getTestReportDir(), options, suiteFiles,
-                testTask.getTestResultsDir(), testTask.isTestReport());
+                testTask.isTestReport());
     }
 
     public Action<WorkerProcessBuilder> getWorkerConfigurationAction() {
@@ -70,18 +61,6 @@ public class TestNGTestFramework implements TestFramework {
                 workerProcessBuilder.sharedPackages("org.testng");
             }
         };
-    }
-
-    public void report() {
-        if (!testTask.isTestReport()) {
-            LOG.info("Test report disabled, omitting generation of the html test report.");
-            return;
-        }
-        // TODO SF make the logging consistent in frameworks, add coverage and spockify the test
-        LOG.info("Generating html test report...");
-        reporter.setTestReportDir(testTask.getTestReportDir());
-        reporter.setTestResultsDir(testTask.getTestResultsDir());
-        reporter.generateReport();
     }
 
     public TestNGOptions getOptions() {
@@ -100,22 +79,19 @@ public class TestNGTestFramework implements TestFramework {
         private final File testReportDir;
         private final TestNGOptions options;
         private final List<File> suiteFiles;
-        private final File testResultsDir;
         private final boolean testReportOn;
 
         public TestClassProcessorFactoryImpl(File testReportDir, TestNGOptions options, List<File> suiteFiles,
-                                             File testResultsDir, boolean testReportOn) {
+                                             boolean testReportOn) {
             this.testReportDir = testReportDir;
             this.options = options;
             this.suiteFiles = suiteFiles;
-            this.testResultsDir = testResultsDir;
             this.testReportOn = testReportOn;
         }
 
         public TestClassProcessor create(ServiceRegistry serviceRegistry) {
             return new TestNGTestClassProcessor(testReportDir, options, suiteFiles,
-                    serviceRegistry.get(IdGenerator.class), new JULRedirector(),
-                    testResultsDir, testReportOn);
+                    serviceRegistry.get(IdGenerator.class), new JULRedirector(), testReportOn);
         }
     }
 }

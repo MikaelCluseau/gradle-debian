@@ -42,6 +42,17 @@ public class M2ResourcePattern extends IvyResourcePattern {
     }
 
     @Override
+    public String toPath(Artifact artifact) {
+        Map<String, Object> attributes = toAttributes(artifact);
+        if (artifact.getModuleRevisionId().getExtraAttributes().containsKey("timestamp")) {
+            final Object revisionValue = artifact.getModuleRevisionId().getExtraAttribute("timestamp");
+            String pattern = getPattern().replaceFirst("\\-\\[revision\\]", "-" + revisionValue);
+            return IvyPatternHelper.substituteTokens(pattern, attributes);
+        }
+        return IvyPatternHelper.substituteTokens(getPattern(), attributes);
+    }
+
+    @Override
     public String toModuleVersionPath(Artifact artifact) {
         String pattern = getPattern();
         if (!pattern.endsWith(MavenPattern.M2_PATTERN)) {

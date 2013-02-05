@@ -17,7 +17,7 @@ package org.gradle.test.fixtures.ivy
 
 import org.apache.ivy.core.IvyPatternHelper
 import org.apache.ivy.core.module.id.ModuleRevisionId
-import org.gradle.util.TestFile
+import org.gradle.test.fixtures.file.TestFile
 import org.gradle.util.hash.HashUtil
 
 class IvyFileModule extends AbstractIvyModule {
@@ -61,7 +61,7 @@ class IvyFileModule extends AbstractIvyModule {
         return this
     }
 
-    IvyFileModule dependsOn(String ... modules) {
+    IvyFileModule dependsOn(String... modules) {
         modules.each { dependsOn(organisation, it, revision) }
         return this
     }
@@ -96,7 +96,7 @@ class IvyFileModule extends AbstractIvyModule {
     }
 
     TestFile artifactFile(String name) {
-        return file(artifacts.find{ it.name == name })
+        return file(artifacts.find { it.name == name })
     }
 
     /**
@@ -166,7 +166,7 @@ class IvyFileModule extends AbstractIvyModule {
         return this
     }
 
-    private TestFile file(artifact) {
+    TestFile file(artifact) {
         return moduleDir.file("${artifact.name}-${revision}${artifact.classifier ? '-' + artifact.classifier : ''}.${artifact.type}")
     }
 

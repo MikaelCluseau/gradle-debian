@@ -23,8 +23,8 @@ import org.apache.ivy.core.module.descriptor.ModuleDescriptor
 import org.apache.ivy.core.module.id.ModuleRevisionId
 import org.gradle.api.Action
 import org.gradle.api.XmlProvider
-import org.gradle.api.internal.XmlTransformer
-import org.gradle.util.TemporaryFolder
+import org.gradle.api.internal.xml.XmlTransformer
+import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider
 import org.junit.Rule
 import spock.lang.Specification
 
@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat
 
 class IvyXmlModuleDescriptorWriterTest extends Specification {
 
-    private @Rule TemporaryFolder temporaryFolder;
+    private @Rule TestNameTestDirectoryProvider temporaryFolder;
     private ModuleDescriptor md = Mock();
     private ModuleRevisionId moduleRevisionId = Mock()
     private ModuleRevisionId resolvedModuleRevisionId = Mock()

@@ -18,7 +18,7 @@ package org.gradle.api.plugins.buildcomparison.gradle
 
 import org.gradle.integtests.fixtures.TestResources
 import org.gradle.integtests.fixtures.WellBehavedPluginTest
-import org.gradle.util.TestFile
+import org.gradle.test.fixtures.file.TestFile
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
@@ -39,7 +39,7 @@ class BuildComparisonIntegrationSpec extends WellBehavedPluginTest {
     }
 
     def setup() {
-        executer.withForkingExecuter()
+        executer.requireGradleHome(true)
         applyPlugin()
     }
 
@@ -77,7 +77,7 @@ class BuildComparisonIntegrationSpec extends WellBehavedPluginTest {
         storedFile("target/_jar").list().toList() == ["testBuild.jar"]
 
         and: // old filestore not around
-        !testDir.list().any { it.startsWith(CompareGradleBuilds.TMP_FILESTORAGE_PREFIX) }
+        !testDirectory.list().any { it.startsWith(CompareGradleBuilds.TMP_FILESTORAGE_PREFIX) }
     }
 
     void failedBecauseNotIdentical() {
@@ -157,7 +157,7 @@ class BuildComparisonIntegrationSpec extends WellBehavedPluginTest {
         fails "compareGradleBuilds"
 
         and:
-        failure.assertHasCause("Builds must be executed with Gradle 1.0 or newer (source: 1.0-rc-1, target: ${distribution.version})")
+        failure.assertHasCause("Builds must be executed with Gradle 1.0 or newer (source: 1.0-rc-1, target: ${distribution.version.version})")
     }
 
     def "can ignore errors"() {
@@ -201,7 +201,7 @@ class BuildComparisonIntegrationSpec extends WellBehavedPluginTest {
         fails "compareGradleBuilds"
 
         and:
-        failure.assertHasCause("Builds must be executed with Gradle 1.0 or newer (source: ${distribution.version}, target: 1.0-rc-1)")
+        failure.assertHasCause("Builds must be executed with Gradle 1.0 or newer (source: ${distribution.version.version}, target: 1.0-rc-1)")
     }
 
     def "can handle artifact not existing on source side"() {

@@ -17,29 +17,37 @@
 package org.gradle.api.publish.ivy.internal;
 
 import org.gradle.api.Action;
+import org.gradle.api.internal.UserCodeAction;
 import org.gradle.api.XmlProvider;
-import org.gradle.api.internal.XmlTransformer;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.Module;
+import org.gradle.listener.ActionBroadcast;
 
-import java.io.File;
+import java.util.Set;
 
 public class DefaultIvyModuleDescriptor implements IvyModuleDescriptorInternal {
 
-    private final XmlTransformer transformer = new XmlTransformer();
-    private File file;
+    private final ActionBroadcast<XmlProvider> xmlActions = new ActionBroadcast<XmlProvider>();
+    private final IvyPublicationInternal ivyPublication;
 
-    public void withXml(Action<XmlProvider> action) {
-        transformer.addAction(action);
+    public DefaultIvyModuleDescriptor(IvyPublicationInternal ivyPublication) {
+        this.ivyPublication = ivyPublication;
     }
 
-    public File getFile() {
-        return file;
+    public Module getModule() {
+        return ivyPublication.getModule();
     }
 
-    public void setFile(File descriptorFile) {
-        this.file = descriptorFile;
+    public Set<? extends Configuration> getConfigurations() {
+        return ivyPublication.asNormalisedPublication().getConfigurations();
     }
 
-    public XmlTransformer getTransformer() {
-        return transformer;
+    public void withXml(Action<? super XmlProvider> action) {
+        xmlActions.add(new UserCodeAction<XmlProvider>("Could not apply withXml() to Ivy module descriptor", action));
     }
+
+    public Action<XmlProvider> getXmlAction() {
+        return xmlActions;
+    }
+
 }

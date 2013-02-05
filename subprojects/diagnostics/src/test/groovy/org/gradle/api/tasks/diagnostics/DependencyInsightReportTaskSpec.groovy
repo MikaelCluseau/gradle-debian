@@ -16,25 +16,25 @@
 
 package org.gradle.api.tasks.diagnostics
 
-import org.gradle.api.specs.Spec
-import org.gradle.testfixtures.ProjectBuilder
-import spock.lang.Specification
 import org.gradle.api.InvalidUserDataException
+import org.gradle.api.specs.Spec
+import org.gradle.util.HelperUtil
+import spock.lang.Specification
 
 /**
  * by Szczepan Faber, created at: 9/20/12
  */
 class DependencyInsightReportTaskSpec extends Specification {
 
-    def project = ProjectBuilder.builder().build()
-    def task = project.tasks.add("insight", DependencyInsightReportTask)
+    def project = HelperUtil.createRootProject()
+    def task = HelperUtil.createTask(DependencyInsightReportTask, project)
 
     def "fails if configuration missing"() {
         when:
         task.report()
 
         then:
-        thrown(ReportException)
+        thrown(InvalidUserDataException)
     }
 
     def "fails if dependency to include missing"() {
@@ -45,7 +45,7 @@ class DependencyInsightReportTaskSpec extends Specification {
         task.report()
 
         then:
-        thrown(ReportException)
+        thrown(InvalidUserDataException)
     }
 
     def "fails if dependency to include is empty"() {

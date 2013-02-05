@@ -21,7 +21,7 @@ import static org.gradle.util.TextUtil.toPlatformLineSeparators
 
 class DependencyReportTaskIntegrationTest extends AbstractIntegrationSpec {
     def setup() {
-        distribution.requireOwnUserHomeDir()
+        executer.requireOwnGradleUserHomeDir()
     }
 
     def "omits repeated dependencies in case of circular dependencies"() {
@@ -58,10 +58,10 @@ class DependencyReportTaskIntegrationTest extends AbstractIntegrationSpec {
         output.contains "(*) - dependencies omitted (listed previously)"
     }
 
-    def "renders even if resolution fails"() {
+    def "marks modules that can't be resolved as 'FAILED'"() {
         given:
-        mavenRepo.module("foo", "bar", 1.0).dependsOn("i dont exist").publish()
-        mavenRepo.module("foo", "baz", 1.0).dependsOn("foo:bar:1.0").publish()
+        mavenRepo.module("foo", "bar", 1.0).dependsOn("unknown").publish()
+        mavenRepo.module("foo", "baz", 1.0).dependsOn("bar").publish()
 
         file("build.gradle") << """
             repositories {
@@ -76,13 +76,116 @@ class DependencyReportTaskIntegrationTest extends AbstractIntegrationSpec {
 
         when:
         executer.allowExtraLogging = false
-        runAndFail "dependencies"
+        run "dependencies"
 
         then:
-        errorOutput.contains('Could not resolve all dependencies')
         output.contains(toPlatformLineSeparators("""
 foo
++--- i:dont:exist FAILED
 \\--- foo:baz:1.0
+     \\--- foo:bar:1.0
+          \\--- foo:unknown:1.0 FAILED
+"""
+        ))
+    }
+
+    def "marks dynamic versions that can't be resolved as 'FAILED'"() {
+        given:
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations { foo }
+            dependencies {
+                foo 'org:unknown:1.2+'
+                foo 'org:unknown:[1.0,2.0]'
+                foo 'org:unknown:latest.integration'
+                foo 'org:unknown:latest.release'
+                foo 'org:other:1.2'
+                foo 'org:other:2.0+'
+            }
+        """
+
+        when:
+        executer.allowExtraLogging = false
+        run "dependencies"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+foo
++--- org:unknown:1.2+ FAILED
++--- org:unknown:[1.0,2.0] FAILED
++--- org:unknown:latest.integration FAILED
++--- org:unknown:latest.release FAILED
++--- org:other:1.2 FAILED
+\\--- org:other:2.0+ FAILED
+"""
+        ))
+    }
+
+    def "marks modules that can't be resolved after conflict resolution as 'FAILED'"() {
+        given:
+        mavenRepo.module("foo", "bar", 1.0).dependsOn("foo", "baz", "2.0").publish()
+        mavenRepo.module("foo", "baz", 1.0).publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations { config }
+            dependencies {
+              config 'foo:bar:1.0'
+              config 'foo:baz:1.0'
+            }
+        """
+
+        when:
+        executer.allowExtraLogging = false
+        run "dependencies"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+config
++--- foo:bar:1.0
+|    \\--- foo:baz:2.0 FAILED
+\\--- foo:baz:1.0 -> 2.0 FAILED
+"""
+        ))
+    }
+
+    def "marks modules that can't be resolved after forcing a different version as 'FAILED'"() {
+        given:
+        mavenRepo.module("org", "libA", 1.0).dependsOn("org", "libB", "1.0").dependsOn("org", "libC", "1.0").publish()
+        mavenRepo.module("org", "libB", 1.0).publish()
+        mavenRepo.module("org", "libC", 1.0).publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+            configurations {
+              config {
+                resolutionStrategy {
+                  force('org:libB:2.0')
+                  force('org:libC:1.2+')
+                }
+              }
+            }
+            dependencies {
+              config 'org:libA:1.0'
+            }
+        """
+
+        when:
+        executer.allowExtraLogging = false
+        run "dependencies"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+config
+\\--- org:libA:1.0
+     +--- org:libB:1.0 -> 2.0 FAILED
+     \\--- org:libC:1.0 -> 1.2+ FAILED
 """
         ))
     }
@@ -266,8 +369,8 @@ rootProject.name = 'root'
 +--- bar:bar:5.0 -> 6.0
 |    \\--- foo:foo:3.0
 +--- bar:bar:6.0 (*)
-+--- foo:foo:1.0 -> 3.0 (*)
-\\--- foo:foo:2.0 -> 3.0 (*)
++--- foo:foo:1.0 -> 3.0
+\\--- foo:foo:2.0 -> 3.0
 """))
     }
 
@@ -375,10 +478,9 @@ rootProject.name = 'root'
 |    \\--- org:middle2:1.0
 |         +--- org:leaf3:1.0
 |         \\--- org:leaf4:1.0 -> 2.0
-\\--- org:leaf4:2.0 (*)
+\\--- org:leaf4:2.0
 """))
     }
-
     def "tells if there are no dependencies"() {
         given:
         buildFile << "configurations { foo }"
@@ -416,5 +518,75 @@ rootProject.name = 'root'
         then:
         noExceptionThrown()
         //note that 'a' project dependencies are not being resolved
+    }
+
+    def "report can be limited to a single configuration via command-line parameter"() {
+        given:
+        mavenRepo.module("org", "leaf1").publish()
+        mavenRepo.module("org", "leaf2").publish()
+        mavenRepo.module("org", "leaf3").publish()
+        mavenRepo.module("org", "leaf4").publish()
+
+        mavenRepo.module("org", "toplevel1").dependsOn('leaf1', 'leaf2').publish()
+        mavenRepo.module("org", "toplevel2").dependsOn('leaf3', 'leaf4').publish()
+
+        file("build.gradle") << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+
+            configurations {
+                conf1
+                conf2
+            }
+
+            dependencies {
+                conf1 'org:toplevel1:1.0'
+                conf2 'org:toplevel2:1.0'
+            }
+        """
+
+        when:
+        run "dependencies", "--configuration", "conf2"
+
+        then:
+        output.contains(toPlatformLineSeparators("""
+conf2
+\\--- org:toplevel2:1.0
+     +--- org:leaf3:1.0
+     \\--- org:leaf4:1.0
+"""))
+
+        !output.contains("conf1")
+    }
+
+    void "marks module that cannot be resolved due to broken dependency rule as 'FAILED'"() {
+        mavenRepo.module("org.utils", "impl", '1.3').publish()
+
+        buildFile << """
+            repositories {
+                maven { url "${mavenRepo.uri}" }
+            }
+
+            configurations { conf }
+
+            dependencies {
+                conf 'org.utils:impl:1.3'
+            }
+
+            configurations.conf.resolutionStrategy {
+                eachDependency {
+                    throw new RuntimeException("Ka-booom!")
+	            }
+	        }
+"""
+
+        when:
+        run "dependencies"
+
+        then:
+        output.contains(toPlatformLineSeparators("""conf
+\\--- org.utils:impl:1.3 FAILED
+"""))
     }
 }

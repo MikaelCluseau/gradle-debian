@@ -23,7 +23,6 @@ import org.gradle.api.internal.ConventionMapping;
 import org.gradle.api.internal.IConventionAware;
 import org.gradle.api.internal.plugins.ProcessResources;
 import org.gradle.api.internal.project.ProjectInternal;
-import org.gradle.api.internal.tasks.testing.testng.TestNGTestFramework;
 import org.gradle.api.reporting.ReportingExtension;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.SourceSet;
@@ -323,12 +322,11 @@ public class JavaBasePlugin implements Plugin<Project> {
                 return convention.getTestReportDir();
             }
         });
-        test.workingDir(project.getProjectDir());
-        //TODO SF move coverage from below to the JavaBasePluginSpec
-        test.getConventionMapping().map("testReport", new Callable<Object>() {
+        test.getConventionMapping().map("binResultsDir", new Callable<Object>() {
             public Object call() throws Exception {
-                return !(test.getTestFramework() instanceof TestNGTestFramework);
+                return new File(convention.getTestResultsDir(), String.format("binary/%s", test.getName()));
             }
         });
+        test.workingDir(project.getProjectDir());
     }
 }

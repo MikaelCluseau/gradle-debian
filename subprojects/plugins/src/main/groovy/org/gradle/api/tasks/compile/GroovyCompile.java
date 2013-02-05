@@ -29,11 +29,9 @@ import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.internal.Factory;
+import org.gradle.util.GFileUtils;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Compiles Groovy source files, and optionally, Java source files.
@@ -61,29 +59,28 @@ public class GroovyCompile extends AbstractCompile {
     }
 
     protected void compile() {
-        List<File> taskClasspath = new ArrayList<File>(getGroovyClasspath().getFiles());
-        throwExceptionIfTaskClasspathIsEmpty(taskClasspath);
+        checkGroovyClasspathIsNonEmpty();
         DefaultGroovyJavaJointCompileSpec spec = new DefaultGroovyJavaJointCompileSpec();
         spec.setSource(getSource());
         spec.setDestinationDir(getDestinationDir());
         spec.setClasspath(getClasspath());
         spec.setSourceCompatibility(getSourceCompatibility());
         spec.setTargetCompatibility(getTargetCompatibility());
-        spec.setGroovyClasspath(taskClasspath);
+        spec.setGroovyClasspath(getGroovyClasspath());
         spec.setCompileOptions(compileOptions);
         spec.setGroovyCompileOptions(groovyCompileOptions);
         if (spec.getGroovyCompileOptions().getStubDir() == null) {
             File dir = tempFileProvider.newTemporaryFile("groovy-java-stubs");
-            dir.mkdirs();
+            GFileUtils.mkdirs(dir);
             spec.getGroovyCompileOptions().setStubDir(dir);
         }
         WorkResult result = compiler.execute(spec);
         setDidWork(result.getDidWork());
     }
 
-    private void throwExceptionIfTaskClasspathIsEmpty(Collection<File> taskClasspath) {
-        if (taskClasspath.size() == 0) {
-            throw new InvalidUserDataException("You must assign a Groovy library to the 'groovy' configuration.");
+    private void checkGroovyClasspathIsNonEmpty() {
+        if (getGroovyClasspath().isEmpty()) {
+            throw new InvalidUserDataException("'" + getName() + ".groovyClasspath' must not be empty. It is either configured automatically by the 'groovy-base' plugin, or can be set manually.");
         }
     }
 

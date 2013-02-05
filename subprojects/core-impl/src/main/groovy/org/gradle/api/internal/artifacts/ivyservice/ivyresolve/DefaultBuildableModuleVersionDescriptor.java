@@ -17,13 +17,18 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve;
 
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.apache.ivy.core.module.id.ModuleRevisionId;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
+import org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier;
 import org.gradle.api.internal.artifacts.ivyservice.ModuleVersionResolveException;
 
 public class DefaultBuildableModuleVersionDescriptor implements BuildableModuleVersionDescriptor {
     private ModuleDescriptor moduleDescriptor;
     private boolean changing;
     private State state = State.Unknown;
+    private ModuleSource moduleSource;
+
     private ModuleVersionResolveException failure;
+    private ModuleVersionIdentifier moduleVersionIdentifier;
 
     public void reset(State state) {
         this.state = state;
@@ -32,10 +37,13 @@ public class DefaultBuildableModuleVersionDescriptor implements BuildableModuleV
         failure = null;
     }
 
-    public void resolved(ModuleDescriptor descriptor, boolean changing) {
+    public void resolved(ModuleDescriptor descriptor, boolean changing, ModuleSource moduleSource) {
         reset(State.Resolved);
         moduleDescriptor = descriptor;
         this.changing = changing;
+        final ModuleRevisionId moduleRevisionId = descriptor.getModuleRevisionId();
+        this.moduleVersionIdentifier = new DefaultModuleVersionIdentifier(moduleRevisionId.getOrganisation(), moduleRevisionId.getName(), moduleRevisionId.getRevision());
+        this.moduleSource = moduleSource;
     }
 
     public void missing() {
@@ -75,9 +83,9 @@ public class DefaultBuildableModuleVersionDescriptor implements BuildableModuleV
         }
     }
 
-    public ModuleRevisionId getId() {
+    public ModuleVersionIdentifier getId() {
         assertResolved();
-        return moduleDescriptor.getResolvedModuleRevisionId();
+        return moduleVersionIdentifier;
     }
 
     public ModuleDescriptor getDescriptor() {
@@ -88,5 +96,10 @@ public class DefaultBuildableModuleVersionDescriptor implements BuildableModuleV
     public boolean isChanging() {
         assertResolved();
         return changing;
+    }
+
+    public ModuleSource getModuleSource() {
+        assertResolved();
+        return moduleSource;
     }
 }

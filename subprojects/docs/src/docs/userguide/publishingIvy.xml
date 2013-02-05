@@ -22,16 +22,14 @@
             If you are looking for documentation on the “traditional” Ivy publishing support please see <xref linkend="artifact_management"/>.
         </para>
     </note>
-    <section>
-        <para>
-            This chapter describes how to publish build artifacts in the <ulink url="http://ant.apache.org/ivy/">Apache Ivy</ulink> format, usually to a repository
-            for consumption by other builds or projects. What is published is one or more artifacts created by the build, and an Ivy <firstterm>module descriptor</firstterm>
-            that describes the artifacts and the dependencies of the artifacts, if any.
-        </para>
-        <para>
-            A published Ivy module can be consumed by Gradle (see <xref linkend="dependency_management" />) and other tools that understand the Ivy format.
-        </para>
-    </section>
+    <para>
+        This chapter describes how to publish build artifacts in the <ulink url="http://ant.apache.org/ivy/">Apache Ivy</ulink> format, usually to a repository
+        for consumption by other builds or projects. What is published is one or more artifacts created by the build, and an Ivy <firstterm>module descriptor</firstterm>
+        that describes the artifacts and the dependencies of the artifacts, if any.
+    </para>
+    <para>
+        A published Ivy module can be consumed by Gradle (see <xref linkend="dependency_management" />) and other tools that understand the Ivy format.
+    </para>
     <section>
         <title>The “<literal>ivy-publish</literal>” Plugin</title>
         <para>
@@ -52,6 +50,9 @@
             <listitem>
                 Establish a rule to automatically create an <apilink class="org.gradle.api.publish.ivy.tasks.PublishToIvyRepository" /> task for each Ivy publishing repository added
                 (see <xref linkend="publishing_ivy:repositories"/>)
+            </listitem>
+            <listitem>
+                Create a task named 'generateIvyDescriptor' of type <apilink class="org.gradle.api.publish.ivy.tasks.GenerateIvyDescriptor" />.
             </listitem>
         </itemizedlist>
         <para>
@@ -163,25 +164,9 @@
         <para>
             Executing this task will build all of the artifacts to be published, and transfer them to the repository.
         </para>
-        <!--
-            We are cheating here. We can't use the tested output mechanism because we need to modify the sample before we can run it.
-            We could avoid this if we were able to grab the output from a test (org.gradle.api.publish.ivy.SamplesIvyPublishIntegrationTest)
-        -->
-        <para>Output of <userinput>gradle publishIvyPublicationToIvyRepository</userinput></para>
-        <screen>:subproject:compileJava
-:subproject:processResources UP-TO-DATE
-:subproject:classes
-:subproject:jar
-:compileJava
-:processResources UP-TO-DATE
-:classes
-:jar
-:sourceJar
-:publishIvyPublicationToIvyRepository
-
-BUILD SUCCESSFUL
-
-Total time: 1 sec</screen>
+        <sample dir="ivypublish-new" id="publishingIvyPublishSingle" title="Publishing via single publish task">
+            <output args='publishIvyPublicationToIvyRepository'/>
+        </sample>
     <section>
         <title>The “<literal>publish</literal>” lifecycle task</title>
         <para>
@@ -192,26 +177,32 @@ Total time: 1 sec</screen>
             In more concrete terms, executing this task will execute all <apilink class="org.gradle.api.publish.ivy.tasks.PublishToIvyRepository" /> tasks in the project.
             This is usually the most convenient way to perform a publish.
         </para>
-        <!--
-            Cheating again, see above.
-        -->
-        <para>Output of <userinput>gradle publish</userinput></para>
-        <screen>:subproject:compileJava
-:subproject:processResources UP-TO-DATE
-:subproject:classes
-:subproject:jar
-:compileJava
-:processResources UP-TO-DATE
-:classes
-:jar
-:sourceJar
-:publishIvyPublicationToIvyRepository
-:publish
-
-BUILD SUCCESSFUL
-
-Total time: 1 sec</screen>
-        </section>
+        <sample dir="ivypublish-new" id="publishingIvyPublishLifecycle" title="Publishing via “publish” lifecycle task">
+            <output args='publish'/>
+        </sample>
+    </section>
+    </section>
+    <section id="publishing_ivy:descriptor">
+        <title>Generating the Ivy module descriptor file</title>
+        <para>
+            Sometimes you want to generate the Ivy module descriptor file (normally <literal>ivy.xml</literal>) without publishing your module to an Ivy
+            repository. For this purpose, the <literal>ivy-publish</literal> plugin automatically wires in one <apilink class="org.gradle.api.publish.ivy.tasks.GenerateIvyDescriptor" /> task
+            for each registered <apilink class="org.gradle.api.publish.ivy.IvyPublication" />.
+        </para>
+        <para>
+            In the default case of a single <literal>IvyPublication</literal> named 'ivy', the <literal>ivy-publish</literal> plugin
+            will create a single task named <literal>generateIvyModuleDescriptor</literal>.
+            Where more than one publication is present, additional tasks will be created using the naming pattern
+            <literal>generate«<emphasis>NAME OF PUBLICATION</emphasis>»IvyModuleDescriptor</literal>. Thus if there is one publication named 'other' in addition
+            to the default publication, there will be 2 tasks created: <literal>generateIvyModuleDescriptor</literal> and <literal>generateOtherIvyModuleDescriptor</literal>.
+        </para>
+        <para>
+            You can specify where the generated Ivy file will be located by setting the <literal>destination</literal> property on the generate task.
+            By default this file is generated to <literal>build/publications/«<emphasis>NAME OF PUBLICATION</emphasis>»/ivy.xml</literal>.
+        </para>
+        <sample dir="ivypublish-new" id="generateIvyModuleDescriptor" title="Generating the Ivy module descriptor file">
+            <sourcefile file="build.gradle" snippet="generate" />
+        </sample>
     </section>
     <section>
         <title>Future features</title>

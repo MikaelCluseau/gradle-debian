@@ -22,25 +22,24 @@ import org.apache.commons.io.FileUtils
 import org.apache.sshd.SshServer
 import org.apache.sshd.common.NamedFactory
 import org.apache.sshd.common.Session
+import org.apache.sshd.server.*
 import org.apache.sshd.server.command.ScpCommandFactory
 import org.apache.sshd.server.filesystem.NativeFileSystemFactory
 import org.apache.sshd.server.filesystem.NativeSshFile
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
 import org.apache.sshd.server.session.ServerSession
 import org.apache.sshd.server.sftp.SftpSubsystem
-import org.gradle.util.TemporaryFolder
-import org.gradle.util.TestFile
+import org.gradle.test.fixtures.file.TestDirectoryProvider
+import org.gradle.test.fixtures.file.TestFile
 import org.junit.rules.ExternalResource
 
 import java.security.PublicKey
-
-import org.apache.sshd.server.*
 
 class SFTPServer extends ExternalResource {
     final String hostAddress;
     int port
 
-    private final TemporaryFolder tmpDir
+    private final TestDirectoryProvider testDirectoryProvider
     private TestFile baseDir
     private TestFile configDir
 
@@ -49,16 +48,16 @@ class SFTPServer extends ExternalResource {
 
     def fileRequests = [] as Set
 
-    public SFTPServer(TemporaryFolder tmpDir) {
-        this.tmpDir = tmpDir;
+    public SFTPServer(TestDirectoryProvider testDirectoryProvider) {
+        this.testDirectoryProvider = testDirectoryProvider;
         def portFinder = org.gradle.util.AvailablePortFinder.createPrivate()
         port = portFinder.nextAvailable
         this.hostAddress = "127.0.0.1"
     }
 
     protected void before() throws Throwable {
-        baseDir = tmpDir.createDir("sshd/files")
-        configDir = tmpDir.createDir("sshd/config")
+        baseDir = testDirectoryProvider.getTestDirectory().createDir("sshd/files")
+        configDir = testDirectoryProvider.getTestDirectory().createDir("sshd/config")
 
         sshd = setupConfiguredTestSshd();
         sshd.start();

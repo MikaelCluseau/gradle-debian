@@ -25,27 +25,32 @@ archivesBaseName = 'gradle'
 extensions.buildTypes = new BuildTypes(project)
 
 buildTypes {
+    sanityCheck "classes", "doc:checkstyleApi", "codeQuality", "docs:check"
+
     // The minimum to be run before check-in
-    preCommitBuild "doc:checkstyleApi", "codeQuality", "classes", "test", noDistTests: true
-    quickCheck "doc:checkstyleApi", "codeQuality", "classes", "test", noDistTests: true
+    preCommitBuild "doc:checkstyleApi", "docs:check", "codeQuality", "classes", "test", noDistTests: true
+    quickCheck "doc:checkstyleApi", "docs:check", "codeQuality", "classes", "test", noDistTests: true
 
     // A full (in-process) test
     developerBuild "check"
 
     // Used by the first phase of the build pipeline
-    quickTest "test", "integTest", noDistTests: true
+    quickTest "test", "integTest", noDistTests: true, noDocsTests: true
 
     // Used for builds to test the code on certain platforms
-    platformTest "test", "forkingIntegTest", noDistTests: true, useIncomingDistributions: true
+    platformTest "test", "forkingIntegTest", noDistTests: true, noDocsTests: true, useIncomingDistributions: true
 
     // Tests using the daemon mode
-    daemonTest "daemonIntegTest", noDistTests: true, useIncomingDistributions: true
+    daemonTest "daemonIntegTest", noDistTests: true, noDocsTests: true, useIncomingDistributions: true
 
     // Run the integration tests using the parallel executer
-    parallelTest "parallelIntegTest", noDistTests: true, useIncomingDistributions: true
+    parallelTest "parallelIntegTest", noDistTests: true, noDocsTests: true, useIncomingDistributions: true
 
     // Run the performance tests
     performanceTest "performance:integTest", useIncomingDistributions: true
+
+    // Run the performance tests
+    localPerformanceTest "performance:integTest"
 
     // Used for cross version tests on CI
     crossVersionTest "forkingIntegTest", crossVersionTestsOnly: "", testAllVersions: "", noDistTests: true, useIncomingDistributions: true
@@ -54,7 +59,7 @@ buildTypes {
     packageBuild "verifyIsProductionBuildEnvironment", "clean", "buildDists", "distributions:integTest"
 
     // Used to build production distros and smoke test them
-    promotionBuild "verifyIsProductionBuildEnvironment", "clean", "buildDists", "distributions:integTest", "uploadArchives"
+    promotionBuild "verifyIsProductionBuildEnvironment", "clean", "docs:check", "buildDists", "distributions:integTest", "uploadArchives"
 }
 
 ext {
@@ -76,7 +81,7 @@ ext {
     }
 
     internalProjects = subprojects.findAll { it.name.startsWith("internal") || it.name in ["integTest", "distributions"] }
-    groovyProjects = subprojects.findAll { !(it.name in ["docs"]) }
+    groovyProjects = subprojects
     publicGroovyProjects = groovyProjects - internalProjects
     publishedProjects = [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices'), project(':messaging')]
     pluginProjects = [
@@ -142,6 +147,7 @@ configurations {
 
 dependencies {
     runtime project(':launcher')
+    runtime project(':wrapper')
     plugins pluginProjects
     plugins project(':coreImpl')
 }

@@ -15,11 +15,12 @@
  */
 
 package org.gradle.api.publish.ivy.internal
-
 import org.gradle.api.Task
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.PublishArtifact
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.plugins.JavaBasePlugin
+import org.gradle.api.tasks.TaskDependency
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.internal.reflect.Instantiator
 import org.gradle.util.HelperUtil
@@ -28,6 +29,7 @@ import spock.lang.Specification
 class DefaultIvyPublicationTest extends Specification {
 
     ProjectInternal project = HelperUtil.createRootProject()
+    def taskDependencies = Mock(TaskDependency)
 
     DefaultIvyPublication publication(String name = "ivy", Configuration... configurations) {
         Instantiator instantiator = project.getServices().get(Instantiator)
@@ -37,24 +39,29 @@ class DefaultIvyPublicationTest extends Specification {
     def "publishable files are the artifact files"() {
         when:
         def file1 = project.file("file1")
+        def descriptorFile1 = project.file("ivy1.xml")
+
         project.configurations { conf1 }
         project.artifacts { conf1 file1 }
         def p = publication(project.configurations.conf1)
+        p.descriptorArtifact = descriptorArtifact(descriptorFile1)
 
         then:
-        p.publishableFiles.singleFile == file1
+        p.publishableFiles.files == [file1, descriptorFile1] as Set
 
         when:
         def file2 = project.file("file2")
+        def descriptorFile2 = project.file("ivy2.xml")
         project.configurations { conf2 }
         project.artifacts { conf2 file2 }
         p = publication(project.configurations.conf1, project.configurations.conf2)
+        p.descriptorArtifact = descriptorArtifact(descriptorFile2)
 
         then:
-        p.publishableFiles.files == [file1, file2] as Set
+        p.publishableFiles.files == [file1, file2, descriptorFile2] as Set
     }
 
-    def "publication is built by what builds the artifacts"() {
+    def "publication is built by what builds the artifacts and descriptor"() {
         given:
         project.plugins.apply(JavaBasePlugin)
         Task dummyTask = project.task("dummyTask")
@@ -67,7 +74,7 @@ class DefaultIvyPublicationTest extends Specification {
         def p = publication(project.configurations.conf1)
 
         then:
-        p.buildDependencies.getDependencies(dummyTask) == [task1] as Set
+        p.publishableFiles.buildDependencies.getDependencies(dummyTask) == [task1] as Set
 
         when:
         def task2 = project.tasks.add("task2", Jar)
@@ -76,6 +83,32 @@ class DefaultIvyPublicationTest extends Specification {
         p = publication(project.configurations.conf1, project.configurations.conf2)
 
         then:
-        p.buildDependencies.getDependencies(dummyTask) == [task1, task2] as Set
+        p.publishableFiles.buildDependencies.getDependencies(dummyTask) == [task1, task2] as Set
+
+        when:
+        def task3 = project.tasks.add("task3")
+        p.descriptorArtifact = descriptorArtifact(project.file("ivy.xml"))
+        1 * taskDependencies.getDependencies(_) >> [task3]
+
+        then:
+        p.publishableFiles.buildDependencies.getDependencies(dummyTask) == [task1, task2, task3] as Set
+    }
+
+    def "can get publishable files when no descriptor file set"() {
+        when:
+        def file1 = project.file("file1")
+        project.configurations { conf1 }
+        project.artifacts { conf1 file1 }
+        def p = publication(project.configurations.conf1)
+
+        then:
+        p.publishableFiles.files == [file1] as Set
+    }
+
+    PublishArtifact descriptorArtifact(File descriptorFile) {
+        Mock(PublishArtifact) {
+            getFile() >> descriptorFile
+            getBuildDependencies() >> taskDependencies
+        }
     }
 }

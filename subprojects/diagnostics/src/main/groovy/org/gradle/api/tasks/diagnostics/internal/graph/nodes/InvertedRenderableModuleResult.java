@@ -16,12 +16,13 @@
 
 package org.gradle.api.tasks.diagnostics.internal.graph.nodes;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.result.ResolvedDependencyResult;
 import org.gradle.api.artifacts.result.ResolvedModuleVersionResult;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -29,17 +30,20 @@ import java.util.Set;
  *
  * by Szczepan Faber, created at: 8/10/12
  */
-public class InvertedRenderableModuleResult extends RenderableModuleResult implements RenderableDependency {
+public class InvertedRenderableModuleResult extends RenderableModuleResult {
 
     public InvertedRenderableModuleResult(ResolvedModuleVersionResult module) {
         super(module);
     }
 
     public Set<RenderableDependency> getChildren() {
-        return new LinkedHashSet(Collections2.transform(module.getDependents(), new Function<ResolvedDependencyResult, RenderableDependency>() {
-            public RenderableDependency apply(ResolvedDependencyResult input) {
-                return new InvertedRenderableModuleResult(input.getFrom());
+        Map<ModuleVersionIdentifier, RenderableDependency> children = new LinkedHashMap<ModuleVersionIdentifier, RenderableDependency>();
+        for (ResolvedDependencyResult dependent : module.getDependents()) {
+            InvertedRenderableModuleResult child = new InvertedRenderableModuleResult(dependent.getFrom());
+            if (!children.containsKey(child.getId())) {
+                children.put(child.getId(), child);
             }
-        }));
+        }
+        return new LinkedHashSet<RenderableDependency>(children.values());
     }
 }

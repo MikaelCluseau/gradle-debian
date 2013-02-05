@@ -16,7 +16,6 @@
 
 package org.gradle.api.publish.ivy
 
-import groovy.util.slurpersupport.GPathResult
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 
 class IvyPublishDescriptorModificationIntegTest extends AbstractIntegrationSpec {
@@ -51,7 +50,7 @@ class IvyPublishDescriptorModificationIntegTest extends AbstractIntegrationSpec 
         ":jar" in executedTasks
 
         and:
-        asXml(module.ivyFile).info[0].@revision == "2"
+        module.ivy.revision == "2"
 
         when:
         buildFile << """
@@ -75,11 +74,30 @@ class IvyPublishDescriptorModificationIntegTest extends AbstractIntegrationSpec 
 
         and:
         // Note that the modified “coordinates” do not affect how the module is published
-        // This is intentional
-        asXml(module.ivyFile).info[0].@revision == "3"
+        // This is not the desired behaviour and will be fixed in the future so that XML modification changes the publication model consistently.
+        module.ivy.revision == "3"
     }
 
-    GPathResult asXml(File file) {
-        new XmlSlurper().parse(file)
+    def "produces sensible error when withXML fails"() {
+        when:
+        buildFile << """
+            publishing {
+                publications {
+                    ivy {
+                        descriptor {
+                            withXml {
+                                asNode().foo = "3"
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        fails 'publish'
+
+        then:
+        failure.assertHasDescription("Execution failed for task ':generateIvyModuleDescriptor'")
+        failure.assertHasCause("Could not apply withXml() to Ivy module descriptor")
+        failure.assertHasCause("No such property: foo for class: groovy.util.Node")
     }
 }

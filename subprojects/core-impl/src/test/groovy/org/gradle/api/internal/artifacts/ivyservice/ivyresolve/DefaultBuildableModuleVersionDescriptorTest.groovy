@@ -16,12 +16,16 @@
 
 package org.gradle.api.internal.artifacts.ivyservice.ivyresolve
 
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor
+import org.apache.ivy.core.module.id.ModuleRevisionId
 import org.gradle.api.internal.artifacts.ivyservice.ModuleVersionResolveException
 import spock.lang.Specification
-import org.apache.ivy.core.module.descriptor.ModuleDescriptor
+
+import static org.gradle.api.internal.artifacts.DefaultModuleVersionSelector.newSelector
 
 class DefaultBuildableModuleVersionDescriptorTest extends Specification {
     final DefaultBuildableModuleVersionDescriptor descriptor = new DefaultBuildableModuleVersionDescriptor()
+    ModuleSource moduleSource = Mock()
 
     def "has unknown state by default"() {
         expect:
@@ -47,7 +51,7 @@ class DefaultBuildableModuleVersionDescriptorTest extends Specification {
     }
 
     def "can mark as failed"() {
-        def failure = new ModuleVersionResolveException("broken")
+        def failure = new ModuleVersionResolveException(newSelector("a", "b", "c"), "broken")
 
         when:
         descriptor.failed(failure)
@@ -59,15 +63,21 @@ class DefaultBuildableModuleVersionDescriptorTest extends Specification {
 
     def "can mark as resolved"() {
         def moduleDescriptor = Mock(ModuleDescriptor)
+        ModuleRevisionId moduleRevisionId = Mock();
+        1 * moduleRevisionId.organisation >> "group"
+        1 * moduleRevisionId.name >> "project"
+        1 * moduleRevisionId.revision >> "1.0"
+        1 * moduleDescriptor.moduleRevisionId >> moduleRevisionId
 
         when:
-        descriptor.resolved(moduleDescriptor, true)
+        descriptor.resolved(moduleDescriptor, true, moduleSource)
 
         then:
         descriptor.state == BuildableModuleVersionDescriptor.State.Resolved
         descriptor.failure == null
         descriptor.descriptor == moduleDescriptor
         descriptor.changing
+        descriptor.moduleSource == moduleSource
     }
 
     def "cannot get result when not resolved"() {
@@ -86,7 +96,7 @@ class DefaultBuildableModuleVersionDescriptorTest extends Specification {
 
     def "cannot get result when failed"() {
         given:
-        def failure = new ModuleVersionResolveException("broken")
+        def failure = new ModuleVersionResolveException(newSelector("a", "b", "c"), "broken")
         descriptor.failed(failure)
 
         when:
@@ -114,6 +124,41 @@ class DefaultBuildableModuleVersionDescriptorTest extends Specification {
 
         when:
         descriptor.descriptor
+
+        then:
+        thrown(IllegalStateException)
+    }
+
+    def "cannot get ModuleSource when failed"() {
+        given:
+        def failure = new ModuleVersionResolveException(newSelector("a", "b", "c"), "broken")
+        descriptor.failed(failure)
+
+        when:
+        descriptor.getModuleSource()
+
+        then:
+        ModuleVersionResolveException e = thrown()
+        e == failure
+    }
+
+    def "cannot get ModuleSource when missing"() {
+        given:
+        descriptor.missing()
+
+        when:
+        descriptor.getModuleSource()
+
+        then:
+        thrown(IllegalStateException)
+    }
+
+    def "cannot get ModuleSource when probably missing"() {
+        given:
+        descriptor.probablyMissing()
+
+        when:
+        descriptor.getModuleSource()
 
         then:
         thrown(IllegalStateException)

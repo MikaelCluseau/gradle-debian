@@ -17,7 +17,7 @@
 package org.gradle.api.publish.ivy
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.gradle.integtests.fixtures.ProgressLoggingFixture
+import org.gradle.integtests.fixtures.executer.ProgressLoggingFixture
 import org.gradle.test.fixtures.ivy.IvyFileRepository
 import org.gradle.test.fixtures.ivy.IvyModule
 import org.gradle.test.fixtures.server.http.HttpServer
@@ -51,7 +51,7 @@ class IvyPublishMultipleReposIntegrationTest extends AbstractIntegrationSpec {
             publishing {
                 publications {
                     ivy.descriptor.withXml {
-                        asNode().@rev = 10
+                        asNode().info[0].appendNode('description', 'test module')
                     }
                 }
                 repositories {
@@ -62,15 +62,6 @@ class IvyPublishMultipleReposIntegrationTest extends AbstractIntegrationSpec {
                         name "repo2"
                         url "${repo2.uri}"
                     }
-                }
-            }
-
-            // Be nasty and delete the descriptor after the first publishing
-            // to make sure it's regenerated for the second publish
-            publishIvyPublicationToIvyRepository {
-                doLast {
-                    assert publication.descriptor.file.delete()
-                    publication.descriptor.withXml { asNode().@rev = "11" }
                 }
             }
         """
@@ -89,8 +80,8 @@ class IvyPublishMultipleReposIntegrationTest extends AbstractIntegrationSpec {
         repo2Module.jarFile.exists()
 
         and: // Modification applied to both
-        repo1Module.ivy.rev == "10"
-        repo2Module.ivy.rev == "11"
+        repo1Module.ivy.description == "test module"
+        repo2Module.ivy.description == "test module"
     }
 
 }
