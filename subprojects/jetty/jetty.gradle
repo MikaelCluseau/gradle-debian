@@ -23,22 +23,22 @@ dependencies {
     compile libraries.jetty
     compile libraries.jetty_util
     compile libraries.servlet_api
-    compile module("org.mortbay.jetty:jetty-plus:6.1.25") {
+    compile module("org.mortbay.jetty:jetty-plus:6.x") {
         dependency libraries.jetty
-        module("org.mortbay.jetty:jetty-naming:6.1.25") {
+        module("org.mortbay.jetty:jetty-naming:6.x") {
             dependency libraries.jetty
         }
     }
 
-    runtime module("org.mortbay.jetty:jsp-2.1:6.1.14") {
-        dependency "org.eclipse.jdt:core:3.1.1@jar"
-        dependency "org.mortbay.jetty:jsp-api-2.1:6.1.14@jar"
+    runtime module("org.mortbay.jetty:jsp-api:2.1") {
+        dependency "org.eclipse.jdt:eclipse-ecj:3.1.1@jar"
+        dependency "org.mortbay.jetty:jsp-api-2.1:6.x@jar"
         dependency libraries.jetty_util
         dependency libraries.servlet_api
     }
 
-    runtime "org.mortbay.jetty:jetty-annotations:6.1.25@jar"
-    runtime "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
+    runtime "org.mortbay.jetty:jetty-annotations:6.x@jar"
+    //runtime "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.0@jar"
 }
 
 useTestFixtures()

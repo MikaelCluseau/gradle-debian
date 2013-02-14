@@ -25,7 +25,6 @@ import org.gradle.build.docs.releasenotes.checks.*
 import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'base'
-apply plugin: 'pegdown'
 apply plugin: 'jsoup'
 apply plugin: 'javascript-base'
 
@@ -43,22 +42,23 @@ repositories {
 }
 
 configurations {
-    userGuideStyleSheets
+    //userGuideStyleSheets
     userGuideTask
     jquery
-    fonts
+    //fonts
 }
 
 dependencies {
-    userGuideTask 'xalan:xalan:2.7.1', libraries.xerces
-    userGuideTask module('xhtmlrenderer:xhtmlrenderer:R8rc1') {
+    userGuideTask 'xalan:xalan2:2.7.1', 'xerces:xercesImpl:2.9.1'
+    userGuideTask module('xhtmlrenderer:core-renderer:R8rc1') {
         dependency 'itext:itext:2.0.8@jar'
     }
     userGuideTask 'xslthl:xslthl:2.0.1@jar'
 
-    userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
+    //userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
     jquery "jquery:jquery.min:1.8.0@js"
 
+    /*
     fonts \
         "lato:regular:6:v0SdcGFAl2aezM9Vq_aFTQ@ttf",
         "lato:regular-italic:6:LqowQDslGv4DmUBAfWa2Vw@ttf",
@@ -68,6 +68,7 @@ dependencies {
         "ubuntumono:regular-italic:3:KAKuHXAHZOeECOWAHsRKA-LrC4Du4e_yfTJ8Ol60xk0@ttf",
         "ubuntumono:bold:3:ceqTZGKHipo8pJj4molytp_TkvowlIOtbR7ePgFOpF4@ttf",
         "ubuntumono:bold-italic:3:n_d8tv_JOIiYyMXR4eaV9WsGzsqhEorxQDpu60nfWEc@ttf"
+    */
 
     groovy libraries.groovy
     testCompile "org.pegdown:pegdown:1.1.0"
@@ -97,11 +98,11 @@ outputs.distDocs = files(distDocsDir) {
     builtBy 'distDocs'
 }
 outputs.docs = files(docsDir) {
-    builtBy 'javadocAll', 'groovydocAll', 'userguide', 'dslHtml', 'releaseNotes'
+    builtBy 'javadocAll', 'groovydocAll', 'userguide', 'dslHtml'
 }
 
 tasks.withType(Docbook2Xhtml) {
-    dependsOn userguideStyleSheets
+    //dependsOn userguideStyleSheets
     classpath = configurations.userGuideTask
     stylesheetsDir = userguideStyleSheets.destinationDir
 }
@@ -131,12 +132,12 @@ task configureCss << {
         [it.name, it.bytes.encodeBase64().toString()]
     }
 
-    def fonts = configurations.fonts.resolvedConfiguration.resolvedArtifacts.collectEntries {
+    /*def fonts = configurations.fonts.resolvedConfiguration.resolvedArtifacts.collectEntries {
         def id = it.moduleVersion.id
         ["${id.group}-${id.name}".toString(), it.file.bytes.encodeBase64().toString()]
-    }
+    }*/
 
-    ext.tokens = images + fonts
+    ext.tokens = images // + fonts
     css.inputs.property 'tokens', tokens
     css.filter ReplaceTokens, tokens: tokens
 }
@@ -176,10 +177,10 @@ task userguideStyleSheets(type: Copy) {
         include '*.xsl'
     }
     from(cssFiles)
-    from({ zipTree(configurations.userGuideStyleSheets.singleFile) }) {
-        // Remove the prefix
-        eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
-    }
+    //from({ zipTree(configurations.userGuideStyleSheets.singleFile) }) {
+    //    // Remove the prefix
+    //    eachFile { fcd -> fcd.path = fcd.path.replaceFirst('^docbook-xsl-[0-9\\.]+/', '') }
+    //}
 }
 
 task samplesDocbook(type: AssembleSamplesDocTask) {
@@ -275,8 +276,10 @@ task userguidePdf(type: Xhtml2Pdf, dependsOn: pdfUserguideXhtml) {
     classpath = configurations.userGuideTask
 }
 
-def javaApiUrl = "http://docs.oracle.com/javase/1.5.0/docs/api/"
-def groovyApiUrl = "http://groovy.codehaus.org/gapi/"
+//def javaApiUrl = "http://docs.oracle.com/javase/1.5.0/docs/api/"
+def javaApiUrl = "file:///usr/share/doc/default-jdk-doc/api"
+//def groovyApiUrl = "http://groovy.codehaus.org/gapi/"
+def groovyApiUrl = "file:///usr/share/doc/groovy-doc/gapi/"
 
 task javadocAll(type: Javadoc) {
     ext.stylesheetFile = file("src/docs/css/javadoc.css")
@@ -298,8 +301,7 @@ task javadocAll(type: Javadoc) {
     include 'org/gradle/testfixtures/**'
     include 'org/gradle/tooling/**'
     exclude '**/internal/**'
-    options.links(javaApiUrl, groovyApiUrl, "http://maven.apache.org/ref/2.2.1/maven-core/apidocs",
-        "http://maven.apache.org/ref/2.2.1/maven-model/apidocs")
+    options.links(javaApiUrl, groovyApiUrl, "file:///usr/share/doc/libmaven2-core-java/api")
     doFirst {
         title = "Gradle API $version"
     }
@@ -361,10 +363,10 @@ task userguide {
     group = 'documentation'
 }
 
-import org.gradle.plugins.pegdown.PegDown
+//import org.gradle.plugins.pegdown.PegDown
 import org.gradle.plugins.jsoup.Jsoup
 
-task editReleaseNotes() {
+/*task editReleaseNotes() {
     group = "release notes"
     doLast {
         Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
@@ -409,14 +411,14 @@ test {
     systemProperty "org.gradle.docs.releasenotes.source", releaseNotesMarkdown.source.singleFile
     systemProperty "org.gradle.docs.releasenotes.rendered", new File(releaseNotes.destinationDir, releaseNotes.fileName)
 
-}
+}*/
 
 if (project.hasProperty('noDocsTests')) {
     gradle.startParameter.excludedTaskNames << test.path
 }
 
 task docs {
-    dependsOn javadocAll, groovydocAll, userguide, distDocs, samplesDocs, dslHtml, releaseNotes
+    dependsOn javadocAll, groovydocAll, userguide, distDocs, samplesDocs, dslHtml
     description = 'Generates all documentation'
     group = 'documentation'
 }

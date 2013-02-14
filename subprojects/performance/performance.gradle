@@ -8,7 +8,7 @@ configurations {
 dependencies {
     junit 'junit:junit:4.11'
     groovy libraries.groovy
-    testFixturesCompile project(':internalIntegTesting')
+    //testFixturesCompile project(':internalIntegTesting')
     plugin gradleApi()
 }
 

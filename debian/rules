@@ -8,7 +8,7 @@ export GRADLE_OPTS=-Dfile.encoding=UTF-8 -Xmx512m
 export GRADLE_USER_HOME=$(CURDIR)/.gradlehome
 # Only for debug purpose
 # export JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005
-DEB_GRADLE_OPTS := --project-prop notSnapshot=true --project-prop version=$(UPSTREAM_VERSION) --stacktrace --offline
+DEB_GRADLE_OPTS := --project-prop finalRelease=true --stacktrace --offline
 
 # Support for DEB_BUILD_OPTIONS parallel=n
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))

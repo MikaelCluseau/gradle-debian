@@ -9,10 +9,13 @@ dependencies {
     compile libraries.slf4j_api
     compile libraries.jna
     compile libraries.nativePlatform
-    compile module('org.jruby.ext.posix:jna-posix:1.0.3') {
+    compile module('org.jruby.ext.posix:jnr-posix:debian') {
         dependency libraries.jna
     }
-    compile module('org.fusesource.jansi:jansi:1.2.1') {
+    compile 'org.jruby.extras:constantine:debian'
+    compile 'org.jruby.extras:jaffl:debian'
+    compile 'org.jruby.extras:jffi:debian'
+    compile module('org.fusesource.jansi:jansi:debian') {
         dependency libraries.jna
     }
     compile libraries.guava

@@ -318,9 +318,11 @@
             <tr>
                 <td>org.gradle.plugins.signing.Sign</td>
             </tr>
+<!--
             <tr>
                 <td>org.gradle.api.plugins.sonar.SonarAnalyze</td>
             </tr>
+-->
             <tr>
                 <td>org.gradle.api.tasks.Sync</td>
             </tr>

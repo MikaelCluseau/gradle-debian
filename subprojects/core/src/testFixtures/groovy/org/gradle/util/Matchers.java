@@ -273,7 +273,7 @@ public class Matchers {
     }
 
     @Factory
-    public static Matcher<Task> dependsOn(final Matcher<? extends Iterable<String>> matcher) {
+    public static Matcher<Task> dependsOn(final Matcher matcher) {
         return new BaseMatcher<Task>() {
             public boolean matches(Object o) {
                 Task task = (Task) o;
@@ -303,7 +303,7 @@ public class Matchers {
     }
 
     @Factory
-    public static <T extends Buildable> Matcher<T> builtBy(final Matcher<? extends Iterable<String>> matcher) {
+    public static <T extends Buildable> Matcher<T> builtBy(final Matcher matcher) {
         return new BaseMatcher<T>() {
             public boolean matches(Object o) {
                 Buildable task = (Buildable) o;

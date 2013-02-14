@@ -32,7 +32,7 @@ ext {
     }
 }
 
-task determineCommitId {
+/*task determineCommitId {
     ext.commitId = null
 
     doLast {
@@ -93,9 +93,9 @@ task determineCommitId {
             throw new InvalidUserDataException("Could not determine commit id")
         }
     }
-}
+}*/
 
-task createBuildReceipt(dependsOn: determineCommitId) {
+task createBuildReceipt() {
     ext.receiptFile = file("$buildDir/$buildReceiptFileName")
     outputs.file receiptFile
     outputs.upToDateWhen { false }
@@ -107,7 +107,7 @@ task createBuildReceipt(dependsOn: determineCommitId) {
             hostName = "unknown"
         }
         def data = [
-                commitId:  determineCommitId.commitId,
+                commitId: "UNKNOWN",
                 versionNumber: version,
                 versionBase: versionBase,
                 isSnapshot: isSnapshot,

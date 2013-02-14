@@ -14,7 +14,7 @@
   ~ limitations under the License.
   -->
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="2.0">
-    <xsl:import href="html/chunkfast.xsl"/>
+    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/chunkfast.xsl"/>
     <xsl:import href="userGuideHtmlCommon.xsl"/>
 
     <xsl:output method="html" doctype-system="http://www.w3.org/TR/html4/strict.dtd"

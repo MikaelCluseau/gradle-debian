@@ -17,7 +17,7 @@
         xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
         xmlns:xi="http://www.w3.org/2001/XInclude"
         version="1.0">
-    <xsl:import href="html/docbook.xsl"/>
+    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/docbook.xsl"/>
     <xsl:import href="userGuideHtmlCommon.xsl"/>
 
     <xsl:param name="section.autolabel">0</xsl:param>

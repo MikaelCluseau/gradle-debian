@@ -20,6 +20,8 @@ import org.jruby.ext.posix.POSIX;
 import org.jruby.ext.posix.POSIXFactory;
 import org.jruby.ext.posix.POSIXHandler;
 
+import com.kenai.constantine.platform.Errno;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -32,7 +34,7 @@ public class PosixUtil {
     }
 
     private static class POSIXHandlerImpl implements POSIXHandler {
-        public void error(POSIX.ERRORS error, String message) {
+        public void error(Errno error, String message) {
             throw new UnsupportedOperationException(error + " - " + message);
         }
 

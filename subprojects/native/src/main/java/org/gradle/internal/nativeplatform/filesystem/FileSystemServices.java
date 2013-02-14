@@ -23,8 +23,6 @@ import org.gradle.internal.nativeplatform.jna.LibC;
 import org.gradle.internal.os.OperatingSystem;
 import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.internal.service.ServiceRegistry;
-import org.jruby.ext.posix.BaseNativePOSIX;
-import org.jruby.ext.posix.JavaPOSIX;
 import org.jruby.ext.posix.POSIX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +59,7 @@ public class FileSystemServices {
         if (libC != null && (operatingSystem.isLinux() || operatingSystem.isMacOsX())) {
             FilePathEncoder filePathEncoder = createEncoder(libC);
             serviceRegistry.add(Chmod.class, new LibcChmod(libC, filePathEncoder));
-            serviceRegistry.add(Stat.class, new LibCStat(libC, operatingSystem, (BaseNativePOSIX) PosixUtil.current(), filePathEncoder));
+            serviceRegistry.add(Stat.class, new LibCStat(libC, operatingSystem, PosixUtil.current(), filePathEncoder));
             return;
         }
 
@@ -95,7 +93,7 @@ public class FileSystemServices {
 
     private static Stat createStat() {
         POSIX posix = PosixUtil.current();
-        if (posix instanceof JavaPOSIX) {
+        if (posix.getClass().toString().equals("org.jruby.ext.posix.JavaPOSIX")) {
             return new FallbackStat();
         } else {
             return new PosixStat(posix);
