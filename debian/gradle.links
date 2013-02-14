@@ -12,3 +12,8 @@ usr/share/java/native-platform.jar               usr/share/gradle/lib/native-pla
 # gradle-ui
 usr/share/java/dom4j.jar                         usr/share/gradle/lib/dom4j.jar
 usr/share/java/jaxen.jar                         usr/share/gradle/lib/jaxen.jar
+
+# gradle-messaging
+usr/share/java/kryo.jar                          usr/share/gradle/lib/kryo.jar
+usr/share/java/reflectasm.jar                    usr/share/gradle/lib/reflectasm.jar
+usr/share/java/minlog.jar                        usr/share/gradle/lib/minlog.jar

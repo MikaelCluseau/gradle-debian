@@ -13,6 +13,7 @@ gradle (1.4-1) UNRELEASED; urgency=low
     startup.
   * d/rules: Add support for DEB_BUILD_OPTIONS parallel=n using new Gradle
     parallel feature.
+  * d/control: Add Build-Depends on libkryo-java.
 
  -- Damien Raude-Morvan <drazzib@debian.org>  Tue, 05 Feb 2013 23:38:19 +0100
 
