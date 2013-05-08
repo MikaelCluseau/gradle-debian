@@ -15,6 +15,7 @@ gradle (1.4-1) UNRELEASED; urgency=low
     parallel feature.
   * d/control: Add Build-Depends on libkryo-java.
   * d/control: Bump Standards-Version to 3.9.4 (no changes needed).
+  * d/control: Use canonical URL for Vcs-* fields.
 
  -- Damien Raude-Morvan <drazzib@debian.org>  Tue, 05 Feb 2013 23:38:19 +0100
 
