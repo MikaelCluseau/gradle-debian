@@ -1,6 +1,7 @@
-gradle (1.4-1) UNRELEASED; urgency=low
+gradle (1.4-1) unstable; urgency=low
 
   * New upstream release.
+  * Upload to unstable.
   * Merge all plugins packages into gradle-plugins: there is not real value
     in providing all those small packages since libgradle-core-java Depends
     on most of plugins dependencies.
