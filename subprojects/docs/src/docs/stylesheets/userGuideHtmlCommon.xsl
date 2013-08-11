@@ -16,8 +16,8 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 xmlns:xslthl="http://xslthl.sf.net"
                 version="1.0">
-    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/highlighting/common.xsl"/>
-    <xsl:import href="/usr/share/xml/docbook/stylesheet/docbook-xsl/html/highlight.xsl"/>
+    <xsl:import href="highlighting/common.xsl"/>
+    <xsl:import href="html/highlight.xsl"/>
 
     <xsl:output method="html"
                 encoding="UTF-8"

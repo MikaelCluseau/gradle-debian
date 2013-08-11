@@ -18,8 +18,9 @@ package org.gradle.internal.nativeplatform.filesystem;
 
 import org.gradle.internal.nativeplatform.jna.LibC;
 import org.gradle.internal.os.OperatingSystem;
+import org.jruby.ext.posix.BaseNativePOSIX;
 import org.jruby.ext.posix.FileStat;
-import org.jruby.ext.posix.POSIX;
+import org.jruby.ext.posix.Linux64FileStat;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,9 +29,9 @@ class LibCStat implements Stat {
     private final LibC libc;
     private final FilePathEncoder encoder;
     private final OperatingSystem operatingSystem;
-    private final POSIX nativePOSIX;
+    private final BaseNativePOSIX nativePOSIX;
 
-    public LibCStat(LibC libc, OperatingSystem operatingSystem, POSIX nativePOSIX, FilePathEncoder encoder) {
+    public LibCStat(LibC libc, OperatingSystem operatingSystem, BaseNativePOSIX nativePOSIX, FilePathEncoder encoder) {
         this.libc = libc;
         this.operatingSystem = operatingSystem;
         this.nativePOSIX = nativePOSIX;
@@ -38,7 +39,17 @@ class LibCStat implements Stat {
     }
 
     public int getUnixMode(File f) throws IOException {
-        FileStat stat = nativePOSIX.stat(new String(encoder.encode(f)));
+        FileStat stat = nativePOSIX.allocateStat();
+        initPlatformSpecificStat(stat, encoder.encode(f));
         return stat.mode() & 0777;
+    }
+
+    private void initPlatformSpecificStat(FileStat stat, byte[] encodedFilePath) {
+        if (operatingSystem.isMacOsX()) {
+            libc.stat(encodedFilePath, stat);
+        } else {
+            final int statVersion = stat instanceof Linux64FileStat ? 3 : 0;
+            libc.__xstat64(statVersion, encodedFilePath, stat);
+        }
     }
 }

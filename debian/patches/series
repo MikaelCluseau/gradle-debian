@@ -13,3 +13,5 @@
 31_hamcrest_12.diff
 32_disable_it.diff
 33_scala_zinc.diff
+34_disable_code_quality.diff
+35_ivy_23.diff

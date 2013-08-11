@@ -71,8 +71,8 @@ class Docbook2Xhtml extends SourceTask {
                 jvmArgs '-Xmx256m'
                 classpath ClasspathUtil.getClasspathForClass(XslTransformer)
                 classpath this.classpath
-                classpath new File('/usr/share/java/xalan2.jar')
-                systemProperty 'xslthl.config', new File("/usr/share/xml/docbook/stylesheet/docbook-xsl/highlighting/xslthl-config.xml").toURI()
+                classpath new File(stylesheetsDir, 'extensions/xalan27.jar')
+                systemProperty 'xslthl.config', new File("$stylesheetsDir/highlighting/xslthl-config.xml").toURI()
                 systemProperty 'org.apache.xerces.xni.parser.XMLParserConfiguration', 'org.apache.xerces.parsers.XIncludeParserConfiguration'
             }
         }

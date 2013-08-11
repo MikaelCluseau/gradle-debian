@@ -223,18 +223,15 @@ public class DefaultModuleRegistry implements ModuleRegistry, GradleDistribution
     }
 
     private File findExternalJar(String name) {
-        Pattern patternVersion = Pattern.compile(Pattern.quote(name) + "-\\d.+\\.jar");
-        Pattern pattern = Pattern.compile(Pattern.quote(name) + ".jar");
+        Pattern pattern = Pattern.compile(Pattern.quote(name) + "-\\d.+\\.jar");
         for (File file : classpath) {
-            if (patternVersion.matcher(file.getName()).matches()
-            || pattern.matcher(file.getName()).matches()) {
+            if (pattern.matcher(file.getName()).matches()) {
                 return file;
             }
         }
         for (File libDir : libDirs) {
             for (File file : libDir.listFiles()) {
-                if (patternVersion.matcher(file.getName()).matches()
-                || pattern.matcher(file.getName()).matches()) {
+                if (pattern.matcher(file.getName()).matches()) {
                     return file;
                 }
             }

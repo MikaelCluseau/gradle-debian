@@ -1,0 +1,20 @@
+--- a/buildSrc/build.gradle
++++ b/buildSrc/build.gradle
+@@ -16,8 +16,8 @@
+ import org.apache.ivy.plugins.resolver.FileSystemResolver
+ 
+ apply plugin: 'groovy'
+-apply plugin: 'checkstyle'
+-apply plugin: 'codenarc'
++//apply plugin: 'checkstyle'
++//apply plugin: 'codenarc'
+ apply plugin: 'idea'
+ apply plugin: 'eclipse'
+ 
+@@ -48,5 +48,5 @@
+     compile "org.gradle.jarjar:jarjar:1.2.1"
+ }
+ apply from: '../gradle/compile.gradle'
+-apply from: '../gradle/codeQuality.gradle'
++//apply from: '../gradle/codeQuality.gradle'
+ apply from: '../gradle/classycle.gradle'

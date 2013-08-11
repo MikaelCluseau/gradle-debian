@@ -1,3 +1,13 @@
+gradle (1.4-2) UNRELEASED; urgency=low
+
+  * Fix compatibility with Apache Ivy 2.3 (Closes: #713171):
+    - d/patches/35_ivy_23.diff: fix FTBFS on downloadRepositoryResource method
+    - d/control: {Build,}-Depends on ivy (>= 2.3)
+  * d/patches/34_disable_code_quality.diff: Disable some code analysis check
+    to speed-up package build.
+
+ -- Damien Raude-Morvan <drazzib@debian.org>  Sun, 11 Aug 2013 16:13:00 +0200
+
 gradle (1.4-1) unstable; urgency=low
 
   * New upstream release.

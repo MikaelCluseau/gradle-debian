@@ -20,7 +20,7 @@ Last-Update: 2012-08-18
          }
 --- a/subprojects/docs/docs.gradle
 +++ b/subprojects/docs/docs.gradle
-@@ -43,22 +43,23 @@
+@@ -43,23 +43,22 @@
  }
  
  configurations {
@@ -39,17 +39,18 @@ Last-Update: 2012-08-18
 +    userGuideTask module('xhtmlrenderer:core-renderer:R8rc1') {
          dependency 'itext:itext:2.0.8@jar'
      }
-     userGuideTask 'xslthl:xslthl:2.0.1@jar'
+-    userGuideTask 'xslthl:xslthl:2.0.1@jar'
  
 -    userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
 +    //userGuideStyleSheets 'docbook:docbook-xsl:1.75.2@zip'
      jquery "jquery:jquery.min:1.8.0@js"
  
-+    /*
-     fonts \
+-    fonts \
++    /*fonts \
          "lato:regular:6:v0SdcGFAl2aezM9Vq_aFTQ@ttf",
          "lato:regular-italic:6:LqowQDslGv4DmUBAfWa2Vw@ttf",
-@@ -68,6 +69,7 @@
+         "lato:bold:6:DvlFBScY1r-FMtZSYIYoYw@ttf",
+@@ -68,6 +67,7 @@
          "ubuntumono:regular-italic:3:KAKuHXAHZOeECOWAHsRKA-LrC4Du4e_yfTJ8Ol60xk0@ttf",
          "ubuntumono:bold:3:ceqTZGKHipo8pJj4molytp_TkvowlIOtbR7ePgFOpF4@ttf",
          "ubuntumono:bold-italic:3:n_d8tv_JOIiYyMXR4eaV9WsGzsqhEorxQDpu60nfWEc@ttf"
@@ -57,21 +58,16 @@ Last-Update: 2012-08-18
  
      groovy libraries.groovy
      testCompile "org.pegdown:pegdown:1.1.0"
-@@ -97,11 +99,11 @@
+@@ -97,7 +97,7 @@
      builtBy 'distDocs'
  }
  outputs.docs = files(docsDir) {
 -    builtBy 'javadocAll', 'groovydocAll', 'userguide', 'dslHtml', 'releaseNotes'
-+    builtBy 'javadocAll', 'groovydocAll', 'userguide', 'dslHtml'
++    builtBy 'javadocAll', 'groovydocAll', 'userguide', 'dslHtml' //, 'releaseNotes'
  }
  
  tasks.withType(Docbook2Xhtml) {
--    dependsOn userguideStyleSheets
-+    //dependsOn userguideStyleSheets
-     classpath = configurations.userGuideTask
-     stylesheetsDir = userguideStyleSheets.destinationDir
- }
-@@ -131,12 +133,12 @@
+@@ -131,12 +131,12 @@
          [it.name, it.bytes.encodeBase64().toString()]
      }
  
@@ -87,7 +83,7 @@ Last-Update: 2012-08-18
      css.inputs.property 'tokens', tokens
      css.filter ReplaceTokens, tokens: tokens
  }
-@@ -176,10 +178,10 @@
+@@ -176,10 +176,10 @@
          include '*.xsl'
      }
      from(cssFiles)

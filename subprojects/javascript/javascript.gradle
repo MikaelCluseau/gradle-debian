@@ -17,16 +17,14 @@
 dependencies {
     groovy libraries.groovy
 
-    compile "org.mozilla:js:1.7R3"
+    compile "org.mozilla:rhino:1.7R3"
     compile "com.google.code.gson:gson:2.2.1" // used by JsHint
-    //compile "org.simpleframework:simple:4.1.21" // used by http package in envjs
+    compile "org.simpleframework:simple:4.1.21" // used by http package in envjs
     compile project(':core'), project(":plugins")
     compile libraries.inject
 
     // Required by JavaScriptExtension#getGoogleApisRepository()
     compile project(':coreImpl')
 }
-
-sourceSets.main.groovy.excludes = ['**/org/gradle/plugins/javascript/envjs/**']
 
 useTestFixtures()

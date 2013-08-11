@@ -13,7 +13,7 @@ configurations {
 }
 
 dependencies {
-    //integTestCompile project(":internalIntegTesting")
+    integTestCompile project(":internalIntegTesting")
 
     //so that implicit help tasks are available:
     integTestRuntime project(':diagnostics')

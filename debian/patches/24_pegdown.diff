@@ -70,7 +70,7 @@ Last-Update: 2012-08-18
  apply plugin: 'jsoup'
  apply plugin: 'javascript-base'
  
-@@ -364,10 +363,10 @@
+@@ -362,10 +361,10 @@
      group = 'documentation'
  }
  
@@ -83,7 +83,7 @@ Last-Update: 2012-08-18
      group = "release notes"
      doLast {
          Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
-@@ -412,14 +411,14 @@
+@@ -410,14 +409,14 @@
      systemProperty "org.gradle.docs.releasenotes.source", releaseNotesMarkdown.source.singleFile
      systemProperty "org.gradle.docs.releasenotes.rendered", new File(releaseNotes.destinationDir, releaseNotes.fileName)
  

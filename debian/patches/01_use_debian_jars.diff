@@ -183,15 +183,6 @@ Last-Update: 2012-08-18
      libraries.objenesis,
      'cglib:cglib-nodep:2.2'
  ]
---- a/subprojects/core-impl/core-impl.gradle
-+++ b/subprojects/core-impl/core-impl.gradle
-@@ -69,4 +69,4 @@
-             move(file: plexusSecNoComps, tofile: plexusSec)
-         }
-     }
--}
-\ No newline at end of file
-+}
 --- a/subprojects/core/core.gradle
 +++ b/subprojects/core/core.gradle
 @@ -61,7 +61,7 @@

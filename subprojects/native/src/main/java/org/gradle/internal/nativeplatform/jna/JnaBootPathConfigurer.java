@@ -39,17 +39,9 @@ public class JnaBootPathConfigurer {
      */
     public void configure(File storageDir) {
         String nativePrefix = OperatingSystem.current().getNativePrefix();
-        File tmpDir = new File(storageDir, "jni/");
+        File tmpDir = new File(storageDir, String.format("jna/%s", nativePrefix));
+        tmpDir.mkdirs();
         String jnaLibName = OperatingSystem.current().isMacOsX() ? "libjnidispatch.jnilib" : System.mapLibraryName("jnidispatch");
-
-        // Try to load /usr/lib/jni/jnidispatch.so first before storageDir
-        File usrDir = new File("/usr/lib/jni/");
-        File usrLibFile = new File(usrDir, jnaLibName);
-        if (usrLibFile.isFile()) {
-            System.setProperty("jna.boot.library.path", usrDir.getAbsolutePath());
-            return;
-        }
-
         File libFile = new File(tmpDir, jnaLibName);
         if (!libFile.exists()) {
             String resourceName = "/com/sun/jna/" + nativePrefix + "/" + jnaLibName;

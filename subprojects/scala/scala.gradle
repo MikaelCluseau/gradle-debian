@@ -23,13 +23,10 @@ dependencies {
     compile project(":plugins")
 
     // keep in sync with ScalaBasePlugin code
-    // provided("com.typesafe.zinc:zinc:0.2.0")
+    provided("com.typesafe.zinc:zinc:0.2.0")
 
     testCompile libraries.slf4j_api
 }
-
-// No Zinc compiler
-sourceSets.main.groovy.excludes = ['**/org/gradle/api/internal/tasks/scala/jdk6/**']
 
 useTestFixtures(project: ":plugins") // includes core test fixtures
 

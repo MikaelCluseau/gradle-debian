@@ -21,9 +21,9 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
-//import org.pegdown.Extensions
+import org.pegdown.Extensions
 import org.gradle.api.InvalidUserDataException
-//import org.pegdown.PegDownProcessor
+import org.pegdown.PegDownProcessor
 
 class PegDown extends SourceTask {
 
@@ -50,12 +50,11 @@ class PegDown extends SourceTask {
 
     @TaskAction
     void process() {
-        /*int optionsValue = getCalculatedOptions()
+        int optionsValue = getCalculatedOptions()
         PegDownProcessor processor = new PegDownProcessor(optionsValue)
         String markdown = getSource().singleFile.getText(getInputEncoding())
         String html = processor.markdownToHtml(markdown)
-        getDestination().write(html, getOutputEncoding())*/
-	throw new UnsupportedOperationException("PegDown");
+        getDestination().write(html, getOutputEncoding())
     }
     
     int getCalculatedOptions() {
@@ -64,11 +63,11 @@ class PegDown extends SourceTask {
     
     protected int toOptionValue(String optionName) {
         String upName = val.toUpperCase()
-        /*try {
+        try {
             Extensions."$upName"
         } catch (MissingPropertyException e) {
             throw new InvalidUserDataException("$optionName is not a valid PegDown extension name")
-        }*/
+        }
     }
     
     void options(String... options) {

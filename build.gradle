@@ -17,7 +17,6 @@
 import org.gradle.build.Install
 import org.gradle.build.BuildTypes
 import org.gradle.build.TestReportAggregator
-import org.apache.ivy.plugins.resolver.FileSystemResolver
 
 defaultTasks 'assemble'
 apply plugin: 'java-base'
@@ -87,7 +86,7 @@ ext {
     publishedProjects = [project(':core'), project(':toolingApi'), project(':wrapper'), project(':baseServices'), project(':messaging')]
     pluginProjects = [
         'plugins', 'codeQuality', 'jetty', 'antlr', 'wrapper', 'osgi', 'maven',
-        'ide', 'announce', 'scala', 'signing', 'cpp', 'ear', 'javascript', 'buildComparison',
+        'ide', 'announce', 'scala', 'sonar', 'signing', 'cpp', 'ear', 'javascript', 'buildComparison',
         'diagnostics', 'reporting', 'publish', 'ivy'
     ].collect {
         project(it)
@@ -108,11 +107,7 @@ allprojects {
     group = 'org.gradle'
 
     repositories {
-        add(new FileSystemResolver()) {
-            name = 'repo'
-            addArtifactPattern "/usr/share/java/[module].[ext]"
-            addArtifactPattern "/usr/share/java/[module]-[revision].[ext]"
-        }
+        maven { url 'http://repo.gradle.org/gradle/libs' }
     }
 }
 
