@@ -36,13 +36,14 @@ public interface MavenPom {
      * Allows configuration of the POM, after it has been generated according to the input data.
      *
      * <pre autoTested="true">
-     * apply plugin: "java"
      * apply plugin: "maven-publish"
      *
      * publishing {
      *   publications {
-     *     maven.pom.withXml {
-     *       asNode().appendNode('description', 'A demonstration of maven pom customisation')
+     *     maven(MavenPublication) {
+     *       pom.withXml {
+     *         asNode().appendNode('description', 'A demonstration of maven pom customisation')
+     *       }
      *     }
      *   }
      * }

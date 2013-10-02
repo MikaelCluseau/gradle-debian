@@ -17,14 +17,16 @@
 package org.gradle.testing
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
-import org.junit.Rule
+import org.gradle.integtests.fixtures.HtmlTestExecutionResult
 import org.gradle.integtests.fixtures.Sample
 import org.gradle.integtests.fixtures.UsesSample
-import org.gradle.integtests.fixtures.DefaultTestExecutionResult
+import org.junit.Rule
+
+import static org.hamcrest.Matchers.contains
 import static org.hamcrest.Matchers.equalTo
 
 class TestReportIntegrationTest extends AbstractIntegrationSpec {
-    @Rule Sample sample
+    @Rule Sample sample = new Sample(temporaryFolder)
 
     def "report includes results of each invocation"() {
         given:
@@ -55,7 +57,7 @@ public class LoggingTest {
         run "test"
 
         then:
-        def result = new DefaultTestExecutionResult(testDirectory)
+        def result = new HtmlTestExecutionResult(testDirectory)
         result.testClass("LoggingTest").assertStdout(equalTo("This is stdout."))
         result.testClass("LoggingTest").assertStderr(equalTo("This is stderr."))
 
@@ -77,9 +79,8 @@ public class LoggingTest {
         run "testReport"
 
         then:
-        def reportDir = sample.dir.file("build/reports/allTests")
-        reportDir.file("index.html").assertIsFile()
-        reportDir.file("org.gradle.sample.CoreTest.html").text.contains("hello from CoreTest.")
-        reportDir.file("org.gradle.sample.UtilTest.html").text.contains("hello from UtilTest.")
+        def htmlReport = new HtmlTestExecutionResult(sample.dir, "allTests")
+        htmlReport.testClass("org.gradle.sample.CoreTest").assertTestCount(1, 0, 0).assertTestPassed("ok").assertStdout(contains("hello from CoreTest."))
+        htmlReport.testClass("org.gradle.sample.UtilTest").assertTestCount(1, 0, 0).assertTestPassed("ok").assertStdout(contains("hello from UtilTest."))
     }
 }

@@ -17,6 +17,8 @@
 package org.gradle.execution
 
 import org.gradle.api.internal.project.ProjectInternal
+import org.gradle.execution.taskpath.ResolvedTaskPath
+import org.gradle.execution.taskpath.TaskPathResolver
 import spock.lang.Specification
 
 /**
@@ -24,30 +26,38 @@ import spock.lang.Specification
  */
 class TaskPathProjectEvaluatorTest extends Specification {
 
-    private finder = Mock(ProjectFinderByTaskPath)
+    private resolver = Mock(TaskPathResolver)
     private project = Mock(ProjectInternal)
 
-    private evaluator = new TaskPathProjectEvaluator(finder)
+    private evaluator = new TaskPathProjectEvaluator(resolver)
 
-    def "evaluates task path"() {
-        def foundProject = Mock(ProjectInternal)
+    def "evaluates project by task path"() {
+        def path = Mock(ResolvedTaskPath)
+        def fooProject = Mock(ProjectInternal)
 
         when:
         evaluator.evaluateByPath(project, ":foo:bar")
 
         then:
-        1 * finder.findProject(":foo:bar", project) >> foundProject
-        1 * foundProject.evaluate()
+        1 * resolver.resolvePath(":foo:bar", project) >> path
+        1 * path.isQualified() >> true
+        1 * path.getProject() >> fooProject
+        1 * fooProject.evaluate()
         0 * _._
     }
 
-    def "evaluates task name"() {
+    def "evaluates all projects"() {
+        def path = Mock(ResolvedTaskPath)
         def subprojects = [Mock(ProjectInternal), Mock(ProjectInternal)]
 
         when:
         evaluator.evaluateByPath(project, "someTask")
 
         then:
+        1 * resolver.resolvePath("someTask", project) >> path
+        1 * path.isQualified() >> false
+
+        and:
         1 * project.evaluate()
         1 * project.subprojects >> subprojects
         1 * subprojects[0].evaluate()

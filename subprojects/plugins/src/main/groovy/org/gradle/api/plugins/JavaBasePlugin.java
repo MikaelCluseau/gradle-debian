@@ -21,11 +21,13 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.internal.ConventionMapping;
 import org.gradle.api.internal.IConventionAware;
-import org.gradle.api.internal.plugins.ProcessResources;
+import org.gradle.api.internal.plugins.DslObject;
 import org.gradle.api.internal.project.ProjectInternal;
+import org.gradle.api.internal.tasks.DefaultJavaSourceSet;
+import org.gradle.api.internal.tasks.DefaultResourceSet;
+import org.gradle.api.internal.tasks.SourceSetCompileClasspath;
 import org.gradle.api.reporting.ReportingExtension;
-import org.gradle.api.tasks.Copy;
-import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.compile.AbstractCompile;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
@@ -63,6 +65,7 @@ public class JavaBasePlugin implements Plugin<Project> {
     public void apply(Project project) {
         project.getPlugins().apply(BasePlugin.class);
         project.getPlugins().apply(ReportingBasePlugin.class);
+        project.getPlugins().apply(JavaLanguagePlugin.class);
 
         JavaPluginConvention javaConvention = new JavaPluginConvention((ProjectInternal) project, instantiator);
         project.getConvention().getPlugins().put("java", javaConvention);
@@ -79,10 +82,11 @@ public class JavaBasePlugin implements Plugin<Project> {
     }
 
     private void configureSourceSetDefaults(final JavaPluginConvention pluginConvention) {
+        final Project project = pluginConvention.getProject();
+        final ProjectSourceSet projectSourceSet = project.getExtensions().getByType(ProjectSourceSet.class);
+
         pluginConvention.getSourceSets().all(new Action<SourceSet>() {
             public void execute(final SourceSet sourceSet) {
-                final Project project = pluginConvention.getProject();
-
                 ConventionMapping outputConventionMapping = ((IConventionAware) sourceSet.getOutput()).getConventionMapping();
 
                 ConfigurationContainer configurations = project.getConfigurations();
@@ -120,28 +124,34 @@ public class JavaBasePlugin implements Plugin<Project> {
 
                 sourceSet.getJava().srcDir(String.format("src/%s/java", sourceSet.getName()));
                 sourceSet.getResources().srcDir(String.format("src/%s/resources", sourceSet.getName()));
+                sourceSet.compiledBy(sourceSet.getClassesTaskName());
 
-                Copy processResources = project.getTasks().add(sourceSet.getProcessResourcesTaskName(), ProcessResources.class);
-                processResources.setDescription(String.format("Processes the %s.", sourceSet.getResources()));
-                ConventionMapping conventionMapping = processResources.getConventionMapping();
-                processResources.from(sourceSet.getResources());
-                conventionMapping.map("destinationDir", new Callable<Object>() {
-                    public Object call() throws Exception {
+                FunctionalSourceSet functionalSourceSet = projectSourceSet.create(sourceSet.getName());
+                Classpath compileClasspath = new SourceSetCompileClasspath(sourceSet);
+                DefaultJavaSourceSet javaSourceSet = instantiator.newInstance(DefaultJavaSourceSet.class, "java", sourceSet.getJava(), compileClasspath, functionalSourceSet);
+                functionalSourceSet.add(javaSourceSet);
+                ResourceSet resourceSet = instantiator.newInstance(DefaultResourceSet.class, "resources", sourceSet.getResources(), functionalSourceSet);
+                functionalSourceSet.add(resourceSet);
+
+                JvmBinaryContainer jvmBinaryContainer = project.getPlugins().getPlugin(JvmLanguagePlugin.class).getJvmBinaryContainer();
+                ClassDirectoryBinary binary = jvmBinaryContainer.create(sourceSet.getName(), ClassDirectoryBinary.class);
+                ConventionMapping conventionMapping = new DslObject(binary).getConventionMapping();
+                conventionMapping.map("classesDir", new Callable<File>() {
+                    public File call() throws Exception {
+                        return sourceSet.getOutput().getClassesDir();
+                    }
+                });
+                conventionMapping.map("resourcesDir", new Callable<File>() {
+                    public File call() throws Exception {
                         return sourceSet.getOutput().getResourcesDir();
                     }
                 });
 
-                String compileTaskName = sourceSet.getCompileJavaTaskName();
-                JavaCompile compileJava = project.getTasks().add(compileTaskName, JavaCompile.class);
-                configureForSourceSet(sourceSet, compileJava);
+                binary.getSource().add(javaSourceSet);
+                binary.getSource().add(resourceSet);
 
-                Task classes = project.getTasks().add(sourceSet.getClassesTaskName());
-                classes.dependsOn(sourceSet.getProcessResourcesTaskName(), compileTaskName);
-                classes.setDescription(String.format("Assembles the %s classes.", sourceSet.getName()));
-                classes.setGroup(BasePlugin.BUILD_GROUP);
-                classes.dependsOn(sourceSet.getOutput().getDirs());
-
-                sourceSet.compiledBy(sourceSet.getClassesTaskName());
+                // TODO:DAZ review this
+                binary.getClassesTask().dependsOn(sourceSet.getOutput().getDirs());
             }
         });
     }

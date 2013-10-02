@@ -54,6 +54,7 @@ public class DefaultTestReport implements TestReporter {
         final AllTestResults model = new AllTestResults();
         resultsProvider.visitClasses(new Action<TestClassResult>() {
             public void execute(TestClassResult classResult) {
+                model.addTestClass(classResult.getClassName());
                 List<TestMethodResult> collectedResults = classResult.getResults();
                 for (TestMethodResult collectedResult : collectedResults) {
                     final TestResult testResult = model.addTest(classResult.getClassName(), collectedResult.getName(), collectedResult.getDuration());
