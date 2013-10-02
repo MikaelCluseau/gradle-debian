@@ -10,6 +10,9 @@
             <tr>
                 <td>pom</td>
             </tr>
+            <tr>
+                <td>artifacts</td>
+            </tr>
         </table>
     </section>
     <section>
@@ -22,6 +25,15 @@
             </thead>
             <tr>
                 <td>pom</td>
+            </tr>
+            <tr>
+                <td>from</td>
+            </tr>
+            <tr>
+                <td>artifact</td>
+            </tr>
+            <tr>
+                <td>setArtifacts</td>
             </tr>
         </table>
     </section>

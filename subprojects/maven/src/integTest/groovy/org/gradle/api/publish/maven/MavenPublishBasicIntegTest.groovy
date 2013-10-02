@@ -16,28 +16,26 @@
 
 package org.gradle.api.publish.maven
 
-import org.gradle.integtests.fixtures.AbstractIntegrationSpec
 import org.gradle.test.fixtures.maven.M2Installation
 import org.gradle.test.fixtures.maven.MavenFileRepository
 import org.gradle.util.SetSystemProperties
 import org.junit.Rule
-
+import spock.lang.Ignore
 /**
  * Tests “simple” maven publishing scenarios
  */
-class MavenPublishBasicIntegTest extends AbstractIntegrationSpec {
+class MavenPublishBasicIntegTest extends AbstractMavenPublishIntegTest {
     @Rule SetSystemProperties sysProp = new SetSystemProperties()
 
-    M2Installation m2Installation
     MavenFileRepository m2Repo
 
     def "setup"() {
-        m2Installation = new M2Installation(testDirectory)
-        using m2Installation
+        def m2Installation = new M2Installation(testDirectory)
         m2Repo = m2Installation.mavenRepo()
+        executer.beforeExecute m2Installation
     }
 
-    def "publishes nothing without component"() {
+    def "publishes nothing without defined publication"() {
         given:
         settingsFile << "rootProject.name = 'root'"
         buildFile << """
@@ -59,8 +57,42 @@ class MavenPublishBasicIntegTest extends AbstractIntegrationSpec {
         mavenRepo.module('group', 'root', '1.0').assertNotPublished()
     }
 
+    def "publishes empty pom when publication has no added component"() {
+        given:
+        settingsFile << "rootProject.name = 'empty-project'"
+        buildFile << """
+            apply plugin: 'maven-publish'
+
+            group = 'org.gradle.test'
+            version = '1.0'
+
+            publishing {
+                repositories {
+                    maven { url "${mavenRepo.uri}" }
+                }
+                publications {
+                    maven(MavenPublication)
+                }
+            }
+        """
+        when:
+        succeeds 'publish'
+
+        then:
+        def module = mavenRepo.module('org.gradle.test', 'empty-project', '1.0')
+        module.assertPublished()
+        module.parsedPom.scopes.isEmpty()
+
+        and:
+        resolveArtifacts(module) == []
+    }
+
     def "can publish simple jar"() {
         given:
+        def repoModule = mavenRepo.module('group', 'root', '1.0')
+        def localModule = m2Repo.module('group', 'root', '1.0')
+
+        and:
         settingsFile << "rootProject.name = 'root'"
         buildFile << """
             apply plugin: 'maven-publish'
@@ -73,6 +105,11 @@ class MavenPublishBasicIntegTest extends AbstractIntegrationSpec {
                 repositories {
                     maven { url "${mavenRepo.uri}" }
                 }
+                publications {
+                    maven(MavenPublication) {
+                        from components.java
+                    }
+                }
             }
         """
 
@@ -80,21 +117,119 @@ class MavenPublishBasicIntegTest extends AbstractIntegrationSpec {
         succeeds 'assemble'
 
         then: "jar is built but not published"
-        mavenRepo.module('group', 'root', '1.0').assertNotPublished()
-        m2Repo.module('group', 'root', '1.0').assertNotPublished()
+        repoModule.assertNotPublished()
+        localModule.assertNotPublished()
         file('build/libs/root-1.0.jar').assertExists()
 
         when:
         succeeds 'publish'
 
         then: "jar is published to defined maven repository"
-        mavenRepo.module('group', 'root', '1.0').assertPublishedAsJavaModule()
-        m2Repo.module('group', 'root', '1.0').assertNotPublished()
+        repoModule.assertPublishedAsJavaModule()
+        localModule.assertNotPublished()
 
         when:
         succeeds 'publishToMavenLocal'
 
         then: "jar is published to maven local repository"
-        m2Repo.module('group', 'root', '1.0').assertPublishedAsJavaModule()
+        localModule.assertPublishedAsJavaModule()
+
+        and:
+        resolveArtifacts(repoModule) == ['root-1.0.jar']
+    }
+
+    def "can publish a snapshot version"() {
+        settingsFile << 'rootProject.name = "snapshotPublish"'
+        buildFile << """
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    group = 'org.gradle'
+    version = '1.0-SNAPSHOT'
+
+    publishing {
+        repositories {
+            maven { url "${mavenRepo.uri}" }
+        }
+        publications {
+            pub(MavenPublication) {
+                from components.java
+            }
+        }
+    }
+"""
+
+        when:
+        succeeds 'publish'
+
+        then:
+        def module = mavenRepo.module('org.gradle', 'snapshotPublish', '1.0-SNAPSHOT')
+        module.assertArtifactsPublished("snapshotPublish-${module.publishArtifactVersion}.jar", "snapshotPublish-${module.publishArtifactVersion}.pom", "maven-metadata.xml")
+
+        and:
+        resolveArtifacts(module) == ["snapshotPublish-${module.publishArtifactVersion}.jar"]
+    }
+
+    def "reports failure publishing when model validation fails"() {
+        given:
+        settingsFile << "rootProject.name = 'bad-project'"
+        buildFile << """
+            apply plugin: 'maven-publish'
+            apply plugin: 'war'
+
+            group = 'org.gradle.test'
+            version = '1.0'
+
+            publishing {
+                repositories {
+                    maven { url "${mavenRepo.uri}" }
+                }
+                publications {
+                    maven(MavenPublication) {
+                        from components.java
+                        from components.web
+                    }
+                }
+            }
+        """
+        when:
+        fails 'publish'
+
+        then:
+        failure.assertHasDescription("A problem occurred configuring the 'publishing' extension")
+        failure.assertHasCause("Maven publication 'maven' cannot include multiple components")
+    }
+
+    @Ignore("Not yet implemented - currently the second publication will overwrite") // TODO:DAZ fix in validation story
+    def "cannot publish multiple maven publications with the same identity"() {
+        given:
+        settingsFile << "rootProject.name = 'bad-project'"
+        buildFile << """
+            apply plugin: 'maven-publish'
+            apply plugin: 'war'
+
+            group = 'org.gradle.test'
+            version = '1.0'
+
+            publishing {
+                repositories {
+                    maven { url "${mavenRepo.uri}" }
+                }
+                publications {
+                    mavenJava(MavenPublication) {
+                        from components.java
+                    }
+                    mavenWeb(MavenPublication) {
+                        from components.web
+                    }
+                }
+            }
+        """
+        when:
+        fails 'publish'
+
+        then:
+        failure.assertHasDescription("A problem occurred evaluating root project 'bad-project'")
+        failure.assertHasCause("Publication with name 'mavenJava' already exists")
     }
 }
