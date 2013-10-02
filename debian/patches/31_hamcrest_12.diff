@@ -5,16 +5,27 @@ Last-Update: 2012-09-03
 
 --- a/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
 +++ b/subprojects/core/src/testFixtures/groovy/org/gradle/util/Matchers.java
-@@ -273,7 +273,7 @@
+@@ -273,16 +273,16 @@
      }
  
      @Factory
--    public static Matcher<Task> dependsOn(final Matcher<? extends Iterable<String>> matcher) {
-+    public static Matcher<Task> dependsOn(final Matcher matcher) {
+-    public static Matcher<Task> dependsOn(Matcher<? extends Iterable<String>> matcher) {
++    public static Matcher<Task> dependsOn(Matcher matcher) {
+         return dependsOn(matcher, false);
+     }
+ 
+     @Factory
+-    public static Matcher<Task> dependsOnPaths(Matcher<? extends Iterable<String>> matcher) {
++    public static Matcher<Task> dependsOnPaths(Matcher matcher) {
+         return dependsOn(matcher, true);
+     }
+ 
+-    private static Matcher<Task> dependsOn(final Matcher<? extends Iterable<String>> matcher, final boolean matchOnPaths) {
++    private static Matcher<Task> dependsOn(final Matcher matcher, final boolean matchOnPaths) {
          return new BaseMatcher<Task>() {
              public boolean matches(Object o) {
                  Task task = (Task) o;
-@@ -303,7 +303,7 @@
+@@ -312,7 +312,7 @@
      }
  
      @Factory

@@ -28,7 +28,7 @@ Last-Update: 2012-08-18
  include 'ear'
 --- a/subprojects/docs/src/docs/dsl/dsl.xml
 +++ b/subprojects/docs/src/docs/dsl/dsl.xml
-@@ -318,9 +318,11 @@
+@@ -339,9 +339,11 @@
              <tr>
                  <td>org.gradle.plugins.signing.Sign</td>
              </tr>
@@ -40,7 +40,7 @@ Last-Update: 2012-08-18
              <tr>
                  <td>org.gradle.api.tasks.Sync</td>
              </tr>
-@@ -427,4 +429,4 @@
+@@ -448,4 +450,4 @@
          </table>
      </section>
  
@@ -49,7 +49,7 @@ Last-Update: 2012-08-18
 +</book>
 --- a/subprojects/docs/src/docs/userguide/sonarPlugin.xml
 +++ b/subprojects/docs/src/docs/userguide/sonarPlugin.xml
-@@ -147,9 +147,8 @@
+@@ -223,9 +223,8 @@
              <tr>
                  <td><literal>sonarAnalyze</literal></td>
                  <td>-</td>
@@ -63,12 +63,14 @@ Last-Update: 2012-08-18
 +</chapter>
 --- a/subprojects/docs/src/docs/userguide/userguide.xml
 +++ b/subprojects/docs/src/docs/userguide/userguide.xml
-@@ -60,7 +60,7 @@
+@@ -60,8 +60,10 @@
      <xi:include href='findBugsPlugin.xml'/>
      <xi:include href='jdependPlugin.xml'/>
      <xi:include href='pmdPlugin.xml'/>
--    <xi:include href='sonarPlugin.xml'/>
-+<!--    <xi:include href='sonarPlugin.xml'/> -->
++<!--
+     <xi:include href='sonarPlugin.xml'/>
+     <xi:include href='sonarRunnerPlugin.xml'/>
++-->
      <xi:include href='osgi.xml'/>
      <xi:include href='eclipsePlugin.xml'/>
      <xi:include href='ideaPlugin.xml'/>

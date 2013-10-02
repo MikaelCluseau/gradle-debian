@@ -29,9 +29,9 @@ Last-Update: 2012-09-03
  include 'buildComparison'
 --- a/subprojects/core/core.gradle
 +++ b/subprojects/core/core.gradle
-@@ -59,7 +59,7 @@
- 
-     testCompile project(':coreImpl')
+@@ -58,7 +58,7 @@
+     testFixturesCompile project(":internalTesting")
+     testFixturesRuntime project(':coreImpl')
  
 -    integTestCompile project(":internalIntegTesting")
 +    //integTestCompile project(":internalIntegTesting")

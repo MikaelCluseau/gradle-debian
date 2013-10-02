@@ -70,20 +70,19 @@ Last-Update: 2012-08-18
  apply plugin: 'jsoup'
  apply plugin: 'javascript-base'
  
-@@ -362,10 +361,10 @@
+@@ -362,9 +361,9 @@
      group = 'documentation'
  }
  
 -import org.gradle.plugins.pegdown.PegDown
 +//import org.gradle.plugins.pegdown.PegDown
- import org.gradle.plugins.jsoup.Jsoup
  
 -task editReleaseNotes() {
 +/*task editReleaseNotes() {
      group = "release notes"
      doLast {
          Class.forName("java.awt.Desktop").newInstance().edit(file("src/docs/release/notes.md"))
-@@ -410,14 +409,14 @@
+@@ -398,14 +397,14 @@
      systemProperty "org.gradle.docs.releasenotes.source", releaseNotesMarkdown.source.singleFile
      systemProperty "org.gradle.docs.releasenotes.rendered", new File(releaseNotes.destinationDir, releaseNotes.fileName)
  

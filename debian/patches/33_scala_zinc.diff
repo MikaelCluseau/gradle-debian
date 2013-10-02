@@ -10,8 +10,8 @@ Forwarded: not-needed
      compile project(":plugins")
  
      // keep in sync with ScalaBasePlugin code
--    provided("com.typesafe.zinc:zinc:0.2.0")
-+    // provided("com.typesafe.zinc:zinc:0.2.0")
+-    provided("com.typesafe.zinc:zinc:0.2.1")
++    // provided("com.typesafe.zinc:zinc:0.2.1")
  
      testCompile libraries.slf4j_api
  }
@@ -24,8 +24,8 @@ Forwarded: not-needed
  if (!javaVersion.java6Compatible) {
 --- a/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
 +++ b/subprojects/scala/src/main/groovy/org/gradle/api/plugins/scala/ScalaBasePlugin.groovy
-@@ -119,11 +119,11 @@
-             compile.conventionMapping.scalaClasspath = { getScalaClasspath(compile.classpath) }
+@@ -195,11 +195,11 @@
+             compile.conventionMapping.scalaClasspath = { inferScalaCompilerClasspath(compile.classpath) }
              compile.conventionMapping.zincClasspath = {
                  def config = project.configurations[ZINC_CONFIGURATION_NAME]
 -                if (!compile.scalaCompileOptions.useAnt && config.dependencies.empty) {
@@ -41,9 +41,9 @@ Forwarded: not-needed
                  config
              }
          }
-@@ -159,4 +159,4 @@
+@@ -212,4 +212,4 @@
+             scalaDoc.conventionMapping.scalaClasspath = { inferScalaCompilerClasspath(scalaDoc.classpath) }
          }
-         null
      }
 -}
 \ No newline at end of file

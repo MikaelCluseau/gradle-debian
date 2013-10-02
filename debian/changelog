@@ -1,6 +1,9 @@
-gradle (1.4-3) UNRELEASED; urgency=low
+gradle (1.5-1) UNRELEASED; urgency=low
 
   * Team upload.
+  * New upstream release
+    - Added a build dependency on libjatl-java
+    - Refreshed the patches
   * Updated the version of Guava used to fix a clean error
   * Use XZ compression for the upstream tarball
 

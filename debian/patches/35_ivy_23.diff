@@ -21,7 +21,7 @@
      }
 --- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/IvyXmlModuleDescriptorParser.java
 +++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/ivyservice/ivyresolve/parser/IvyXmlModuleDescriptorParser.java
-@@ -393,8 +393,7 @@
+@@ -318,8 +318,7 @@
              }
  
              DefaultExtendsDescriptor ed = new DefaultExtendsDescriptor(
@@ -29,9 +29,9 @@
 -                    parent.getResolvedModuleRevisionId(),
 +                    parent,
                      attributes.getValue("location"),
-                     (String[]) extendTypes.toArray(new String[extendTypes.size()]));
+                     extendTypes.toArray(new String[extendTypes.size()]));
              getMd().addInheritedDescriptor(ed);
-@@ -1203,4 +1202,4 @@
+@@ -924,4 +923,4 @@
      public String toString() {
          return "ivy parser";
      }
@@ -40,7 +40,7 @@
 +}
 --- a/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/repositories/cachemanager/AbstractRepositoryCacheManager.java
 +++ b/subprojects/core-impl/src/main/groovy/org/gradle/api/internal/artifacts/repositories/cachemanager/AbstractRepositoryCacheManager.java
-@@ -62,6 +62,11 @@
+@@ -63,6 +63,11 @@
          return null;
      }
  
