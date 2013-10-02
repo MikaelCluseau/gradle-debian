@@ -1,3 +1,10 @@
+gradle (1.4-3) UNRELEASED; urgency=low
+
+  * Team upload.
+  * Updated the version of Guava used to fix a clean error 
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Wed, 02 Oct 2013 23:09:09 +0200
+
 gradle (1.4-2) unstable; urgency=low
 
   * Fix compatibility with Apache Ivy 2.3 (Closes: #713171):
