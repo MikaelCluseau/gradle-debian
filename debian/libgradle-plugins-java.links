@@ -8,7 +8,7 @@ usr/share/java/CodeNarc.jar                      usr/share/gradle/lib/plugins/Co
 usr/share/java/GMetrics.jar                      usr/share/gradle/lib/plugins/GMetrics.jar
 
 # gradle-js 
-usr/share/java/js.jar                      usr/share/gradle/lib/plugins/js.jar
+usr/share/java/js.jar                            usr/share/gradle/lib/plugins/js.jar
 usr/share/java/gson.jar                          usr/share/gradle/lib/plugins/gson.jar
 
 # gradle-jetty
@@ -32,3 +32,6 @@ usr/share/java/commons-cli.jar                   usr/share/gradle/lib/plugins/co
 # gradle-signing
 usr/share/java/bcpg.jar                          usr/share/gradle/lib/plugins/bcpg.jar
 usr/share/java/bcprov.jar                        usr/share/gradle/lib/plugins/bcprov.jar
+
+# gradle-reporting
+usr/share/java/jatl.jar                          usr/share/gradle/lib/plugins/jatl.jar
