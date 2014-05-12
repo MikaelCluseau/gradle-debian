@@ -1,4 +1,4 @@
-gradle (1.5-1) UNRELEASED; urgency=low
+gradle (1.5-1) unstable; urgency=medium
 
   * Team upload.
   * New upstream release
@@ -8,7 +8,7 @@ gradle (1.5-1) UNRELEASED; urgency=low
   * Updated the version of Guava used to fix a clean error
   * Use XZ compression for the upstream tarball
 
- -- Emmanuel Bourg <ebourg@apache.org>  Wed, 02 Oct 2013 23:09:09 +0200
+ -- Emmanuel Bourg <ebourg@apache.org>  Mon, 12 May 2014 11:26:59 +0200
 
 gradle (1.4-2) unstable; urgency=low
 
