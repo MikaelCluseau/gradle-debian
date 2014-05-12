@@ -4,6 +4,7 @@ gradle (1.5-1) UNRELEASED; urgency=low
   * New upstream release
     - Added a build dependency on libjatl-java
     - Refreshed the patches
+  * Fixed a compilation error with Java 8
   * Updated the version of Guava used to fix a clean error
   * Use XZ compression for the upstream tarball
 

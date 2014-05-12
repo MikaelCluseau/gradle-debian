@@ -15,3 +15,4 @@
 33_scala_zinc.diff
 34_disable_code_quality.diff
 35_ivy_23.diff
+36_java8_compatibility.diff

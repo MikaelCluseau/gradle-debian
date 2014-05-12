@@ -1,0 +1,24 @@
+Description: Fixes the compilation errors with Java 8
+Author: Emmanuel Bourg <ebourg@apache.org>
+Forwarded: no
+--- a/subprojects/core/src/main/groovy/org/gradle/api/internal/project/taskfactory/AnnotationProcessingTaskFactory.java
++++ b/subprojects/core/src/main/groovy/org/gradle/api/internal/project/taskfactory/AnnotationProcessingTaskFactory.java
+@@ -254,7 +254,7 @@
+                 return;
+             }
+ 
+-            Annotation optional = annotationTarget.getAnnotation(Optional.class);
++            Annotation optional = annotationTarget.getAnnotation(org.gradle.api.tasks.Optional.class);
+             if (optional == null) {
+                 propertyInfo.setNotNullValidator(notNullValidator);
+             }
+--- a/subprojects/plugins/src/main/groovy/org/gradle/api/tasks/javadoc/Groovydoc.java
++++ b/subprojects/plugins/src/main/groovy/org/gradle/api/tasks/javadoc/Groovydoc.java
+@@ -22,6 +22,7 @@
+ import org.gradle.api.internal.project.IsolatedAntBuilder;
+ import org.gradle.api.logging.LogLevel;
+ import org.gradle.api.tasks.*;
++import org.gradle.api.tasks.Optional;
+ 
+ import java.io.File;
+ import java.io.Serializable;
