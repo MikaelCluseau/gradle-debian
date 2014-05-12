@@ -8,6 +8,7 @@ gradle (1.5-1) unstable; urgency=medium
   * Standards-Version updated to 3.9.5 (no changes)
   * Updated the version of Guava used to fix a clean error
   * Use XZ compression for the upstream tarball
+  * Switch to debhelper level 9
 
  -- Emmanuel Bourg <ebourg@apache.org>  Mon, 12 May 2014 11:26:59 +0200
 
