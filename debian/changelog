@@ -5,6 +5,7 @@ gradle (1.5-1) unstable; urgency=medium
     - Added a build dependency on libjatl-java
     - Refreshed the patches
   * Fixed a compilation error with Java 8
+  * Standards-Version updated to 3.9.5 (no changes)
   * Updated the version of Guava used to fix a clean error
   * Use XZ compression for the upstream tarball
 
