@@ -1,5 +1,6 @@
 gradle (1.5-1) unstable; urgency=medium
 
+  [ Emmanuel Bourg ]
   * Team upload.
   * New upstream release
     - Added a build dependency on libjatl-java
@@ -10,7 +11,12 @@ gradle (1.5-1) unstable; urgency=medium
   * Use XZ compression for the upstream tarball
   * Switch to debhelper level 9
 
- -- Emmanuel Bourg <ebourg@apache.org>  Mon, 12 May 2014 11:26:59 +0200
+  [ Miguel Landaeta ]
+  * Add patch to don't override user defined JAVA_HOME in the gradle script.
+    (Closes: #719814).
+  * Fix possible-unindented-list-in-extended-description lintian tag.
+
+ -- Miguel Landaeta <nomadium@debian.org>  Tue, 13 May 2014 17:38:10 -0300
 
 gradle (1.4-2) unstable; urgency=low
 

@@ -204,37 +204,39 @@ Description: Groovy based build system - All plugins
  gives you always the choice between the flexibility of Ant
  and the convenience of a build-by-convention behavior.
  .
- This package contains the Gradle Plugins :
- * announce plugin: enables you to publish messages on succeeded
-   tasks to your favourite platforms.
-   It supports Twitter, Ubuntu Notify, Snarl and Growl.
- * ANTLR plugin that extends the Java plugin to add support for
-   generating parsers using ANTLR
- * code-quality plugin that adds
-   tasks which perform code quality checks and generate reports from these
-   checks. The following tools are supported: CodeNarc and checkstyle
- * ide plugins that provide integration with
-   common used IDEs like Eclipse and IDEA IntelliJ.
- * jetty plugin that extends the
-   War plugin to add tasks which allow you to deploy your web application
-   to a Jetty web container embedded in the build.
- * maven plugin. With Gradle you can deploy
-   to remote Maven repositories or install to your local Maven repository. This
-   includes all Maven metadata manipulation and works also for Maven snapshots
- * osgi plugin: if the Java plugins is
-   applied, the OSGi plugin replaces the manifest object of the default jar
-   with an OsgiManifest object. The replaced manifest is merged into the new
-   one. The OSGi plugin makes heavy use of Peter Kriens BND tool
- * scala plugin that extends the
-   Java Plugin to add support for Scala projects. It can deal with Scala-only
-   projects and with mixed Java/Scala projects. It can even deal with Java-only
-   projects. The Scala plugin supports joint compilation of Java and Scala
-   source. This means your project can contain Scala classes which use Java
-   classes, and vice versa.
- * cpp plugin: C++ source compilation capabilities to a project.
- * ear plugin: Adds support for building J2EE applications.
- * javascript plugin: Adds the ability to check and minify Javascript files.
- * signing plugin: Adds the ability to digitally sign built files and artifacts.
+ This package contains the Gradle Plugins:
+  * announce plugin: enables you to publish messages on succeeded
+    tasks to your favourite platforms.
+    It supports Twitter, Ubuntu Notify, Snarl and Growl.
+  * ANTLR plugin that extends the Java plugin to add support for
+    generating parsers using ANTLR
+  * code-quality plugin that adds
+    tasks which perform code quality checks and generate reports from these
+    checks. The following tools are supported: CodeNarc and checkstyle
+  * ide plugins that provide integration with
+    common used IDEs like Eclipse and IDEA IntelliJ.
+  * jetty plugin that extends the
+    War plugin to add tasks which allow you to deploy your web application
+    to a Jetty web container embedded in the build.
+  * maven plugin. With Gradle you can deploy
+    to remote Maven repositories or install to your local Maven repository.
+    This includes all Maven metadata manipulation and works also for Maven
+    snapshots.
+  * osgi plugin: if the Java plugins is
+    applied, the OSGi plugin replaces the manifest object of the default jar
+    with an OsgiManifest object. The replaced manifest is merged into the new
+    one. The OSGi plugin makes heavy use of Peter Kriens BND tool
+  * scala plugin that extends the
+    Java Plugin to add support for Scala projects. It can deal with Scala-only
+    projects and with mixed Java/Scala projects. It can even deal with
+    Java-only projects. The Scala plugin supports joint compilation of Java and
+    Scala source. This means your project can contain Scala classes which use
+    Java classes, and vice versa.
+  * cpp plugin: C++ source compilation capabilities to a project.
+  * ear plugin: Adds support for building J2EE applications.
+  * javascript plugin: Adds the ability to check and minify Javascript files.
+  * signing plugin: Adds the ability to digitally sign built files and
+    artifacts.
 
 Package: gradle-doc
 Architecture: all

@@ -26,7 +26,7 @@ override_dh_auto_build:
 	unzip -q -n build/distributions/gradle-*-bin.zip -d build/distributions/bin
 	unzip -q -n build/distributions/gradle-*-all.zip -d build/distributions/all
 	pod2man -c '' -r '' debian/gradle.pod > build/gradle.1
-	./debian/gradle.sed -i build/distributions/bin/gradle-*/bin/gradle
+	patch -p1 < debian/patches/90_respect_user_java_home.diff
 
 override_dh_auto_clean:
 	dh_auto_clean

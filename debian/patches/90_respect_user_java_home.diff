@@ -1,0 +1,20 @@
+Description: Respect JAVA_HOME if users already set it
+Author: Miguel Landaeta <nomadium@debian.org>
+Bug-Debian: http://bugs.debian.org/719814
+Forwarded: no
+Last-Update: 2014-05-13
+
+--- a/build/distributions/bin/gradle-1.5/bin/gradle	2014-05-13 16:54:18.370234000 -0300
++++ b/build/distributions/bin/gradle-1.5/bin/gradle	2014-05-13 17:04:16.766234000 -0300
+@@ -67,6 +67,11 @@
+ 
+ CLASSPATH=$APP_HOME/lib/gradle-launcher-1.5.jar
+ 
++# Only set JAVA_HOME if the user hasn't set anything about it
++if [ -z "$JAVA_HOME" ] ; then
++    export JAVA_HOME=/usr/lib/jvm/default-java
++fi
++
+ # Determine the Java command to use to start the JVM.
+ if [ -n "$JAVA_HOME" ] ; then
+     if [ -x "$JAVA_HOME/jre/sh/java" ] ; then
