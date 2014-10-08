@@ -44,7 +44,7 @@ Last-Update: 2012-08-18
  
  apply plugin: 'groovy'
  apply plugin: 'checkstyle'
-@@ -21,16 +22,22 @@
+@@ -21,17 +22,23 @@
  apply plugin: 'eclipse'
  
  repositories {
@@ -67,10 +67,12 @@ Last-Update: 2012-08-18
      compile 'commons-lang:commons-lang:2.6@jar'
      groovy localGroovy()
 -    testCompile 'junit:junit:4.11@jar'
+-    testCompile 'org.spockframework:spock-core:0.7-groovy-1.8@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
 +    testCompile 'junit:junit4:4.x@jar'
-     testCompile 'org.spockframework:spock-core:0.7-groovy-1.8@jar', 'cglib:cglib-nodep:2.2', 'org.objenesis:objenesis:1.2'
++    testCompile 'org.spockframework:spock-core:0.7-groovy-1.8@jar', 'cglib:cglib3-nodep:3.x', 'org.objenesis:objenesis:1.2'
  
      compile "org.pegdown:pegdown:1.1.0"
+     compile "org.jsoup:jsoup:1.6.3"
 --- a/gradle/dependencies.gradle
 +++ b/gradle/dependencies.gradle
 @@ -25,16 +25,16 @@
@@ -170,8 +172,12 @@ Last-Update: 2012-08-18
  
      //eather:
      dependency "org.sonatype.aether:aether-api:1.13.1@jar"
-@@ -137,11 +139,11 @@
-     'cglib:cglib-nodep:2.2.2'
+@@ -134,14 +136,14 @@
+     'org.spockframework:spock-core:0.7-groovy-1.8@jar',
+     libraries.groovy,
+     libraries.objenesis,
+-    'cglib:cglib-nodep:2.2.2'
++    'cglib:cglib-nodep:3.x'
  ]
  libraries.jmock = [
 -    'org.jmock:jmock:2.5.1',
@@ -183,7 +189,8 @@ Last-Update: 2012-08-18
 +    dependencies.create('org.jmock:jmock2-junit4:2.5.1') { exclude group: 'junit', module: 'junit-dep' }, //junit-dep pulls old definitions of core junit types.
 +    'org.jmock:jmock2-legacy:2.5.1',
      libraries.objenesis,
-     'cglib:cglib-nodep:2.2'
+-    'cglib:cglib-nodep:2.2'
++    'cglib:cglib-nodep:3.x'
  ]
 --- a/subprojects/core/core.gradle
 +++ b/subprojects/core/core.gradle
