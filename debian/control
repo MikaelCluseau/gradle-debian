@@ -73,7 +73,7 @@ Build-Depends: ant (>= 1.8),
                testng,
                unzip
 Build-Conflicts: groovy (>= 2.0.0~)
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Vcs-Git: git://anonscm.debian.org/pkg-java/gradle.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-java/gradle.git
 Homepage: http://gradle.org
